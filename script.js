@@ -187,52 +187,7 @@ async function fetchAllMarketItems() {
   return fetchPromise;
 }
 
-// ============================================
-// 初期化
-// ============================================
-searchBtn.addEventListener('click', doSearch);
-searchInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter') doSearch();
-});
-searchInput.addEventListener('input', onSearchInput);
-document.addEventListener('click', e => {
-  if (!e.target.closest('.search-box')) hideSuggestions();
-});
 
-orderTypeFilter.addEventListener('change', applyFilters);
-
-// 履歴リストを初期表示
-renderCraftHistory();
-
-// キャッシュ自動削除
-const CACHE_TIMEOUT = 3600000; // 1時間
-
-// 定期的にキャッシュをチェック（1分ごと）
-setInterval(() => {
-  const now = Date.now();
-  // iconCacheの期限切れチェック
-  for (const [key, value] of iconCache.entries()) {
-    if (now - value.timestamp > CACHE_TIMEOUT) {
-      iconCache.delete(key);
-    }
-  }
-  // market itemsキャッシュの期限切れチェック
-  if (cachedMarketItems.timestamp && now - cachedMarketItems.timestamp > CACHE_TIMEOUT) {
-    cachedMarketItems = { data: null, timestamp: 0 };
-    fetchPromise = null;
-  }
-}, 60000); // 1分ごとにチェック
-
-// ページを閉じる/リロード時にキャッシュをクリア
-window.addEventListener('beforeunload', () => {
-  iconCache.clear();
-  cachedMarketItems = { data: null, timestamp: 0 };
-  fetchPromise = null;
-});
-
-searchInput.addEventListener('blur', () => {
-  setTimeout(() => hideSuggestions(), 200);
-});
 
 // ============================================
 // 検索オートサジェスト
@@ -1504,4 +1459,60 @@ window.renderCraftHistory = function() {
   html += '</div>';
   historyContainer.innerHTML = html;
 };
+
+// ============================================
+// 初期化（DOM読み込み後に実行）
+// ============================================
+document.addEventListener('DOMContentLoaded', () => {
+  // イベントリスナー設定
+  searchBtn.addEventListener('click', doSearch);
+  searchInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') doSearch();
+  });
+  searchInput.addEventListener('input', onSearchInput);
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.search-box')) hideSuggestions();
+  });
+
+  orderTypeFilter.addEventListener('change', applyFilters);
+
+  // 履歴リストを初期表示
+  renderCraftHistory();
+
+  // クラフト機能トグルイベントリスナー
+  const craftModeToggle = document.getElementById('craftModeToggle');
+  if (craftModeToggle) {
+    craftModeToggle.addEventListener('change', toggleCraftMode);
+  }
+
+  // キャッシュ自動削除
+  const CACHE_TIMEOUT = 3600000; // 1時間
+
+  // 定期的にキャッシュをチェック（1分ごと）
+  setInterval(() => {
+    const now = Date.now();
+    // iconCacheの期限切れチェック
+    for (const [key, value] of iconCache.entries()) {
+      if (now - value.timestamp > CACHE_TIMEOUT) {
+        iconCache.delete(key);
+      }
+    }
+    // market itemsキャッシュの期限切れチェック
+    if (cachedMarketItems.timestamp && now - cachedMarketItems.timestamp > CACHE_TIMEOUT) {
+      cachedMarketItems = { data: null, timestamp: 0 };
+      fetchPromise = null;
+    }
+  }, 60000); // 1分ごとにチェック
+
+  // ページを閉じる/リロード時にキャッシュをクリア
+  window.addEventListener('beforeunload', () => {
+    iconCache.clear();
+    cachedMarketItems = { data: null, timestamp: 0 };
+    fetchPromise = null;
+  });
+
+  searchInput.addEventListener('blur', () => {
+    setTimeout(() => hideSuggestions(), 200);
+  });
+});
 
