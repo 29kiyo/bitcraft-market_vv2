@@ -2,7 +2,7 @@
 // BitCraft Market Search v2 - script.js
 // ============================================
 
-const API_BASE = 'https://bitcraft-proxy.29kiyo.workers.dev/api';
+const API_BASE = 'https://bitcraft-marketvv2.29kiyo.workers.dev/api';
 
 // アイコン画像をキャッシュして再ロードを防ぐ
 const iconCache = new Map();
@@ -551,10 +551,13 @@ function renderItemHeader(item) {
   const useJaName = jaName && jaName.length > 2;
   const iconUrl = getCachedIcon(item.iconAssetName);
 
-  const itemHeaderEl = document.getElementById('itemHeader');
+  let itemHeaderEl = document.getElementById('itemHeader');
   if (!itemHeaderEl) {
-    console.error('itemHeader element not found');
-    return;
+    // 要素が存在しない場合は作成
+    itemHeaderEl = document.createElement('div');
+    itemHeaderEl.id = 'itemHeader';
+    itemHeaderEl.className = 'item-header';
+    resultSection.appendChild(itemHeaderEl);
   }
   itemHeaderEl.innerHTML = `
     <div class="item-title">
@@ -593,7 +596,14 @@ function renderPriceSummary(item, priceData) {
     return `<option value="${r}">${r} (R${rid})</option>`;
   }).join('');
 
-  document.getElementById('priceSummary').innerHTML = `
+  let priceSummaryEl = document.getElementById('priceSummary');
+  if (!priceSummaryEl) {
+    priceSummaryEl = document.createElement('div');
+    priceSummaryEl.id = 'priceSummary';
+    priceSummaryEl.className = 'price-summary';
+    resultSection.appendChild(priceSummaryEl);
+  }
+  priceSummaryEl.innerHTML = `
     <h3 class="section-title">💰 価格情報</h3>
     <div class="price-region-filter">
       <select id="priceRegionFilter" onchange="updatePriceByRegion()">
@@ -1363,6 +1373,20 @@ function clearError() {
   errorMsg.textContent = '';
 }
 
+// アイテムレシピ情報取得
+async function fetchItemRecipe(itemId) {
+  const itemOrCargo = 'item'; // レシピはアイテムのみ
+  try {
+    const res = await fetch(`${API_BASE}/items/${itemId}`, { headers: HEADERS });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.craftingRecipes || [];
+  } catch (err) {
+    console.error('Recipe fetch error:', err);
+    return null;
+  }
+}
+
 // 集計結果表示
 function renderAggregationResult(items, historyDate = null) {
   // タグごとにグループ化
@@ -1373,55 +1397,170 @@ function renderAggregationResult(items, historyDate = null) {
     tagGroups[tag].push(item);
   });
   
-  // 集計HTMLを生成
-  let html = `
-    <div class="aggregation-result">
-      <h3 class="section-title">🔨 クラフト集計結果 ${historyDate ? `<span class="history-date">(${historyDate})</span>` : ''}</h3>
-      <div class="aggregation-summary">
-        <div>合計アイテム数: ${items.length}個</div>
-        <div>タグ種類数: ${Object.keys(tagGroups).length}種類</div>
-      </div>
-      
-      <div class="aggregation-tags">
-  `;
-  
-  Object.keys(tagGroups).sort().forEach(tag => {
-    const groupItems = tagGroups[tag];
-    const jaTag = getJaName(tag) || tag;
-    html += `
-      <div class="tag-group">
-        <h4 class="tag-title">${jaTag} (${groupItems.length}個)</h4>
-        <div class="tag-items">
-          ${groupItems.map(item => {
-            const jaName = getJaName(item.name);
-            const useJaName = jaName && jaName.length > 2;
-            return `
-              <div class="agg-item" onclick="selectItem('${item.id}')">
-                <span class="agg-item-name">${useJaName ? jaName : item.name}</span>
-                ${item.tier ? `<span class="badge tier">T${item.tier}</span>` : ''}
-                <span class="s-rarity rarity-${item.rarityStr?.toLowerCase()}">${item.rarityStr || ''}</span>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-    `;
+  // 価格情報を取得
+  const pricePromises = items.map(async item => {
+    const itemOrCargo = item.itemType === 1 ? 'cargo' : 'item';
+    try {
+      const res = await fetch(`${API_BASE}/market/${itemOrCargo}/${item.id}`, { headers: HEADERS });
+      if (!res.ok) return { id: item.id, price: null };
+      const data = await res.json();
+      return { id: item.id, price: data?.stats?.lowestSell || null };
+    } catch (err) {
+      return { id: item.id, price: null };
+    }
   });
   
-  html += `
-      </div>
+  Promise.all(pricePromises).then(priceResults => {
+    // 価格をアイテムに紐付け
+    const priceMap = {};
+    priceResults.forEach(pr => {
+      priceMap[pr.id] = pr.price;
+    });
+    
+    // レシピ情報を取得
+    const recipePromises = items.map(async item => {
+      const recipes = await fetchItemRecipe(item.id);
+      return { id: item.id, recipes: recipes || [] };
+    });
+    
+    Promise.all(recipePromises).then(recipeResults => {
+      // レシピをアイテムに紐付け
+      const recipeMap = {};
+      recipeResults.forEach(rr => {
+        recipeMap[rr.id] = rr.recipes;
+      });
       
-      <div class="aggregation-actions">
-        <button class="back-btn" onclick="backToSearchResults()">← 検索結果に戻る</button>
-        <button class="clear-selection-btn" onclick="clearCraftSelection()">選択をクリア</button>
-      </div>
-    </div>
-  `;
+      // 合計金額を計算
+      let totalPrice = 0;
+      items.forEach(item => {
+        const price = priceMap[item.id];
+        if (price) totalPrice += price;
+      });
+      
+      // 集計HTMLを生成
+      let html = `
+        <div class="aggregation-result">
+          <h3 class="section-title">🔨 クラフト集計結果 ${historyDate ? `<span class="history-date">(${historyDate})</span>` : ''}</h3>
+          <div class="aggregation-summary">
+            <div>合計アイテム数: ${items.length}個</div>
+            <div>タグ種類数: ${Object.keys(tagGroups).length}種類</div>
+            <div>合計価格: ${formatPrice(totalPrice)}</div>
+          </div>
+          
+          <div class="aggregation-region">
+            <label>リージョン:</label>
+            <select id="aggregationRegionSelect" onchange="updateAggregationPrices()">
+              <option value="">全リージョン</option>
+            </select>
+          </div>
+          
+          <div class="aggregation-tags">
+      `;
+      
+      Object.keys(tagGroups).sort().forEach(tag => {
+        const groupItems = tagGroups[tag];
+        const jaTag = getJaName(tag) || tag;
+        html += `
+          <div class="tag-group">
+            <h4 class="tag-title">${jaTag} (${groupItems.length}個)</h4>
+            <div class="tag-items">
+              ${groupItems.map(item => {
+                const jaName = getJaName(item.name);
+                const useJaName = jaName && jaName.length > 2;
+                const price = priceMap[item.id];
+                const recipes = recipeMap[item.id] || [];
+                return `
+                  <div class="agg-item" onclick="selectItem('${item.id}')">
+                    <span class="agg-item-name">${useJaName ? jaName : item.name}</span>
+                    ${item.tier ? `<span class="badge tier">T${item.tier}</span>` : ''}
+                    <span class="s-rarity rarity-${item.rarityStr?.toLowerCase()}">${item.rarityStr || ''}</span>
+                    ${price ? `<span class="agg-price">${formatPrice(price)}</span>` : ''}
+                    ${recipes.length > 0 ? `<span class="recipe-badge">📚</span>` : ''}
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      });
+      
+      // レシピ詳細セクション
+      html += `
+          </div>
+          
+          <div class="recipe-section">
+            <h4 class="section-title">📚 レシピ情報</h4>
+            <div class="recipe-list">
+      `;
+      
+      items.forEach(item => {
+        const recipes = recipeMap[item.id] || [];
+        if (recipes.length > 0) {
+          const jaName = getJaName(item.name);
+          const useJaName = jaName && jaName.length > 2;
+          html += `
+            <div class="recipe-item">
+              <div class="recipe-header">${useJaName ? jaName : item.name}</div>
+              ${recipes.map(recipe => `
+                <div class="recipe-detail">
+                  <div>クラフト数: ${recipe.craftCount || 1}</div>
+                  <div>必要スキル: ${recipe.levelRequirements?.map(r => r.skillName).join(', ') || 'なし'}</div>
+                  <div>必要ツール: ${recipe.toolRequirements?.map(t => t.name).join(', ') || 'なし'}</div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+      });
+      
+      html += `
+            </div>
+          </div>
+          
+          <div class="aggregation-actions">
+            <button class="back-btn" onclick="backToSearchResults()">← 検索結果に戻る</button>
+            <button class="clear-selection-btn" onclick="clearCraftSelection()">選択をクリア</button>
+          </div>
+        </div>
+      `;
+      
+      resultSection.innerHTML = html;
+      resultSection.classList.remove('hidden');
+      searchResults.classList.add('hidden');
+      emptyState.classList.add('hidden');
+      
+      // リージョン選択を設定
+      setAggregationRegionOptions();
+    });
+  });
+}
+
+function setAggregationRegionOptions() {
+  const select = document.getElementById('aggregationRegionSelect');
+  if (!select) return;
   
-  resultSection.innerHTML = html;
-  resultSection.classList.remove('hidden');
-  searchResults.classList.add('hidden');
-  emptyState.classList.add('hidden');
+  // すべてのリージョンを取得
+  const regions = new Set();
+  selectedItems.forEach(item => {
+    // 注文データからリージョンを取得するには、loadItemDetailで取得したcurrentOrdersを使用
+    // 今回は簡易的に、現在の注文データからリージョンを取得
+  });
+  
+  // リージョン選択肢を追加
+  select.innerHTML = '<option value="">全リージョン</option>';
+  // 仮のリージョンリスト
+  const regionList = ['東部', '西部', '南部', '北部', '中央'];
+  regionList.forEach(region => {
+    const option = document.createElement('option');
+    option.value = region;
+    option.textContent = region;
+    select.appendChild(option);
+  });
+}
+
+function updateAggregationPrices() {
+  // リージョン選択時に価格を更新（今回は未実装）
+  // 実装する場合は、selectedItemsの各アイテムについて、リージョンごとの最低価格を再計算
 }
 
 window.backToSearchResults = function() {

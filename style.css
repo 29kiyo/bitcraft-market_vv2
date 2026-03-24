@@ -1508,6 +1508,22 @@ footer a:hover { color: var(--accent); }
   color: var(--text2);
 }
 
+.aggregation-region {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.aggregation-region select {
+  padding: 5px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+}
+
 .aggregation-tags {
   margin-bottom: 20px;
 }
@@ -1548,6 +1564,51 @@ footer a:hover { color: var(--accent); }
 .agg-item-name {
   flex: 1;
   font-size: 13px;
+}
+
+.agg-price {
+  color: var(--accent);
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.recipe-badge {
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.recipe-section {
+  margin-top: 20px;
+  padding: 15px;
+  background: var(--bg2);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+}
+
+.recipe-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 10px;
+}
+
+.recipe-item {
+  padding: 10px;
+  background: var(--bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.recipe-header {
+  font-weight: bold;
+  color: var(--accent);
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.recipe-detail {
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.4;
 }
 
 .aggregation-actions {
