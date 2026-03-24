@@ -551,7 +551,12 @@ function renderItemHeader(item) {
   const useJaName = jaName && jaName.length > 2;
   const iconUrl = getCachedIcon(item.iconAssetName);
 
-  document.getElementById('itemHeader').innerHTML = `
+  const itemHeaderEl = document.getElementById('itemHeader');
+  if (!itemHeaderEl) {
+    console.error('itemHeader element not found');
+    return;
+  }
+  itemHeaderEl.innerHTML = `
     <div class="item-title">
       <img class="item-icon" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
       <div class="item-title-text">
