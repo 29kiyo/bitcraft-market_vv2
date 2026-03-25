@@ -1,4 +1,4 @@
-// BitCraft Market v2 アイテム名 日本語⇔英語 変換テーブル（BitCraft準拠）
+// BitCraft アイテム名 日本語⇔英語 変換テーブル（BitCraft準拠）
 const ITEM_TRANSLATIONS = {
 
   // ===== 素材品質プレフィックス =====
@@ -214,6 +214,7 @@ const ITEM_TRANSLATIONS = {
   "アクセサリー": "Amulet",
   "ネックレス": "Amulet",
   "指輪": "Ring",
+  "アラクニル": "Araknir",
 
   // ===== 魚系 =====
   "ブライニーリナス": "Briny Linus",
@@ -256,7 +257,7 @@ const ITEM_TRANSLATIONS = {
 "プレーンズオックス": "Plains Ox",
 "ドロマイ": "Dromai",
 "動物": "Animal",
-"ウゴ": "Ugo",
+"ウゴ" : "ugo",
 
   // ===== 建築・クラフト素材 =====
   "ガラス": "Glass",
@@ -316,6 +317,7 @@ const ITEM_TRANSLATIONS = {
   "コスメ服": "Cosmetic Clothes",
   "砕いた殻": "Crushed Shells",
   "証書": "Deed",
+  "配置可能な証書": "Deployable Deed",
   "生地": "Dough",
   "ダンジョン素材": "Dungeon Crafting Material",
   "ダンジョン装備": "Dungeon Equipment",
@@ -362,6 +364,7 @@ const ITEM_TRANSLATIONS = {
   "前哨地研究": "Outpost Research",
   "パッケージ": "Package",
   "ペット卵": "Pet Egg",
+  "ペット": "Pet",
   "貴金属インゴット": "Precious Metal Ingot",
   "貴金属粒": "Precious Metal Nugget",
   "貴金属鉱石": "Precious Metal Ore",
@@ -440,9 +443,9 @@ const ITEM_TRANSLATIONS = {
 "水": "Water",
 "補給品": "Supplies",
 "商人ライセンス": "Trader License",
-  "証書": "Deed",
-  "配置可能な証書": "Deployable Deed",
-  "内壁証書": "Interior Wall Deed",
+"証書": "Deed",
+"配置可能な証書": "Deployable Deed",
+"内壁証書": "Interior Wall Deed",
 "顔料": "Pigment",
 "羊皮紙": "Parchment",
 "シーティング": "Sheeting",
@@ -460,6 +463,7 @@ const ITEM_TRANSLATIONS = {
   "セル": "cell",
   "テレポート": "Teleportation",
   "エナジー": " Energy",
+  "フクロウ": "Owl"
   
 };
 
@@ -474,6 +478,7 @@ const ITEM_YOMI = {
   "精製":     "せいせい",
   "古代":     "こだい",
   "金属":     "きんぞく",
+  "牙":       "きば",
   "破片":     "はへん",
   "木":       "き",
   "木材":     "もくざい",
@@ -527,6 +532,7 @@ const ITEM_YOMI = {
   "根":       "ね",
   "動物":     "どうぶつ",
   "証書":     "しょうしょ",
+  "設置可能":  "せっちかのう",
   "補給品":   "ほきゅうひん",
   "令状":     "れいじょう",
   "拡張":     "かくちょう",
@@ -890,6 +896,7 @@ const EN_ITEM_BASE = {
   "Shortsword": "ショートソード",
   "Spear & Shield": "槍と盾",
   "Frames": "フレーム",
+  "Araknir": "アラクニル",
 
   // ===== 防具 =====
   "Plated Armor": "プレートアーマー",
@@ -1064,6 +1071,8 @@ const EN_ITEM_BASE = {
   "Roasted Meat": "焼き肉",
   "Roasted Ocean Fish": "焼き海水魚",
   "Skewered Baitfish": "ベイトフィッシュ串焼き",
+  "sugar": "砂糖",
+  "salt": "塩",
 
   // ===== 研究・コーデックス =====
   "Cloth Research": "布研究",
@@ -1137,6 +1146,7 @@ const EN_EXACT = {
   "Araknir Eggsack": "アラクニル卵嚢",
   "Araknir Fangs": "アラクニル牙",
   "Araknir Silk": "アラクニルシルク",
+  "Araknir": "アラクニル",
   "Pure Argent Ring": "ピュア・アージェントリング",
   "Argent Ingot": "アージェントインゴット",
   "Dried Araknir Blood": "乾燥アラクニル血液",
@@ -1299,6 +1309,8 @@ const EN_EXACT = {
   "Deed: Pet Lusul (Orange and White)": "証書：ペット・ルスル（橙白）",
   "Deed: Pet Lusul (Peach)": "証書：ペット・ルスル（ピーチ）",
   "Deed: Pet Lusul (Purple)": "証書：ペット・ルスル（紫）",
+  "Owl": "フクロウ",
+  "Pet": "ペット",
   "Deed: Pet Owl Black": "証書：ペット・フクロウ（黒）",
   "Deed: Pet Owl Blue and Orange": "証書：ペット・フクロウ（青橙）",
   "Deed: Pet Owl Brown": "証書：ペット・フクロウ（茶）",
