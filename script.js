@@ -472,21 +472,19 @@ function renderSearchResults(items, page = 1) {
         const iconUrl = getCachedIcon(item.iconAssetName);
         const jaName = getJaName(item.name);
         const useJaName = jaName && jaName.length > 2;
+        const displayName = useJaName ? `${jaName} ${item.name}` : item.name;
         return `
           <div class="result-card" onclick="selectItem('${item.id}')">
-            <img class="rc-icon" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
-            <div class="rc-info">
-              <div class="rc-name">${useJaName ? jaName : item.name}</div>
-              ${useJaName ? `<div class="rc-sub">${item.name}</div>` : ''}
+            <div class="rc-top">
+              <img class="rc-icon" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
+              <div class="rc-info">
+                <div class="rc-name">${displayName}</div>
+              </div>
             </div>
             <div class="rc-badges">
               ${item.tier && item.tier > 0 ? `<span class="badge tier">T${item.tier}</span>` : ''}
-         <span class="s-rarity rarity-${item.rarityStr?.toLowerCase()}">${item.rarityStr || ''}</span>
-            ${item.tag ? `
-            ${parentCategoryMap[item.tag] ? `<span class="s-parent-category">${getJaName(parentCategoryMap[item.tag]) || parentCategoryMap[item.tag]}</span>` : ''}
-            <span class="s-tag">${getJaName(item.tag) || item.tag}</span>
-          ` : ''}
-          </span>
+              <span class="s-rarity rarity-${item.rarityStr?.toLowerCase()}">${item.rarityStr || ''}</span>
+              ${item.tag ? `<span class="s-category">${parentCategoryMap[item.tag] ? (getJaName(parentCategoryMap[item.tag]) || parentCategoryMap[item.tag]) : (getJaName(item.tag) || item.tag)}</span>` : ''}
             </div>
           </div>
         `;
