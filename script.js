@@ -319,16 +319,20 @@ const useJaName = jaName && jaName.length > 2 && item.name.toLowerCase() !== jaN
 const parentCategory = parentCategoryMap[item.tag] || '';
 const jaParentCategory = getJaName(parentCategory) || parentCategory;
 
+const displayName = useJaName ? `${jaName} ${item.name}` : item.name;
 div.innerHTML = `
-  <img class="s-icon" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
-  <div class="s-text">
-    <span class="s-name">${useJaName ? jaName : item.name}</span>
-    <span class="s-sub">${useJaName ? item.name : ''}</span>
+  <div class="s-top">
+    <img class="s-icon" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
+    <div class="s-text">
+      <span class="s-name">${displayName}</span>
+    </div>
   </div>
-  ${item.tier && item.tier > 0 ? `<span class="s-tier">T${item.tier}</span>` : ''}
-  <span class="s-rarity rarity-${item.rarityStr?.toLowerCase()}">${item.rarityStr || ''}</span>
-  ${parentCategory ? `<span class="s-parent-category">${jaParentCategory}</span>` : ''}
-  ${item.tag ? `<span class="s-tag">${getJaName(item.tag) || item.tag}</span>` : ''}
+  <div class="s-tags">
+    ${item.tier && item.tier > 0 ? `<span class="s-tier">T${item.tier}</span>` : ''}
+    <span class="s-rarity rarity-${item.rarityStr?.toLowerCase()}">${item.rarityStr || ''}</span>
+    ${parentCategory ? `<span class="s-parent-category">${jaParentCategory}</span>` : ''}
+    ${item.tag ? `<span class="s-tag">${getJaName(item.tag) || item.tag}</span>` : ''}
+  </div>
 `;
 
     div.addEventListener('click', () => {
