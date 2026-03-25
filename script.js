@@ -1,25 +1,55 @@
 // ============================================
-// BitCraft Market Search v2 - script.js
+// BitCraft Market Search - script.js
 // ============================================
 
-const API_BASE = 'https://bitcraft-marketvv2.29kiyo.workers.dev/api';
+const API_BASE = 'https://bitcraft-proxy.29kiyo.workers.dev/api';
 
 // アイコン画像をキャッシュして再ロードを防ぐ
 const iconCache = new Map();
 function getCachedIcon(iconAssetName) {
   if (!iconAssetName) return '';
-  if (iconCache.has(iconAssetName)) {
-    const cached = iconCache.get(iconAssetName);
-    iconCache.set(iconAssetName, { url: cached.url, timestamp: Date.now() });
-    return cached.url;
-  }
+  if (iconCache.has(iconAssetName)) return iconCache.get(iconAssetName);
   const url = `https://bitjita.com/${iconAssetName}.webp`;
-  iconCache.set(iconAssetName, { url, timestamp: Date.now() });
+  iconCache.set(iconAssetName, url);
   return url;
 }
 
+// キャッシュ自動削除機能
+let cacheClearTimer = null;
+const CACHE_CLEAR_INTERVAL = 60 * 60 * 1000; // 1時間
 
-const HEADERS = { 'x-app-identifier': 'bitcraft-market-vv2' };
+function clearCaches() {
+  // アイコンキャッシュをクリア
+  iconCache.clear();
+  // マーケットデータキャッシュをクリア
+  cachedMarketItems = null;
+  fetchPromise = null;
+  console.log('キャッシュをクリアしました');
+}
+
+function startCacheClearTimer() {
+  if (cacheClearTimer) clearTimeout(cacheClearTimer);
+  cacheClearTimer = setTimeout(() => {
+    clearCaches();
+    startCacheClearTimer(); // 再度タイマー開始
+  }, CACHE_CLEAR_INTERVAL);
+}
+
+// ページ読み込み時にタイマー開始
+startCacheClearTimer();
+
+// ページを閉じるときにキャッシュをクリア
+window.addEventListener('beforeunload', () => {
+  clearCaches();
+});
+
+// リロード時にもキャッシュをクリア（beforeunloadはリロード時にも発火するが念のため）
+window.addEventListener('pagehide', () => {
+  clearCaches();
+});
+
+
+const HEADERS = { 'x-app-identifier': 'bitcraft-market-search-github-pages' };
 
 // BitCraft Map用のベースURL（座標→マップリンク）
 const MAP_BASE = 'https://map.bitcraft.com';
@@ -62,11 +92,6 @@ const ORDERS_PER_PAGE = 20;
 let currentOrderSort = 'asc';
 let currentOrderRegion = '';
 let currentOrderClaim = '';
-
-// クラフト機能
-let craftMode = false;
-let selectedItems = [];
-let craftHistory = JSON.parse(localStorage.getItem('craftHistory') || '[]');
 
 let claimDebounceTimer = null;
 window.changeOrderClaim = function(claim) {
@@ -123,6 +148,32 @@ function toggleParentCategory(el) {
   el.nextElementSibling.classList.toggle('open');
 }
 
+// 親カテゴリマッピングを生成する関数
+function buildParentCategoryMap() {
+  const map = {};
+  const sections = document.querySelectorAll('#categoryDropdown .ms-section');
+  sections.forEach(section => {
+    const parentEl = section.querySelector('.ms-parent');
+    if (!parentEl) return;
+    const parentText = parentEl.textContent.replace(/[^\w\u4e00-\u9faf\u3040-\u30ff]/g, '').trim();
+    const childInputs = section.querySelectorAll('.ms-child input[type="checkbox"]');
+    childInputs.forEach(input => {
+      const tag = input.value;
+      if (tag) map[tag] = parentText;
+    });
+  });
+  return map;
+}
+let parentCategoryMap = {};
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    parentCategoryMap = buildParentCategoryMap();
+  });
+} else {
+  parentCategoryMap = buildParentCategoryMap();
+}
+
+
 function updateMultiLabel(type) {
   const values = getCheckedValues(type);
   const label = document.getElementById(`${type}Label`);
@@ -156,18 +207,11 @@ let accumulatedTrades = [];
 const MAX_TRADES = 50;
 let debounceTimer = null;
 
-let cachedMarketItems = { data: null, timestamp: 0 };
+let cachedMarketItems = null;
 let fetchPromise = null;
 
 async function fetchAllMarketItems() {
-  if (cachedMarketItems.data) {
-    // キャッシュが1時間未満なら使用
-    if (Date.now() - cachedMarketItems.timestamp < 3600000) {
-      return cachedMarketItems.data;
-    }
-    // キャッシュ期限切れならリセット
-    cachedMarketItems = { data: null, timestamp: 0 };
-  }
+  if (cachedMarketItems) return cachedMarketItems;
   if (fetchPromise) return fetchPromise;
 
   fetchPromise = (async () => {
@@ -178,16 +222,29 @@ async function fetchAllMarketItems() {
     );
     if (!res.ok) throw new Error('fetch failed');
     const json = await res.json();
-    const items = json?.data?.items || [];
-    cachedMarketItems = { data: items, timestamp: Date.now() };
-    fetchPromise = null;
-    return items;
+    cachedMarketItems = json?.data?.items || [];
+    return cachedMarketItems;
   })();
 
   return fetchPromise;
 }
 
+// ============================================
+// 初期化
+// ============================================
+searchBtn.addEventListener('click', doSearch);
+searchInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSearch();
+});
+searchInput.addEventListener('input', onSearchInput);
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-box')) hideSuggestions();
+});
 
+orderTypeFilter.addEventListener('change', applyFilters);
+searchInput.addEventListener('blur', () => {
+  setTimeout(() => hideSuggestions(), 200);
+});
 
 // ============================================
 // 検索オートサジェスト
@@ -259,6 +316,9 @@ const iconUrl = getCachedIcon(item.iconAssetName);
 // 日本語名が英語名より短すぎる場合（プレフィックスのみ）は使わない
 const useJaName = jaName && jaName.length > 2 && item.name.toLowerCase() !== jaName.toLowerCase();
 
+const parentCategory = parentCategoryMap[item.tag] || '';
+const jaParentCategory = getJaName(parentCategory) || parentCategory;
+
 div.innerHTML = `
   <img class="s-icon" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
   <div class="s-text">
@@ -266,9 +326,11 @@ div.innerHTML = `
     <span class="s-sub">${useJaName ? item.name : ''}</span>
   </div>
   ${item.tier && item.tier > 0 ? `<span class="s-tier">T${item.tier}</span>` : ''}
-  <span class="s-rarity rarity-${item.rarityStr?.toLowerCase()}">${item.rarityStr || ''}
-  ${item.tag ? `<span class="s-tag">${getJaName(item.tag) || item.tag}</span>` : ''}</span>
+  <span class="s-rarity rarity-${item.rarityStr?.toLowerCase()}">${item.rarityStr || ''}</span>
+  ${parentCategory ? `<span class="s-parent-category">${jaParentCategory}</span>` : ''}
+  ${item.tag ? `<span class="s-tag">${getJaName(item.tag) || item.tag}</span>` : ''}
 `;
+
     div.addEventListener('click', () => {
       searchInput.value = item.name;
       hideSuggestions();
@@ -301,21 +363,11 @@ async function doSearch() {
     window._lastSearchQuery = q;
   }
   const tiers = getCheckedValues('tier');
-  const rarities = getCheckedValues('rarity');
-  const categories = getCheckedValues('category');
+const rarities = getCheckedValues('rarity');
+const categories = getCheckedValues('category');
 
-  // フィルター条件がない場合、検索されていない状態に戻る
-  const orderType = orderTypeFilter.value;
-  const isOrderTypeFilterEmpty = orderType === '';
-  const isCategoryFilterEmpty = categories.length === 0 || categories.every(cat => cat.startsWith('__group__'));
-  if (!q && tiers.length === 0 && rarities.length === 0 && isOrderTypeFilterEmpty && isCategoryFilterEmpty) {
-    currentItems = [];
-    searchResults.classList.add('hidden');
-    resultSection.classList.add('hidden');
-    emptyState.classList.remove('hidden');
-    return;
-  }
-
+if (!q && tiers.length === 0 && rarities.length === 0 && categories.length === 0) return;
+  
   hideSuggestions();
   showLoading();
   clearError();
@@ -324,18 +376,7 @@ async function doSearch() {
     const allItems = await fetchAllMarketItems();
     const hasJapanese = /[\u3040-\u30ff\u4e00-\u9faf]/.test(q);
 
-    // タグの修正
-    const items = allItems.map(item => {
-      const newItem = { ...item };
-      if (item.name === "Hunter's Goat Lead") {
-        newItem.tag = "Hunter Tool";
-      } else if (item.tag === "Journal") {
-        newItem.tag = "Study Journal";
-      }
-      return newItem;
-    });
-
-    let filtered = items;
+    let filtered = allItems;
 
     // 検索ワードがある場合のみ名前フィルタリング
     if (q) {
@@ -391,6 +432,8 @@ if (categories.length > 0) {
 
     currentItems = filtered;
 
+   
+
     if (currentItems.length === 0) {
       showError('アイテムが見つかりませんでした。別のキーワードで試してください。');
       return;
@@ -429,14 +472,8 @@ function renderSearchResults(items, page = 1) {
         const iconUrl = getCachedIcon(item.iconAssetName);
         const jaName = getJaName(item.name);
         const useJaName = jaName && jaName.length > 2;
-        const isSelected = selectedItems.some(si => si.id === item.id);
         return `
           <div class="result-card" onclick="selectItem('${item.id}')">
-            ${craftMode ? `
-              <div class="craft-checkbox" onclick="event.stopPropagation()">
-                <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleCraftItem('${item.id}', this.checked)">
-              </div>
-            ` : ''}
             <img class="rc-icon" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
             <div class="rc-info">
               <div class="rc-name">${useJaName ? jaName : item.name}</div>
@@ -444,8 +481,12 @@ function renderSearchResults(items, page = 1) {
             </div>
             <div class="rc-badges">
               ${item.tier && item.tier > 0 ? `<span class="badge tier">T${item.tier}</span>` : ''}
-              <span class="s-rarity rarity-${item.rarityStr?.toLowerCase()}">${item.rarityStr || ''}
-              ${item.tag ? `<span class="s-tag">${getJaName(item.tag) || item.tag}</span>` : ''}</span>
+         <span class="s-rarity rarity-${item.rarityStr?.toLowerCase()}">${item.rarityStr || ''}</span>
+            ${item.tag ? `
+            ${parentCategoryMap[item.tag] ? `<span class="s-parent-category">${getJaName(parentCategoryMap[item.tag]) || parentCategoryMap[item.tag]}</span>` : ''}
+            <span class="s-tag">${getJaName(item.tag) || item.tag}</span>
+          ` : ''}
+          </span>
             </div>
           </div>
         `;
@@ -471,6 +512,7 @@ window.selectItem = async function(itemId) {
   savedScrollPosition = window.scrollY;
   searchResults.classList.add('hidden');
   await loadItemDetail(item);
+  window.scrollTo(0, 0);
 };
 
 window.changePage = function(page) {
@@ -527,7 +569,13 @@ async function loadItemDetail(item) {
 // フィルター適用
 // ============================================
 function applyFilters() {
-  doSearch();
+  const tiers = getCheckedValues('tier');
+  const rarities = getCheckedValues('rarity');
+  const categories = getCheckedValues('category');
+  const q = searchInput.value.trim();
+  if (q || tiers.length > 0 || rarities.length > 0 || categories.length > 0) {
+    doSearch();
+  }
 }
 
 // ============================================
@@ -551,15 +599,7 @@ function renderItemHeader(item) {
   const useJaName = jaName && jaName.length > 2;
   const iconUrl = getCachedIcon(item.iconAssetName);
 
-  let itemHeaderEl = document.getElementById('itemHeader');
-  if (!itemHeaderEl) {
-    // 要素が存在しない場合は作成
-    itemHeaderEl = document.createElement('div');
-    itemHeaderEl.id = 'itemHeader';
-    itemHeaderEl.className = 'item-header';
-    resultSection.appendChild(itemHeaderEl);
-  }
-  itemHeaderEl.innerHTML = `
+  document.getElementById('itemHeader').innerHTML = `
     <div class="item-title">
       <img class="item-icon" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
       <div class="item-title-text">
@@ -596,14 +636,7 @@ function renderPriceSummary(item, priceData) {
     return `<option value="${r}">${r} (R${rid})</option>`;
   }).join('');
 
-  let priceSummaryEl = document.getElementById('priceSummary');
-  if (!priceSummaryEl) {
-    priceSummaryEl = document.createElement('div');
-    priceSummaryEl.id = 'priceSummary';
-    priceSummaryEl.className = 'price-summary';
-    resultSection.appendChild(priceSummaryEl);
-  }
-  priceSummaryEl.innerHTML = `
+  document.getElementById('priceSummary').innerHTML = `
     <h3 class="section-title">💰 価格情報</h3>
     <div class="price-region-filter">
       <select id="priceRegionFilter" onchange="updatePriceByRegion()">
@@ -1107,80 +1140,16 @@ window.clearAllFilters = function() {
   document.querySelectorAll('#categoryDropdown .ms-item').forEach(label => {
     label.style.display = '';
   });
-};
-
-// クラフト機能
-window.toggleCraftMode = function() {
-  const toggle = document.getElementById('craftModeToggle');
-  craftMode = toggle.checked;
-  const aggregateBtn = document.getElementById('aggregateBtn');
-  aggregateBtn.disabled = !craftMode || selectedItems.length === 0;
-  // 検索結果を再描画してチェックボックスの表示/非表示を切り替え
-  if (currentItems.length > 0) {
-    renderSearchResults(currentItems, currentPage);
-  }
-};
-
-window.toggleCraftItem = function(itemId, checked) {
-  const item = currentItems.find(i => i.id === itemId);
-  if (!item) return;
-  
-  if (checked) {
-    if (!selectedItems.some(si => si.id === itemId)) {
-      selectedItems.push(item);
-    }
-  } else {
-    selectedItems = selectedItems.filter(si => si.id !== itemId);
-  }
-  
-  const aggregateBtn = document.getElementById('aggregateBtn');
-  aggregateBtn.disabled = !craftMode || selectedItems.length === 0;
-};
-
-window.showAggregation = function() {
-  if (selectedItems.length === 0) return;
-  
-  // 履歴に保存
-  const historyEntry = {
-    id: Date.now(),
-    date: new Date().toLocaleString('ja-JP'),
-    items: selectedItems.map(item => ({
-      id: item.id,
-      name: item.name,
-      jaName: getJaName(item.name),
-      tag: item.tag,
-      tier: item.tier,
-      rarity: item.rarity
-    }))
-  };
-  
-  craftHistory.unshift(historyEntry);
-  if (craftHistory.length > 20) craftHistory = craftHistory.slice(0, 20);
-  localStorage.setItem('craftHistory', JSON.stringify(craftHistory));
-  
-  // 集計結果を表示
-  renderAggregationResult(selectedItems);
-};
-
-window.showCraftHistory = function(historyId) {
-  const entry = craftHistory.find(h => h.id === historyId);
-  if (!entry) return;
-  
-  // 履歴のアイテムを再構築（価格情報などは最新データを使用）
-  const items = entry.items.map(historyItem => {
-    // まずcurrentItemsから探す、なければダミーアイテムを作成
-    const current = currentItems.find(ci => ci.id === historyItem.id);
-    return current || {
-      id: historyItem.id,
-      name: historyItem.name,
-      tag: historyItem.tag,
-      tier: historyItem.tier,
-      rarity: historyItem.rarity,
-      rarityStr: ['Default','Common','Uncommon','Rare','Epic','Legendary','Mythic'][historyItem.rarity] || ''
-    };
+  // 以下3行を追加
+  document.querySelectorAll('#categoryDropdown .ms-section').forEach(section => {
+    section.style.display = '';
   });
-  
-  renderAggregationResult(items, entry.date);
+  document.querySelectorAll('#categoryDropdown .ms-parent').forEach(parent => {
+    parent.classList.remove('open');
+  });
+  document.querySelectorAll('#categoryDropdown .ms-section-body').forEach(body => {
+    body.classList.remove('open');
+  });
 };
 
 window.filterTradeLog = function() {
@@ -1372,291 +1341,4 @@ function clearError() {
   errorMsg.classList.add('hidden');
   errorMsg.textContent = '';
 }
-
-// アイテムレシピ情報取得
-async function fetchItemRecipe(itemId) {
-  const itemOrCargo = 'item'; // レシピはアイテムのみ
-  try {
-    const res = await fetch(`${API_BASE}/items/${itemId}`, { headers: HEADERS });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data?.craftingRecipes || [];
-  } catch (err) {
-    console.error('Recipe fetch error:', err);
-    return null;
-  }
-}
-
-// 集計結果表示
-function renderAggregationResult(items, historyDate = null) {
-  // タグごとにグループ化
-  const tagGroups = {};
-  items.forEach(item => {
-    const tag = item.tag || 'Unknown';
-    if (!tagGroups[tag]) tagGroups[tag] = [];
-    tagGroups[tag].push(item);
-  });
-  
-  // 価格情報を取得
-  const pricePromises = items.map(async item => {
-    const itemOrCargo = item.itemType === 1 ? 'cargo' : 'item';
-    try {
-      const res = await fetch(`${API_BASE}/market/${itemOrCargo}/${item.id}`, { headers: HEADERS });
-      if (!res.ok) return { id: item.id, price: null };
-      const data = await res.json();
-      return { id: item.id, price: data?.stats?.lowestSell || null };
-    } catch (err) {
-      return { id: item.id, price: null };
-    }
-  });
-  
-  Promise.all(pricePromises).then(priceResults => {
-    // 価格をアイテムに紐付け
-    const priceMap = {};
-    priceResults.forEach(pr => {
-      priceMap[pr.id] = pr.price;
-    });
-    
-    // レシピ情報を取得
-    const recipePromises = items.map(async item => {
-      const recipes = await fetchItemRecipe(item.id);
-      return { id: item.id, recipes: recipes || [] };
-    });
-    
-    Promise.all(recipePromises).then(recipeResults => {
-      // レシピをアイテムに紐付け
-      const recipeMap = {};
-      recipeResults.forEach(rr => {
-        recipeMap[rr.id] = rr.recipes;
-      });
-      
-      // 合計金額を計算
-      let totalPrice = 0;
-      items.forEach(item => {
-        const price = priceMap[item.id];
-        if (price) totalPrice += price;
-      });
-      
-      // 集計HTMLを生成
-      let html = `
-        <div class="aggregation-result">
-          <h3 class="section-title">🔨 クラフト集計結果 ${historyDate ? `<span class="history-date">(${historyDate})</span>` : ''}</h3>
-          <div class="aggregation-summary">
-            <div>合計アイテム数: ${items.length}個</div>
-            <div>タグ種類数: ${Object.keys(tagGroups).length}種類</div>
-            <div>合計価格: ${formatPrice(totalPrice)}</div>
-          </div>
-          
-          <div class="aggregation-region">
-            <label>リージョン:</label>
-            <select id="aggregationRegionSelect" onchange="updateAggregationPrices()">
-              <option value="">全リージョン</option>
-            </select>
-          </div>
-          
-          <div class="aggregation-tags">
-      `;
-      
-      Object.keys(tagGroups).sort().forEach(tag => {
-        const groupItems = tagGroups[tag];
-        const jaTag = getJaName(tag) || tag;
-        html += `
-          <div class="tag-group">
-            <h4 class="tag-title">${jaTag} (${groupItems.length}個)</h4>
-            <div class="tag-items">
-              ${groupItems.map(item => {
-                const jaName = getJaName(item.name);
-                const useJaName = jaName && jaName.length > 2;
-                const price = priceMap[item.id];
-                const recipes = recipeMap[item.id] || [];
-                return `
-                  <div class="agg-item" onclick="selectItem('${item.id}')">
-                    <span class="agg-item-name">${useJaName ? jaName : item.name}</span>
-                    ${item.tier ? `<span class="badge tier">T${item.tier}</span>` : ''}
-                    <span class="s-rarity rarity-${item.rarityStr?.toLowerCase()}">${item.rarityStr || ''}</span>
-                    ${price ? `<span class="agg-price">${formatPrice(price)}</span>` : ''}
-                    ${recipes.length > 0 ? `<span class="recipe-badge">📚</span>` : ''}
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          </div>
-        `;
-      });
-      
-      // レシピ詳細セクション
-      html += `
-          </div>
-          
-          <div class="recipe-section">
-            <h4 class="section-title">📚 レシピ情報</h4>
-            <div class="recipe-list">
-      `;
-      
-      items.forEach(item => {
-        const recipes = recipeMap[item.id] || [];
-        if (recipes.length > 0) {
-          const jaName = getJaName(item.name);
-          const useJaName = jaName && jaName.length > 2;
-          html += `
-            <div class="recipe-item">
-              <div class="recipe-header">${useJaName ? jaName : item.name}</div>
-              ${recipes.map(recipe => `
-                <div class="recipe-detail">
-                  <div>クラフト数: ${recipe.craftCount || 1}</div>
-                  <div>必要スキル: ${recipe.levelRequirements?.map(r => r.skillName).join(', ') || 'なし'}</div>
-                  <div>必要ツール: ${recipe.toolRequirements?.map(t => t.name).join(', ') || 'なし'}</div>
-                </div>
-              `).join('')}
-            </div>
-          `;
-        }
-      });
-      
-      html += `
-            </div>
-          </div>
-          
-          <div class="aggregation-actions">
-            <button class="back-btn" onclick="backToSearchResults()">← 検索結果に戻る</button>
-            <button class="clear-selection-btn" onclick="clearCraftSelection()">選択をクリア</button>
-          </div>
-        </div>
-      `;
-      
-      resultSection.innerHTML = html;
-      resultSection.classList.remove('hidden');
-      searchResults.classList.add('hidden');
-      emptyState.classList.add('hidden');
-      
-      // リージョン選択を設定
-      setAggregationRegionOptions();
-    });
-  });
-}
-
-function setAggregationRegionOptions() {
-  const select = document.getElementById('aggregationRegionSelect');
-  if (!select) return;
-  
-  // すべてのリージョンを取得
-  const regions = new Set();
-  selectedItems.forEach(item => {
-    // 注文データからリージョンを取得するには、loadItemDetailで取得したcurrentOrdersを使用
-    // 今回は簡易的に、現在の注文データからリージョンを取得
-  });
-  
-  // リージョン選択肢を追加
-  select.innerHTML = '<option value="">全リージョン</option>';
-  // 仮のリージョンリスト
-  const regionList = ['東部', '西部', '南部', '北部', '中央'];
-  regionList.forEach(region => {
-    const option = document.createElement('option');
-    option.value = region;
-    option.textContent = region;
-    select.appendChild(option);
-  });
-}
-
-function updateAggregationPrices() {
-  // リージョン選択時に価格を更新（今回は未実装）
-  // 実装する場合は、selectedItemsの各アイテムについて、リージョンごとの最低価格を再計算
-}
-
-window.backToSearchResults = function() {
-  resultSection.classList.add('hidden');
-  if (currentItems.length > 0) {
-    searchResults.classList.remove('hidden');
-  } else {
-    emptyState.classList.remove('hidden');
-  }
-};
-
-window.clearCraftSelection = function() {
-  selectedItems = [];
-  const aggregateBtn = document.getElementById('aggregateBtn');
-  aggregateBtn.disabled = true;
-  if (currentItems.length > 0) {
-    renderSearchResults(currentItems, currentPage);
-  }
-};
-
-// 履歴リスト表示
-window.renderCraftHistory = function() {
-  const historyContainer = document.getElementById('craftHistoryList');
-  if (!historyContainer) return;
-  
-  if (craftHistory.length === 0) {
-    historyContainer.innerHTML = '<p class="no-history">履歴がありません</p>';
-    return;
-  }
-  
-  let html = '<div class="history-list">';
-  craftHistory.forEach(entry => {
-    html += `
-      <div class="history-item" onclick="showCraftHistory(${entry.id})">
-        <div class="history-date">${entry.date}</div>
-        <div class="history-summary">${entry.items.length}アイテム</div>
-      </div>
-    `;
-  });
-  html += '</div>';
-  historyContainer.innerHTML = html;
-};
-
-// ============================================
-// 初期化（DOM読み込み後に実行）
-// ============================================
-document.addEventListener('DOMContentLoaded', () => {
-  // イベントリスナー設定
-  searchBtn.addEventListener('click', doSearch);
-  searchInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter') doSearch();
-  });
-  searchInput.addEventListener('input', onSearchInput);
-  document.addEventListener('click', e => {
-    if (!e.target.closest('.search-box')) hideSuggestions();
-  });
-
-  orderTypeFilter.addEventListener('change', applyFilters);
-
-  // 履歴リストを初期表示
-  renderCraftHistory();
-
-  // クラフト機能トグルイベントリスナー
-  const craftModeToggle = document.getElementById('craftModeToggle');
-  if (craftModeToggle) {
-    craftModeToggle.addEventListener('change', toggleCraftMode);
-  }
-
-  // キャッシュ自動削除
-  const CACHE_TIMEOUT = 3600000; // 1時間
-
-  // 定期的にキャッシュをチェック（1分ごと）
-  setInterval(() => {
-    const now = Date.now();
-    // iconCacheの期限切れチェック
-    for (const [key, value] of iconCache.entries()) {
-      if (now - value.timestamp > CACHE_TIMEOUT) {
-        iconCache.delete(key);
-      }
-    }
-    // market itemsキャッシュの期限切れチェック
-    if (cachedMarketItems.timestamp && now - cachedMarketItems.timestamp > CACHE_TIMEOUT) {
-      cachedMarketItems = { data: null, timestamp: 0 };
-      fetchPromise = null;
-    }
-  }, 60000); // 1分ごとにチェック
-
-  // ページを閉じる/リロード時にキャッシュをクリア
-  window.addEventListener('beforeunload', () => {
-    iconCache.clear();
-    cachedMarketItems = { data: null, timestamp: 0 };
-    fetchPromise = null;
-  });
-
-  searchInput.addEventListener('blur', () => {
-    setTimeout(() => hideSuggestions(), 200);
-  });
-});
 
