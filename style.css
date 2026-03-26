@@ -1160,6 +1160,11 @@ footer a:hover { color: var(--accent); }
     gap: 8px;
   }
 
+  .rc-sub {
+    margin-top: 0;
+    margin-left: 8px;
+  }
+
   .rc-badges {
     flex-direction: row;
     align-items: center;
@@ -1186,6 +1191,10 @@ footer a:hover { color: var(--accent); }
   .s-text {
     flex-direction: row;
     gap: 8px;
+  }
+
+  .s-sub {
+    margin-left: 8px;
   }
 }
 
