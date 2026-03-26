@@ -322,7 +322,7 @@ const jaParentCategory = getJaName(parentCategory) || parentCategory;
 const displayName = useJaName ? `${jaName} ${item.name}` : item.name;
 div.innerHTML = `
   <div class="s-top">
-        <img class="s-icon" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
+    <img class="s-icon" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
     <div class="s-text">
       <span class="s-name">${useJaName ? jaName : item.name}</span>
       ${useJaName ? `<span class="s-sub">${item.name}</span>` : ''}
@@ -576,6 +576,16 @@ async function loadItemDetail(item) {
 // フィルター適用
 // ============================================
 function applyFilters() {
+  const orderType = orderTypeFilter.value;
+  
+  // 詳細ページが表示されている場合、注文一覧を再描画
+  if (!resultSection.classList.contains('hidden') && window._currentItem) {
+    // 注文種別フィルターの変更時のみ、注文一覧を再描画
+    renderOrders(currentOrders, orderType, currentOrderPage, currentOrderSort, currentOrderRegion, currentOrderClaim);
+    return;
+  }
+  
+  // それ以外の場合は、検索フィルターを適用
   const tiers = getCheckedValues('tier');
   const rarities = getCheckedValues('rarity');
   const categories = getCheckedValues('category');
