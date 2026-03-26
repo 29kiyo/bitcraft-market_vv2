@@ -4,19 +4,46 @@
 
 const API_BASE = 'https://bitcraft-proxy.29kiyo.workers.dev/api';
 
-// アイコン画像をキャッシュして再ロードを防ぐ
+// アイコン画像をキャッシュして再ロードを防ぐ（TTL付き）
 const iconCache = new Map();
+const ICON_CACHE_TTL = 60 * 60 * 1000; // 1時間（ミリ秒）
+
 function getCachedIcon(iconAssetName) {
   if (!iconAssetName) return '';
-  if (iconCache.has(iconAssetName)) return iconCache.get(iconAssetName);
+  
+  const cached = iconCache.get(iconAssetName);
+  const now = Date.now();
+  
+  // キャッシュがあり、有効期限内なら返す
+  if (cached && (now - cached.timestamp) < ICON_CACHE_TTL) {
+    return cached.url;
+  }
+  
+  // キャッシュが無効または存在しない場合は新規取得
   const url = `https://bitjita.com/${iconAssetName}.webp`;
-  iconCache.set(iconAssetName, url);
+  iconCache.set(iconAssetName, {
+    url: url,
+    timestamp: now
+  });
+  
   return url;
+}
+
+// 期限切れアイコンキャッシュのクリーンアップ関数
+function cleanExpiredIconCache() {
+  const now = Date.now();
+  for (const [key, value] of iconCache) {
+    if ((now - value.timestamp) > ICON_CACHE_TTL) {
+      iconCache.delete(key);
+    }
+  }
 }
 
 // キャッシュ自動削除機能
 let cacheClearTimer = null;
+let iconCacheCleanTimer = null;
 const CACHE_CLEAR_INTERVAL = 60 * 60 * 1000; // 1時間
+const ICON_CACHE_CLEAN_INTERVAL = 30 * 60 * 1000; // 30分ごとに期限切れキャッシュをクリーンアップ
 
 function clearCaches() {
   // アイコンキャッシュをクリア
@@ -35,8 +62,17 @@ function startCacheClearTimer() {
   }, CACHE_CLEAR_INTERVAL);
 }
 
+function startIconCacheCleanTimer() {
+  if (iconCacheCleanTimer) clearTimeout(iconCacheCleanTimer);
+  iconCacheCleanTimer = setTimeout(() => {
+    cleanExpiredIconCache();
+    startIconCacheCleanTimer(); // 再度タイマー開始
+  }, ICON_CACHE_CLEAN_INTERVAL);
+}
+
 // ページ読み込み時にタイマー開始
 startCacheClearTimer();
+startIconCacheCleanTimer();
 
 // ページを閉じるときにキャッシュをクリア
 window.addEventListener('beforeunload', () => {
