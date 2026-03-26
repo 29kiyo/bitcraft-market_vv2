@@ -1140,6 +1140,7 @@ footer a:hover { color: var(--accent); }
 
   .rc-top {
     width: 100%;
+    flex: 1;
   }
 
   .rc-icon {
@@ -1149,13 +1150,18 @@ footer a:hover { color: var(--accent); }
 
   .rc-name {
     font-size: 13px;
+    flex-shrink: 1;
+    min-width: 0;
   }
 
   .rc-sub {
     font-size: 11px;
+    flex-shrink: 1;
+    min-width: 0;
   }
 
   .rc-info {
+    display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
     gap: 8px;
@@ -1167,6 +1173,7 @@ footer a:hover { color: var(--accent); }
   }
 
   .rc-badges {
+    width: 100%;
     flex-direction: row;
     align-items: center;
     gap: 8px;
@@ -1179,9 +1186,11 @@ footer a:hover { color: var(--accent); }
 
   .s-top {
     width: 100%;
+    flex: 1;
   }
 
   .s-tags {
+    width: 100%;
     flex-direction: row;
     align-items: center;
     gap: 6px;
@@ -1190,13 +1199,21 @@ footer a:hover { color: var(--accent); }
   }
 
   .s-text {
+    display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
     gap: 8px;
   }
 
+  .s-name {
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
   .s-sub {
     margin-left: 8px;
+    flex-shrink: 1;
+    min-width: 0;
   }
 }
 
