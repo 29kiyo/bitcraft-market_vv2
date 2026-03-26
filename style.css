@@ -1182,6 +1182,7 @@ footer a:hover { color: var(--accent); }
   .suggestion-item {
     flex-direction: column;
     align-items: stretch;
+    text-align: left;
   }
 
   .s-top {
@@ -1196,6 +1197,14 @@ footer a:hover { color: var(--accent); }
     gap: 6px;
     padding-left: 0;
     justify-content: flex-start;
+  }
+
+  .s-tier,
+  .s-rarity,
+  .s-parent-category,
+  .s-tag {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
   }
 
   .s-text {
