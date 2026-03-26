@@ -247,7 +247,7 @@ main {
   margin-bottom: 8px;
 }
 .item-ja { color: var(--text2); font-size: 1.3rem; }
-.item-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+.item-badges { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .badge {
   font-family: 'Rajdhani', sans-serif;
   font-size: 0.8rem;
