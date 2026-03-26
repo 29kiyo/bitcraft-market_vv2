@@ -611,6 +611,10 @@ function renderItemHeader(item) {
         <div class="item-badges">
           ${item.tier && item.tier > 0 ? `<span class="badge tier">Tier ${item.tier}</span>` : ''}
           <span class="s-rarity rarity-${item.rarityStr?.toLowerCase()}">${item.rarityStr || ''}</span>
+          ${item.tag ? `
+            ${parentCategoryMap[item.tag] ? `<span class="s-parent-category">${getJaName(parentCategoryMap[item.tag]) || parentCategoryMap[item.tag]}</span>` : ''}
+            <span class="s-tag">${getJaName(item.tag) || item.tag}</span>
+          ` : ''}
         </div>
       </div>
     </div>
