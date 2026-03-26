@@ -324,7 +324,8 @@ div.innerHTML = `
   <div class="s-top">
     <img class="s-icon" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
     <div class="s-text">
-      <span class="s-name">${displayName}</span>
+      <span class="s-name">${useJaName ? jaName : item.name}</span>
+      ${useJaName ? `<span class="s-sub">${item.name}</span>` : ''}
     </div>
   </div>
   <div class="s-tags">
@@ -482,7 +483,8 @@ function renderSearchResults(items, page = 1) {
             <div class="rc-top">
               <img class="rc-icon" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
               <div class="rc-info">
-                <div class="rc-name">${displayName}</div>
+                <div class="rc-name">${useJaName ? jaName : item.name}</div>
+                ${useJaName ? `<div class="rc-sub">${item.name}</div>` : ''}
               </div>
             </div>
             <div class="rc-badges">
