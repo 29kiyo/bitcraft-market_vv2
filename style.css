@@ -1157,6 +1157,7 @@ footer a:hover { color: var(--accent); }
 
   .rc-info {
     flex-direction: row;
+    flex-wrap: nowrap;
     gap: 8px;
   }
 
@@ -1190,6 +1191,7 @@ footer a:hover { color: var(--accent); }
 
   .s-text {
     flex-direction: row;
+    flex-wrap: nowrap;
     gap: 8px;
   }
 
