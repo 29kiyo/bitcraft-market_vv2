@@ -114,6 +114,7 @@ main {
   padding: 4px 4px 4px 16px;
   gap: 8px;
   transition: border-color 0.2s, box-shadow 0.2s;
+  position: relative;
 }
 .search-input-wrap:focus-within {
   border-color: var(--accent);
@@ -129,6 +130,7 @@ main {
   font-family: 'Noto Sans JP', sans-serif;
   font-size: 1rem;
   padding: 10px 0;
+  padding-right: 100px;
 }
 #searchInput::placeholder { color: var(--text3); }
 #searchBtn {
@@ -144,8 +146,8 @@ main {
   cursor: pointer;
   transition: background 0.2s, transform 0.1s;
   white-space: nowrap;
-  flex: 0 0 auto;
-  margin-left: auto;
+  position: absolute;
+  right: 4px;
   align-self: center;
 }
 #searchBtn:hover { background: #00e6ad; }
