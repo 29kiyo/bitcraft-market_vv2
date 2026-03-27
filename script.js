@@ -4,46 +4,19 @@
 
 const API_BASE = 'https://bitcraft-proxy.29kiyo.workers.dev/api';
 
-// アイコン画像をキャッシュして再ロードを防ぐ（TTL付き）
+// アイコン画像をキャッシュして再ロードを防ぐ
 const iconCache = new Map();
-const ICON_CACHE_TTL = 60 * 60 * 1000; // 1時間（ミリ秒）
-
 function getCachedIcon(iconAssetName) {
   if (!iconAssetName) return '';
-  
-  const cached = iconCache.get(iconAssetName);
-  const now = Date.now();
-  
-  // キャッシュがあり、有効期限内なら返す
-  if (cached && (now - cached.timestamp) < ICON_CACHE_TTL) {
-    return cached.url;
-  }
-  
-  // キャッシュが無効または存在しない場合は新規取得
+  if (iconCache.has(iconAssetName)) return iconCache.get(iconAssetName);
   const url = `https://bitjita.com/${iconAssetName}.webp`;
-  iconCache.set(iconAssetName, {
-    url: url,
-    timestamp: now
-  });
-  
+  iconCache.set(iconAssetName, url);
   return url;
-}
-
-// 期限切れアイコンキャッシュのクリーンアップ関数
-function cleanExpiredIconCache() {
-  const now = Date.now();
-  for (const [key, value] of iconCache) {
-    if ((now - value.timestamp) > ICON_CACHE_TTL) {
-      iconCache.delete(key);
-    }
-  }
 }
 
 // キャッシュ自動削除機能
 let cacheClearTimer = null;
-let iconCacheCleanTimer = null;
 const CACHE_CLEAR_INTERVAL = 60 * 60 * 1000; // 1時間
-const ICON_CACHE_CLEAN_INTERVAL = 30 * 60 * 1000; // 30分ごとに期限切れキャッシュをクリーンアップ
 
 function clearCaches() {
   // アイコンキャッシュをクリア
@@ -62,17 +35,8 @@ function startCacheClearTimer() {
   }, CACHE_CLEAR_INTERVAL);
 }
 
-function startIconCacheCleanTimer() {
-  if (iconCacheCleanTimer) clearTimeout(iconCacheCleanTimer);
-  iconCacheCleanTimer = setTimeout(() => {
-    cleanExpiredIconCache();
-    startIconCacheCleanTimer(); // 再度タイマー開始
-  }, ICON_CACHE_CLEAN_INTERVAL);
-}
-
 // ページ読み込み時にタイマー開始
 startCacheClearTimer();
-startIconCacheCleanTimer();
 
 // ページを閉じるときにキャッシュをクリア
 window.addEventListener('beforeunload', () => {
@@ -154,7 +118,7 @@ window.changeOrderSort = function(sort) {
 };
 
 window.changeOrderType = function(type) {
-  orderTypeFilter.value = type;
+  if (orderTypeFilter) orderTypeFilter.value = type;
   renderOrders(currentOrders, type, 1, currentOrderSort, currentOrderRegion, currentOrderClaim);
 };
 
@@ -277,7 +241,7 @@ document.addEventListener('click', e => {
   if (!e.target.closest('.search-box')) hideSuggestions();
 });
 
-orderTypeFilter.addEventListener('change', applyFilters);
+if (orderTypeFilter) orderTypeFilter.addEventListener('change', applyFilters);
 searchInput.addEventListener('blur', () => {
   setTimeout(() => hideSuggestions(), 200);
 });
@@ -400,7 +364,8 @@ async function doSearch() {
     document.getElementById('rarityLabel').textContent = 'すべて';
     document.querySelectorAll('#categoryDropdown input[type=checkbox]').forEach(cb => cb.checked = false);
     document.getElementById('categoryLabel').textContent = 'すべて';
-    document.getElementById('orderTypeFilter').value = '';
+    const otf = document.getElementById('orderTypeFilter');
+if (otf) otf.value = '';
     window._lastSearchQuery = q;
   }
   const tiers = getCheckedValues('tier');
@@ -569,7 +534,7 @@ window.changePage = function(page) {
 async function loadItemDetail(item) {
   showLoading();
   try {
-    const orderType = orderTypeFilter.value;
+const orderType = orderTypeFilter?.value || '';
     const itemOrCargo = item.itemType === 1 ? 'cargo' : 'item';
 
     const [marketRes, priceRes] = await Promise.all([
@@ -612,16 +577,6 @@ async function loadItemDetail(item) {
 // フィルター適用
 // ============================================
 function applyFilters() {
-  const orderType = orderTypeFilter.value;
-  
-  // 詳細ページが表示されている場合、注文一覧を再描画
-  if (!resultSection.classList.contains('hidden') && window._currentItem) {
-    // 注文種別フィルターの変更時のみ、注文一覧を再描画
-    renderOrders(currentOrders, orderType, currentOrderPage, currentOrderSort, currentOrderRegion, currentOrderClaim);
-    return;
-  }
-  
-  // それ以外の場合は、検索フィルターを適用
   const tiers = getCheckedValues('tier');
   const rarities = getCheckedValues('rarity');
   const categories = getCheckedValues('category');
@@ -1185,7 +1140,8 @@ window.clearAllFilters = function() {
   document.getElementById('categoryLabel').textContent = 'すべて';
   
   // 注文種別
-  document.getElementById('orderTypeFilter').value = '';
+  const otf = document.getElementById('orderTypeFilter');
+if (otf) otf.value = '';
 
   // 検索結果クリア
   searchInput.value = '';
@@ -1398,4 +1354,3 @@ function clearError() {
   errorMsg.classList.add('hidden');
   errorMsg.textContent = '';
 }
-
