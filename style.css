@@ -93,7 +93,7 @@ header {
 main {
   position: relative; z-index: 1;
   max-width: 1200px;
-  margin: 0 auto;
+  margin: 0;
   padding: 32px 24px 64px;
 }
 
@@ -753,7 +753,7 @@ footer a:hover { color: var(--accent); }
 .rarity-mythic { color: #ff4d6d; }
 .search-results {
   max-width: 1000px;
-  margin: 0 auto;
+  margin: 0;
   padding: 20px;
 }
 
@@ -1205,15 +1205,15 @@ footer a:hover { color: var(--accent); }
   }
 
   main {
-    margin: 0 !important;
-    padding: 16px !important;
-    text-align: left !important;
+    margin: 0;
+    padding: 16px;
+    text-align: left;
   }
   .search-results {
-    max-width: 100% !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    text-align: left !important;
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+    text-align: left;
   }
   .result-grid {
     margin-top: 0;
@@ -1228,15 +1228,15 @@ footer a:hover { color: var(--accent); }
 
   .rc-top {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
     min-width: 0;
   }
 
   .rc-icon {
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
   }
 
   .rc-info {
