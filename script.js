@@ -610,31 +610,7 @@ function renderItemHeader(item) {
   const useJaName = jaName && jaName.length > 2;
   const iconUrl = getCachedIcon(item.iconAssetName);
 
-  // 同じカテゴリーの他のティアアイテムを取得
-  let tierTabs = '';
-  if (item.tag && cachedMarketItems) {
-    const sameCategoryItems = cachedMarketItems.filter(i => i.tag === item.tag);
-
-    const relatedItems = sameCategoryItems.filter(i => i.description === item.description);
-    const uniqueTiers = [...new Set(relatedItems.map(i => i.tier))];
-    if (uniqueTiers.length > 1) {
-      const repTierMap = new Map();
-      relatedItems.forEach(i => {
-        if (!repTierMap.has(i.tier)) repTierMap.set(i.tier, i);
-      });
-      const tiers = uniqueTiers.sort((a, b) => a - b);
-      tierTabs = `
-        <div class="tier-select-wrap">
-          <select class="tier-select" onchange="selectItem(this.value)">
-            ${tiers.map(tier => {
-              const repItem = repTierMap.get(tier);
-              return `<option value="${repItem.id}" ${tier === item.tier ? 'selected' : ''}>Tier ${tier}</option>`;
-            }).join('')}
-          </select>
-        </div>
-      `;
-    }
-  }
+  
   document.getElementById('itemHeader').innerHTML = `
     <div class="item-title">
       <img class="item-icon" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
