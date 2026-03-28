@@ -1425,14 +1425,14 @@ window.openCalcList = function() {
                       <span style="font-size:10px;color:#666;">/${formatNum(i.quantity)}</span>
                     </div>
                   </td>
-                  <td class="price-cell">${formatPrice(Number(i.priceThreshold) * i.buyQty)}</td>
+                  <td class="price-cell calc-subtotal">${formatPrice(Number(i.priceThreshold) * i.buyQty)}</td>
                   <td><button onclick="removeCalcListItem(${idx})" style="background:none;border:none;color:#ff4d6d;cursor:pointer;font-size:16px;">✕</button></td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
           <div style="text-align:right;font-family:'Rajdhani',sans-serif;font-size:1.6rem;font-weight:700;color:#fff;border-top:1px solid rgba(255,255,255,0.1);padding-top:16px;">
-            合計: ${formatPrice(total)}
+            合計: <span id="calcListTotal">${formatPrice(total)}</span>
           </div>
           <button onclick="window._calcList=[];updateCalcListCount();openCalcList();" 
             style="margin-top:12px;background:rgba(255,77,109,0.1);border:1px solid rgba(255,77,109,0.3);color:#ff4d6d;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;">
@@ -1456,8 +1456,16 @@ window.openCalcList = function() {
   window.updateCalcListQty = function(idx, qty) {
     const item = window._calcList[idx];
     if (!item) return;
-    item.buyQty = Math.max(1, Math.min(Number(qty), Number(item.quantity)));
-    modal.innerHTML = renderContent();
+    item.buyQty = Math.max(0, Math.min(Number(qty), Number(item.quantity)));
+    // 個数入力欄だけ更新
+    const inputs = document.querySelectorAll('#calcListModal input[type=number]');
+    if (inputs[idx]) inputs[idx].value = item.buyQty;
+    // 小計と合計だけ更新
+    const subtotalCells = document.querySelectorAll('#calcListModal .calc-subtotal');
+    if (subtotalCells[idx]) subtotalCells[idx].innerHTML = formatPrice(Number(item.priceThreshold) * item.buyQty);
+    const total = window._calcList.reduce((sum, i) => sum + Number(i.priceThreshold) * i.buyQty, 0);
+    const totalEl = document.getElementById('calcListTotal');
+    if (totalEl) totalEl.innerHTML = formatPrice(total);
   };
 
   window.removeCalcListItem = function(idx) {
