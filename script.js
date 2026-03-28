@@ -1022,6 +1022,8 @@ function renderOrders(orders, orderType, page = 1, sort = 'asc', regionFilter = 
 }
 
   const renderModalContent = () => {
+        const total = Object.values(calcSelected).reduce((sum, i) => sum + Number(i.priceThreshold) * i.buyQty, 0);
+    return `
       <div style="background:#0d1827; border:1px solid #2a4f72; border-radius:14px; padding:24px; width:100%; max-width:600px; max-height:80vh; overflow-y:auto;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
           <h3 class="section-title" style="margin:0;">🛒 購入集計</h3>
