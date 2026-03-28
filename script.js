@@ -626,21 +626,21 @@ function renderItemHeader(item) {
       });
       const tiers = Array.from(tierMap.keys()).sort((a, b) => a - b);
       tierTabs = `
-        <div class="tier-tabs">
-          ${tiers.map(tier => {
-            const repItem = tierMap.get(tier);
-            const isActive = tier === item.tier;
-            const jaRepName = getJaName(repItem.name);
-            const useJaRepName = jaRepName && jaRepName.length > 2;
-            const displayName = useJaRepName ? jaRepName : repItem.name;
-            return `
-              <button class="tier-tab ${isActive ? 'active' : ''}" 
-                      onclick="selectItem('${repItem.id}')" 
-                      title="${displayName}">
-                Tier ${tier}
-              </button>
-            `;
-          }).join('')}
+        <div class="tier-select-wrap">
+          <select class="tier-select" onchange="selectItem(this.value)">
+            ${tiers.map(tier => {
+              const repItem = tierMap.get(tier);
+              const isActive = tier === item.tier;
+              const jaRepName = getJaName(repItem.name);
+              const useJaRepName = jaRepName && jaRepName.length > 2;
+              const displayName = useJaRepName ? jaRepName : repItem.name;
+              return `
+                <option value="${repItem.id}" ${isActive ? 'selected' : ''}>
+                  Tier ${tier}
+                </option>
+              `;
+            }).join('')}
+          </select>
         </div>
       `;
     }
