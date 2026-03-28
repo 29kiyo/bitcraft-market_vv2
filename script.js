@@ -614,13 +614,24 @@ function renderItemHeader(item) {
   let tierTabs = '';
   if (item.tag && cachedMarketItems) {
     const sameCategoryItems = cachedMarketItems.filter(i => i.tag === item.tag);
-    if (sameCategoryItems.length > 0) {
-      // ティアでグループ化し、各ティアの最初のアイテムを代表として使用
+
+    // 現在のアイテム名の単語セット（2文字以上）
+    const currentWords = new Set(
+      item.name.toLowerCase().split(/\s+/).filter(w => w.length >= 2)
+    );
+
+    // 単語が1つ以上共通するアイテムだけに絞る
+    const relatedItems = sameCategoryItems.filter(i => {
+      const words = i.name.toLowerCase().split(/\s+/).filter(w => w.length >= 2);
+      return words.some(w => currentWords.has(w));
+    });
+
+    const uniqueTiers = [...new Set(relatedItems.map(i => i.tier))];
+
+    if (uniqueTiers.length > 1) {
       const tierMap = new Map();
-      sameCategoryItems.forEach(i => {
-        if (i.tier != null && !tierMap.has(i.tier)) {
-          tierMap.set(i.tier, i);
-        }
+      relatedItems.forEach(i => {
+        if (i.tier != null && !tierMap.has(i.tier)) tierMap.set(i.tier, i);
       });
       const tiers = Array.from(tierMap.keys()).sort((a, b) => a - b);
       tierTabs = `
@@ -628,22 +639,13 @@ function renderItemHeader(item) {
           <select class="tier-select" onchange="selectItem(this.value)">
             ${tiers.map(tier => {
               const repItem = tierMap.get(tier);
-              const isActive = tier === item.tier;
-              const jaRepName = getJaName(repItem.name);
-              const useJaRepName = jaRepName && jaRepName.length > 2;
-              const displayName = useJaRepName ? jaRepName : repItem.name;
-              return `
-                <option value="${repItem.id}" ${isActive ? 'selected' : ''}>
-                  Tier ${tier}
-                </option>
-              `;
+              return `<option value="${repItem.id}" ${tier === item.tier ? 'selected' : ''}>Tier ${tier}</option>`;
             }).join('')}
           </select>
         </div>
       `;
     }
   }
-
   document.getElementById('itemHeader').innerHTML = `
     <div class="item-title">
       <img class="item-icon" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
