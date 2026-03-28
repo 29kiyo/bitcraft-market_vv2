@@ -982,6 +982,7 @@ function renderOrders(orders, orderType, page = 1, sort = 'asc', regionFilter = 
               <th>領地名</th>
               <th>リージョン</th>
               <th>座標</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -998,6 +999,7 @@ function renderOrders(orders, orderType, page = 1, sort = 'asc', regionFilter = 
                 <td class="claim-name">${o.claimName || '—'}</td>
                 <td>${o.regionName ? `${o.regionName} (R${o.regionId})` : '—'}</td>
                 <td class="coords">${formatCoords(o)}</td>
+                ${o.orderType === 'sell' ? `<td><button onclick="addToCalcList(${JSON.stringify(o).replace(/"/g, '&quot;')}, '${window._currentItem?.name || ''}')" style="background:rgba(0,200,150,0.1);border:1px solid rgba(0,200,150,0.3);color:#00c896;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:12px;">追加</button></td>` : '<td></td>'}
               </tr>
             `).join('')}
           </tbody>
@@ -1457,3 +1459,95 @@ function clearError() {
   errorMsg.classList.add('hidden');
   errorMsg.textContent = '';
 }
+
+// ============================================
+// 集計リスト
+// ============================================
+window._calcList = [];
+
+function updateCalcListCount() {
+  const el = document.getElementById('calcListCount');
+  if (el) el.textContent = window._calcList.length > 0 ? `(${window._calcList.length})` : '';
+}
+
+window.addToCalcList = function(order, itemName) {
+  window._calcList.push({ ...order, itemName, buyQty: Number(order.quantity) });
+  updateCalcListCount();
+  alert(`「${itemName}」を集計リストに追加しました`);
+};
+
+window.openCalcList = function() {
+  const renderContent = () => {
+    const list = window._calcList;
+    const total = list.reduce((sum, i) => sum + Number(i.priceThreshold) * i.buyQty, 0);
+    return `
+      <div style="background:#0d1827;border:1px solid #2a4f72;border-radius:14px;padding:24px;width:100%;max-width:680px;max-height:85vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h3 class="section-title" style="margin:0;">🛒 集計リスト</h3>
+          <button onclick="document.getElementById('calcListModal').remove()" style="background:none;border:none;color:#aaa;font-size:20px;cursor:pointer;">✕</button>
+        </div>
+        ${list.length === 0 ? '<p style="color:#666;text-align:center;padding:40px 0;">リストが空です</p>' : `
+          <table class="orders-table" style="margin-bottom:20px;">
+            <thead><tr>
+              <th>アイテム</th>
+              <th>領地名</th>
+              <th>リージョン</th>
+              <th>単価</th>
+              <th>個数</th>
+              <th>小計</th>
+              <th></th>
+            </tr></thead>
+            <tbody>
+              ${list.map((i, idx) => `
+                <tr class="order-row">
+                  <td style="color:#e0e0e0;font-size:12px;">${i.itemName}</td>
+                  <td class="claim-name">${i.claimName || '—'}</td>
+                  <td style="font-size:12px;">${i.regionName || '—'}</td>
+                  <td class="price-cell">${formatPrice(i.priceThreshold)}</td>
+                  <td>
+                    <input type="number" min="1" max="${i.quantity}" value="${i.buyQty}"
+                      style="width:55px;background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;border-radius:4px;padding:2px 6px;font-size:12px;"
+                      onchange="updateCalcListQty(${idx}, this.value)">
+                    <span style="font-size:10px;color:#666;">/${formatNum(i.quantity)}</span>
+                  </td>
+                  <td class="price-cell">${formatPrice(Number(i.priceThreshold) * i.buyQty)}</td>
+                  <td><button onclick="removeCalcListItem(${idx})" style="background:none;border:none;color:#ff4d6d;cursor:pointer;font-size:16px;">✕</button></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div style="text-align:right;font-family:'Rajdhani',sans-serif;font-size:1.6rem;font-weight:700;color:#fff;border-top:1px solid rgba(255,255,255,0.1);padding-top:16px;">
+            合計: ${formatPrice(total)}
+          </div>
+          <button onclick="window._calcList=[];updateCalcListCount();document.getElementById('calcListModal').innerHTML=document.getElementById('calcListModal').innerHTML;" 
+            style="margin-top:12px;background:rgba(255,77,109,0.1);border:1px solid rgba(255,77,109,0.3);color:#ff4d6d;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;">
+            ✕ クリア
+          </button>
+        `}
+      </div>
+    `;
+  };
+
+  let modal = document.getElementById('calcListModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'calcListModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = renderContent();
+
+  window.updateCalcListQty = function(idx, qty) {
+    const item = window._calcList[idx];
+    if (!item) return;
+    item.buyQty = Math.max(1, Math.min(Number(qty), Number(item.quantity)));
+    modal.innerHTML = renderContent();
+  };
+
+  window.removeCalcListItem = function(idx) {
+    window._calcList.splice(idx, 1);
+    updateCalcListCount();
+    modal.innerHTML = renderContent();
+  };
+};
