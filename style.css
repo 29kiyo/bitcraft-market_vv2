@@ -1169,7 +1169,7 @@ footer a:hover { color: var(--accent); }
   .rc-info {
     display: flex;
     flex-direction: row;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 8px;
   }
 
@@ -1181,8 +1181,19 @@ footer a:hover { color: var(--accent); }
   .rc-badges {
     width: 100%;
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+  }
+  .rc-badges .badge,
+  .rc-badges .s-rarity,
+  .rc-badges .s-parent-category,
+  .rc-badges .s-tag {
+    flex: 0 1 calc(33.33% - 6px);
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .suggestion-item {
