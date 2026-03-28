@@ -1078,13 +1078,6 @@ function renderOrders(orders, orderType, page = 1, sort = 'asc', regionFilter = 
   }
   modal.innerHTML = renderModalContent();
 
-  window.updateModalQty = function(id, qty) {
-    if (!calcSelected[id]) return;
-    const max = Number(calcSelected[id].quantity);
-    calcSelected[id].buyQty = Math.max(1, Math.min(Number(qty), max));
-    modal.innerHTML = renderModalContent();
-  };
-};
 let currentLogPage = 1;
 const LOG_PER_PAGE = 20;
 const LOG_MAX_PAGES = 5;
