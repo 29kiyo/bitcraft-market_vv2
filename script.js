@@ -534,7 +534,7 @@ window.changePage = function(page) {
 async function loadItemDetail(item) {
   showLoading();
   try {
-const orderType = orderTypeFilter?.value || '';
+const orderType = orderTypeFilter?.value;
     const itemOrCargo = item.itemType === 1 ? 'cargo' : 'item';
 
     const [marketRes, priceRes] = await Promise.all([
@@ -994,6 +994,11 @@ document.getElementById('ordersList').innerHTML = `
   <div class="orders-list-header">
     <h3 class="section-title">📋 注文一覧 <span class="order-count">${filtered.length}件</span></h3>
     <div class="order-type-tabs">
+      ${orderType === undefined ? `
+        <button class="tab-btn ${(orderType || '') === '' ? 'active' : ''}" onclick="changeOrderType('')">売り＆買い (${orders.length})</button>
+        <button class="tab-btn ${(orderType || '') === 'sell' ? 'active' : ''}" onclick="changeOrderType('sell')">売り (${sellCount})</button>
+        <button class="tab-btn ${(orderType || '') === 'buy' ? 'active' : ''}" onclick="changeOrderType('buy')">買い (${buyCount})</button>
+      ` : ''}
       <select class="region-order-filter" onchange="changeOrderRegion(this.value)">
         <option value="">全リージョン</option>
         ${regionOptions}
