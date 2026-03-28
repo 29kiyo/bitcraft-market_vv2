@@ -359,8 +359,8 @@ async function doSearch() {
 
   // 検索ワードが変わったときだけフィルターをクリア
   if (q !== window._lastSearchQuery) {
-    const tierSelect = document.getElementById('tierFilter');
-    if (tierSelect) tierSelect.value = '';
+    document.querySelectorAll('#tierDropdown input[type=checkbox]').forEach(cb => cb.checked = false);
+    document.getElementById('tierLabel').textContent = 'すべて';
     document.querySelectorAll('#rarityDropdown input[type=checkbox]').forEach(cb => cb.checked = false);
     document.getElementById('rarityLabel').textContent = 'すべて';
     document.querySelectorAll('#categoryDropdown input[type=checkbox]').forEach(cb => cb.checked = false);
@@ -369,8 +369,7 @@ async function doSearch() {
 // if (otf) otf.value = ''; // 削除済み
     window._lastSearchQuery = q;
   }
-  const tierVal = document.getElementById('tierFilter')?.value;
-  const tiers = tierVal ? [tierVal] : [];
+  const tiers = getCheckedValues('tier');
   const rarities = getCheckedValues('rarity');
   const categories = getCheckedValues('category');
 
@@ -581,8 +580,7 @@ const orderType = '';
 // フィルター適用
 // ============================================
 function applyFilters() {
-  const tierVal = document.getElementById('tierFilter')?.value;
-  const tiers = tierVal ? [tierVal] : [];
+  const tiers = getCheckedValues('tier');
   const rarities = getCheckedValues('rarity');
   const categories = getCheckedValues('category');
   const q = searchInput.value.trim();
@@ -1173,8 +1171,8 @@ window.refreshTradeLog = async function() {
 
 window.clearAllFilters = function() {
   // Tier
-  const tierSelect = document.getElementById('tierFilter');
-  if (tierSelect) tierSelect.value = '';
+  document.querySelectorAll('#tierDropdown input[type=checkbox]').forEach(cb => cb.checked = false);
+  document.getElementById('tierLabel').textContent = 'すべて';
   
   // レア度
   document.querySelectorAll('#rarityDropdown input[type=checkbox]').forEach(cb => cb.checked = false);
