@@ -1204,9 +1204,13 @@ footer a:hover { color: var(--accent); }
     padding: 6px 4px;
   }
 
+  main {
+    margin: 0;
+    padding: 16px;
+  }
   .search-results {
     max-width: 100%;
-    padding: 12px;
+    padding: 0;
     margin: 0 !important;
     text-align: left !important;
   }
@@ -1226,11 +1230,12 @@ footer a:hover { color: var(--accent); }
     flex-direction: row;
     align-items: center;
     gap: 8px;
+    min-width: 0;
   }
 
   .rc-icon {
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
   }
 
   .rc-info {
@@ -1238,6 +1243,7 @@ footer a:hover { color: var(--accent); }
     gap: 2px;
     flex-direction: column;
     text-align: left;
+    min-width: 0;
   }
 
   .rc-name {
