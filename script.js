@@ -1434,7 +1434,7 @@ window.openCalcList = function() {
           <div style="text-align:right;font-family:'Rajdhani',sans-serif;font-size:1.6rem;font-weight:700;color:#fff;border-top:1px solid rgba(255,255,255,0.1);padding-top:16px;">
             合計: ${formatPrice(total)}
           </div>
-          <button onclick="window._calcList=[];updateCalcListCount();document.getElementById('calcListModal').innerHTML=document.getElementById('calcListModal').innerHTML;" 
+          <button onclick="window._calcList=[];updateCalcListCount();modal.innerHTML=renderContent();" 
             style="margin-top:12px;background:rgba(255,77,109,0.1);border:1px solid rgba(255,77,109,0.3);color:#ff4d6d;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;">
             ✕ クリア
           </button>
