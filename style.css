@@ -1205,12 +1205,13 @@ footer a:hover { color: var(--accent); }
   }
 
   main {
-    margin: 0;
-    padding: 16px;
+    margin: 0 !important;
+    padding: 16px !important;
+    text-align: left !important;
   }
   .search-results {
-    max-width: 100%;
-    padding: 0;
+    max-width: 100% !important;
+    padding: 0 !important;
     margin: 0 !important;
     text-align: left !important;
   }
@@ -1227,15 +1228,15 @@ footer a:hover { color: var(--accent); }
 
   .rc-top {
     display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
     min-width: 0;
   }
 
   .rc-icon {
-    width: 24px;
-    height: 24px;
+    width: 32px;
+    height: 32px;
   }
 
   .rc-info {
@@ -1247,13 +1248,19 @@ footer a:hover { color: var(--accent); }
   }
 
   .rc-name {
-    font-size: 13px;
+    font-size: 12px;
     text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .rc-sub {
-    font-size: 11px;
+    font-size: 10px;
     text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .rc-badges {
