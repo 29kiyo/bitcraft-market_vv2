@@ -920,10 +920,6 @@ window.updateSupplyDemand = function() {
   `;
 };
 
-
-let calcMode = false;
-let calcSelected = {};
-
 function renderOrders(orders, orderType, page = 1, sort = 'asc', regionFilter = '', claimFilter = '') {
   currentOrderPage = page;
   currentOrderSort = sort;
@@ -969,7 +965,6 @@ function renderOrders(orders, orderType, page = 1, sort = 'asc', regionFilter = 
         <table class="orders-table">
           <thead>
             <tr>
-              ${calcMode ? '<th></th>' : ''}
               <th>種別</th>
               <th style="white-space:nowrap;">
                 価格
@@ -988,11 +983,9 @@ function renderOrders(orders, orderType, page = 1, sort = 'asc', regionFilter = 
           <tbody>
             ${pageOrders.map(o => `
               <tr class="order-row ${o.orderType}">
-                ${calcMode && o.orderType === 'sell' ? `
                   <td><input type="checkbox" ${calcSelected[o.id] ? 'checked' : ''}
                     onchange="toggleCalcSelect('${o.id}', this.checked, this.dataset.order)"
                     data-order="${JSON.stringify(o).replace(/"/g, '&quot;')}"></td>
-                ` : calcMode ? '<td></td>' : ''}
                 <td><span class="order-badge ${o.orderType}">${o.orderType === 'sell' ? '売り' : '買い'}</span></td>
                 <td class="price-cell">${formatPrice(o.priceThreshold)}</td>
                 <td>${formatNum(o.quantity)}</td>
@@ -1023,40 +1016,11 @@ function renderOrders(orders, orderType, page = 1, sort = 'asc', regionFilter = 
       <div class="orders-search-bar">
         <input type="text" id="claimSearchInput" class="claim-search" placeholder="領地名検索..." oninput="changeOrderClaim(this.value)" value="${claimFilter}">
       </div>
-      <div style="display:flex; align-items:center; gap:12px; margin-top:8px;">
-        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; color:#aaa;">
-          <input type="checkbox" ${calcMode ? 'checked' : ''} onchange="toggleCalcMode(this.checked)"
-            style="accent-color:#00c896; width:16px; height:16px; cursor:pointer;">
-          計算モード
-        </label>
-        ${calcMode ? `<button onclick="openCalcResult()" style="background:rgba(0,200,150,0.15); border:1px solid rgba(0,200,150,0.4); color:#00c896; padding:6px 16px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:600;">集計</button>` : ''}
-      </div>
     </div>
     ${html}
   `;
 }
 
-window.toggleCalcMode = function(enabled) {
-  calcMode = enabled;
-  if (!enabled) calcSelected = {};
-  renderOrders(currentOrders, currentOrderType, currentOrderPage, currentOrderSort, currentOrderRegion, currentOrderClaim);
-};
-
-window.toggleCalcSelect = function(id, checked, orderJson) {
-  const order = JSON.parse(orderJson.replace(/&quot;/g, '"'));
-  if (checked) {
-    calcSelected[id] = { ...order, buyQty: Number(order.quantity) };
-  } else {
-    delete calcSelected[id];
-  }
-};
-
-window.openCalcResult = function() {
-  const items = Object.values(calcSelected);
-  if (items.length === 0) {
-    alert('注文を選択してください');
-    return;
-  }
 
   const renderModalContent = () => {
     const total = Object.values(calcSelected).reduce((sum, i) => sum + Number(i.priceThreshold) * i.buyQty, 0);
@@ -1081,11 +1045,17 @@ window.openCalcResult = function() {
                 <td>${i.regionName || '—'}</td>
                 <td class="price-cell">${formatPrice(i.priceThreshold)}</td>
                 <td>
-                  <input type="number" min="1" max="${i.quantity}" value="${i.buyQty}"
-                    style="width:60px; background:#1a2535; border:1px solid rgba(255,255,255,0.15); color:#e0e0e0; border-radius:4px; padding:2px 6px; font-size:13px;"
-                    onchange="updateModalQty('${i.id}', this.value)">
-                  <span style="font-size:11px; color:#666;">/ ${formatNum(i.quantity)}</span>
-                </td>
+                    <div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap;">
+                      <button onclick="updateCalcListQty(${idx}, ${i.buyQty - 10})" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#aaa;width:32px;height:24px;border-radius:4px;cursor:pointer;font-size:10px;line-height:1;">-10</button>
+                      <button onclick="updateCalcListQty(${idx}, ${i.buyQty - 1})" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:14px;line-height:1;">－</button>
+                      <input type="number" min="1" max="${i.quantity}" value="${i.buyQty}"
+                        style="width:50px;background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;border-radius:4px;padding:2px 4px;font-size:12px;text-align:center;"
+                        onchange="updateCalcListQty(${idx}, this.value)">
+                      <button onclick="updateCalcListQty(${idx}, ${i.buyQty + 1})" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:14px;line-height:1;">＋</button>
+                      <button onclick="updateCalcListQty(${idx}, ${i.buyQty + 10})" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#aaa;width:32px;height:24px;border-radius:4px;cursor:pointer;font-size:10px;line-height:1;">+10</button>
+                      <span style="font-size:10px;color:#666;">/${formatNum(i.quantity)}</span>
+                    </div>
+                  </td>
                 <td class="price-cell">${formatPrice(Number(i.priceThreshold) * i.buyQty)}</td>
               </tr>
             `).join('')}
@@ -1502,7 +1472,7 @@ window.openCalcList = function() {
                 <tr class="order-row">
                   <td style="color:#e0e0e0;font-size:12px;">${i.itemName}</td>
                   <td class="claim-name">${i.claimName || '—'}</td>
-                  <td style="font-size:12px;">${i.regionName || '—'}</td>
+                  <td style="font-size:12px;">${i.regionName ? `${i.regionName} (R${i.regionId})` : '—'}</td>
                   <td class="price-cell">${formatPrice(i.priceThreshold)}</td>
                   <td>
                     <input type="number" min="1" max="${i.quantity}" value="${i.buyQty}"
