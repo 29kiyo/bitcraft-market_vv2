@@ -1267,6 +1267,7 @@ footer a:hover { color: var(--accent); }
     padding: 10px 12px;
     gap: 6px;
     text-align: left;
+     margin-right: 16px;
   }
 
   .result-card .s-top {
