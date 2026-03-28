@@ -1139,14 +1139,15 @@ footer a:hover { color: var(--accent); }
   }
 
   .result-card {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: flex-start;
     padding: 10px 12px;
+    gap: 12px;
   }
 
   .rc-top {
-    width: 100%;
     flex: 1;
+    min-width: 0;
   }
 
   .rc-icon {
@@ -1169,7 +1170,7 @@ footer a:hover { color: var(--accent); }
   .rc-info {
     display: flex;
     flex-direction: row;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
   }
 
@@ -1179,7 +1180,9 @@ footer a:hover { color: var(--accent); }
   }
 
   .rc-badges {
-    width: 100%;
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 100%;
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
