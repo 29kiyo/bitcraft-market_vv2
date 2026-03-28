@@ -615,16 +615,12 @@ function renderItemHeader(item) {
   if (item.tag && cachedMarketItems) {
     const sameCategoryItems = cachedMarketItems.filter(i => i.tag === item.tag);
 
-    const tagWords = item.tag.toLowerCase().split(/\s+/);
     const relatedItems = sameCategoryItems.filter(i => {
       if (i.id === item.id) return true;
-      const iWords = i.name.toLowerCase().split(/\s+/).filter(w => w.length >= 4);
-      const itemWords = item.name.toLowerCase().split(/\s+/).filter(w => w.length >= 4);
-      // タグ単語以外で共通する単語が1つ以上ある
-      const tagWords2 = new Set(item.tag.toLowerCase().split(/\s+/));
-      const iUnique = iWords.filter(w => !tagWords2.has(w));
-      const itemUnique = itemWords.filter(w => !tagWords2.has(w));
-      return iUnique.some(w => itemUnique.includes(w));
+      const tagSet = new Set(item.tag.toLowerCase().split(/\s+/));
+      const iWords = i.name.toLowerCase().split(/\s+/).filter(w => w.length >= 4 && !tagSet.has(w));
+      const itemWords = item.name.toLowerCase().split(/\s+/).filter(w => w.length >= 4 && !tagSet.has(w));
+      return iWords.some(w => itemWords.includes(w));
     });
       const tiers = Array.from(tierMap.keys()).sort((a, b) => a - b);
       tierTabs = `
