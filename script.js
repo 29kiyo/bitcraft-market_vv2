@@ -359,8 +359,8 @@ async function doSearch() {
 
   // 検索ワードが変わったときだけフィルターをクリア
   if (q !== window._lastSearchQuery) {
-    document.querySelectorAll('#tierDropdown input[type=checkbox]').forEach(cb => cb.checked = false);
-    document.getElementById('tierLabel').textContent = 'すべて';
+    const tierSelect = document.getElementById('tierFilter');
+    if (tierSelect) tierSelect.value = '';
     document.querySelectorAll('#rarityDropdown input[type=checkbox]').forEach(cb => cb.checked = false);
     document.getElementById('rarityLabel').textContent = 'すべて';
     document.querySelectorAll('#categoryDropdown input[type=checkbox]').forEach(cb => cb.checked = false);
@@ -369,9 +369,10 @@ async function doSearch() {
 // if (otf) otf.value = ''; // 削除済み
     window._lastSearchQuery = q;
   }
-  const tiers = getCheckedValues('tier');
-const rarities = getCheckedValues('rarity');
-const categories = getCheckedValues('category');
+  const tierVal = document.getElementById('tierFilter')?.value;
+  const tiers = tierVal ? [tierVal] : [];
+  const rarities = getCheckedValues('rarity');
+  const categories = getCheckedValues('category');
 
 if (!q && tiers.length === 0 && rarities.length === 0 && categories.length === 0) return;
   
@@ -482,12 +483,12 @@ function renderSearchResults(items, page = 1) {
         const displayName = useJaName ? `${jaName} ${item.name}` : item.name;
         return `
           <div class="result-card" onclick="selectItem('${item.id}')">
-            <div class="rc-top">
-              <img class="rc-icon" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
-              <div class="rc-info">
-                <div class="rc-name">${useJaName ? jaName : item.name}</div>
-                ${useJaName ? `<div class="rc-sub">${item.name}</div>` : ''}
-              </div>
+            <div class="rc-icon">
+              <img class="rc-icon-img" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
+            </div>
+            <div class="rc-info">
+              <div class="rc-name">${useJaName ? jaName : item.name}</div>
+              ${useJaName ? `<div class="rc-sub">${item.name}</div>` : ''}
             </div>
             <div class="rc-badges">
               ${item.tier && item.tier > 0 ? `<span class="badge tier">T${item.tier}</span>` : ''}
@@ -580,7 +581,8 @@ const orderType = '';
 // フィルター適用
 // ============================================
 function applyFilters() {
-  const tiers = getCheckedValues('tier');
+  const tierVal = document.getElementById('tierFilter')?.value;
+  const tiers = tierVal ? [tierVal] : [];
   const rarities = getCheckedValues('rarity');
   const categories = getCheckedValues('category');
   const q = searchInput.value.trim();
@@ -648,7 +650,10 @@ function renderItemHeader(item) {
     <div class="item-title">
       <img class="item-icon" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
       <div class="item-title-text">
-        <h2>${useJaName ? jaName : item.name}${useJaName ? ` <span class="item-ja">/ ${item.name}</span>` : ''}</h2>
+        <div class="item-name-row">
+          <h2 class="item-ja-name">${useJaName ? jaName : item.name}</h2>
+          ${useJaName ? `<span class="item-en-name">/ ${item.name}</span>` : ''}
+        </div>
         <div class="item-badges">
           ${item.tier && item.tier > 0 ? `<span class="badge tier">Tier ${item.tier}</span>` : ''}
           <span class="s-rarity rarity-${item.rarityStr?.toLowerCase()}">${item.rarityStr || ''}</span>
@@ -657,8 +662,8 @@ function renderItemHeader(item) {
             <span class="s-tag">${getJaName(item.tag) || item.tag}</span>
           ` : ''}
         </div>
+        ${tierTabs}
       </div>
-      ${tierTabs}
     </div>
   `;
 }
@@ -1168,8 +1173,8 @@ window.refreshTradeLog = async function() {
 
 window.clearAllFilters = function() {
   // Tier
-  document.querySelectorAll('#tierDropdown input[type=checkbox]').forEach(cb => cb.checked = false);
-  document.getElementById('tierLabel').textContent = 'すべて';
+  const tierSelect = document.getElementById('tierFilter');
+  if (tierSelect) tierSelect.value = '';
   
   // レア度
   document.querySelectorAll('#rarityDropdown input[type=checkbox]').forEach(cb => cb.checked = false);
