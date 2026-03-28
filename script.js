@@ -1021,6 +1021,61 @@ function renderOrders(orders, orderType, page = 1, sort = 'asc', regionFilter = 
   `;
 }
 
+  const renderModalContent = () => {
+    const total = Object.values(calcSelected).reduce((sum, i) => sum + Number(i.priceThreshold) * i.buyQty, 0);
+    return `
+      <div style="background:#0d1827; border:1px solid #2a4f72; border-radius:14px; padding:24px; width:100%; max-width:600px; max-height:80vh; overflow-y:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <h3 class="section-title" style="margin:0;">🛒 購入集計</h3>
+          <button onclick="document.getElementById('calcModal').remove()" style="background:none; border:none; color:#aaa; font-size:20px; cursor:pointer;">✕</button>
+        </div>
+        <table class="orders-table" style="margin-bottom:20px;">
+          <thead><tr>
+            <th>領地名</th>
+            <th>リージョン</th>
+            <th>単価</th>
+            <th>個数</th>
+            <th>小計</th>
+          </tr></thead>
+          <tbody>
+            ${Object.values(calcSelected).map(i => `
+              <tr class="order-row">
+                <td class="claim-name">${i.claimName || '—'}</td>
+                <td>${i.regionName || '—'}</td>
+                <td class="price-cell">${formatPrice(i.priceThreshold)}</td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap;">
+                      <button onclick="updateCalcListQty(${idx}, ${i.buyQty - 10})" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#aaa;width:32px;height:24px;border-radius:4px;cursor:pointer;font-size:10px;line-height:1;">-10</button>
+                      <button onclick="updateCalcListQty(${idx}, ${i.buyQty - 1})" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:14px;line-height:1;">－</button>
+                      <input type="number" min="1" max="${i.quantity}" value="${i.buyQty}"
+                        style="width:50px;background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;border-radius:4px;padding:2px 4px;font-size:12px;text-align:center;"
+                        onchange="updateCalcListQty(${idx}, this.value)">
+                      <button onclick="updateCalcListQty(${idx}, ${i.buyQty + 1})" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:14px;line-height:1;">＋</button>
+                      <button onclick="updateCalcListQty(${idx}, ${i.buyQty + 10})" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#aaa;width:32px;height:24px;border-radius:4px;cursor:pointer;font-size:10px;line-height:1;">+10</button>
+                      <span style="font-size:10px;color:#666;">/${formatNum(i.quantity)}</span>
+                    </div>
+                  </td>
+                <td class="price-cell">${formatPrice(Number(i.priceThreshold) * i.buyQty)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <div style="text-align:right; font-family:'Rajdhani',sans-serif; font-size:1.6rem; font-weight:700; color:#fff; border-top:1px solid rgba(255,255,255,0.1); padding-top:16px;">
+          合計: ${formatPrice(total)}
+        </div>
+      </div>
+    `;
+  };
+
+  let modal = document.getElementById('calcModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'calcModal';
+    modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px;';
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = renderModalContent();
 
 let currentLogPage = 1;
 const LOG_PER_PAGE = 20;
