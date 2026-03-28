@@ -254,9 +254,9 @@ main {
 }
 .item-ja { color: var(--text2); font-size: 1.3rem; }
 .item-badges { display: flex; gap: 8px; flex-wrap: nowrap; align-items: center; }
-.item-name-row { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 8px; align-items: baseline; }
-.item-ja-name { margin: 0; font-size: 1.8rem; }
-.item-en-name { color: var(--text2); font-size: 1.3rem; }
+.item-name-row { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 8px; align-items: baseline; white-space: nowrap; }
+.item-ja-name { margin: 0; font-size: 1.8rem; white-space: nowrap; }
+.item-en-name { color: var(--text2); font-size: 1.3rem; white-space: nowrap; }
 .badge {
   font-family: 'Rajdhani', sans-serif;
   font-size: 0.8rem;
@@ -1630,6 +1630,7 @@ footer a:hover { color: var(--accent); }
   gap: 6px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  margin-top: 8px;
 }
 
 .tier-tab {
