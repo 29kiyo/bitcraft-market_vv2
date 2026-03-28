@@ -767,6 +767,7 @@ footer a:hover { color: var(--accent); }
 .result-card {
   display: flex;
   flex-direction: row !important;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
@@ -793,10 +794,10 @@ footer a:hover { color: var(--accent); }
   flex: 1;
   min-width: 0;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   flex-wrap: nowrap;
-  gap: 4px;
-  align-items: flex-start;
+  gap: 8px;
+  align-items: baseline;
   white-space: nowrap;
 }
 
@@ -817,7 +818,7 @@ footer a:hover { color: var(--accent); }
   max-width: 100%;
   display: flex;
   flex-direction: row;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 6px;
 }
@@ -1211,28 +1212,37 @@ footer a:hover { color: var(--accent); }
   }
 
   .rc-icon {
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
   }
 
   .rc-info {
     flex: 1;
-    white-space: normal;
+    white-space: nowrap;
+    gap: 4px;
   }
 
   .rc-name {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .rc-sub {
-    font-size: 11px;
+    font-size: 10px;
   }
 
   .rc-badges {
-    flex: 0 0 100%;
-    width: 100%;
+    flex: 0 0 auto;
+    width: auto;
     max-width: 100%;
-    margin-top: 4px;
+    margin-top: 0;
+    gap: 4px;
+  }
+  .rc-badges .badge,
+  .rc-badges .s-rarity,
+  .rc-badges .s-parent-category,
+  .rc-badges .s-tag {
+    font-size: 10px;
+    padding: 2px 6px;
   }
 
   .suggestion-item {
@@ -1479,7 +1489,7 @@ footer a:hover { color: var(--accent); }
   gap: 8px;
   background: var(--bg3);
   border: 1px solid var(--border);
-  color: var(--text);
+  color: #fff;
   border-radius: var(--radius);
   padding: 7px 12px;
   font-size: 0.85rem;
@@ -1494,7 +1504,7 @@ footer a:hover { color: var(--accent); }
 
 .ms-arrow {
   font-size: 10px;
-  color: var(--text2);
+  color: #fff;
 }
 
 .multi-select-dropdown {
@@ -1519,10 +1529,11 @@ footer a:hover { color: var(--accent); }
   cursor: pointer;
   font-size: 0.85rem;
   transition: background 0.15s;
+  color: #fff;
 }
 
 .ms-item:hover {
-  background: rgba(0,200,150,0.08);
+  background: rgba(255,255,255,0.1);
 }
 
 .ms-item input[type=checkbox] {
