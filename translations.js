@@ -296,6 +296,12 @@ const ITEM_TRANSLATIONS = {
   "砂糖": "Sugar",
 
 // ===== 未登録タグ追加 =====
+  "研究":"research",
+  "布":"Cloth",
+  "革":"Leather",
+  "金属":"Metal",
+  "石材":"Stone",
+  "木材":"Wood",
   "古代コンポーネント": "Ancient Component",
   "古代象形文字": "Ancient Hieroglyphs",
   "古代遺物": "Ancient Relic",
@@ -469,6 +475,12 @@ const ITEM_TRANSLATIONS = {
 
 // 漢字キー → ひらがな読み（ひらがな・カタカナ検索対応用）
 const ITEM_YOMI = {
+    "研究":"けんきゅう",
+  "布":"ぬの",
+  "革":"かわ",
+  "金属":"きんぞく",
+  "石材":"せきざい",
+  "木材":"もくざい",
   "粗い":     "あらい",
   "頑丈な":   "がんじょうな",
   "卓越した": "たくえつした",
