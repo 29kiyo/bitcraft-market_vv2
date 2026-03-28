@@ -622,10 +622,15 @@ function renderItemHeader(item) {
         tierMap.get(i.tier).push(i);
       }
     });
-    const allTiersUnique = [...tierMap.values()].every(arr => arr.length === 1);
     const uniqueTiers = [...tierMap.keys()];
-    if (allTiersUnique && uniqueTiers.length > 1) {
-      const repTierMap = new Map([...tierMap.entries()].map(([k, v]) => [k, v[0]]));
+    const tagInName = [...item.tag.toLowerCase().split(/\s+/)].some(w => w.length >= 4 && item.name.toLowerCase().includes(w));
+    const relatedItems = tagInName
+      ? sameCategoryItems.filter(i => item.tag.toLowerCase().split(/\s+/).some(w => w.length >= 4 && i.name.toLowerCase().includes(w)))
+      : sameCategoryItems;
+    const relatedTiers = [...new Set(relatedItems.map(i => i.tier))];
+    if (relatedTiers.length > 1 && relatedItems.length === relatedTiers.length) {
+      const repTierMap = new Map(relatedItems.map(i => [i.tier, i]));
+      const tiers = relatedTiers.sort((a, b) => a - b);
       const tiers = uniqueTiers.sort((a, b) => a - b);
       tierTabs = `
         <div class="tier-select-wrap">
