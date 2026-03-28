@@ -1268,6 +1268,7 @@ footer a:hover { color: var(--accent); }
     gap: 6px;
     text-align: left;
      margin-right: 16px;
+     margin-left: 16px;
   }
 
   .result-card .s-top {
@@ -1300,6 +1301,8 @@ footer a:hover { color: var(--accent); }
     flex-direction: column;
     text-align: left;
     min-width: 0;
+     overflow: hidden;
+text-overflow: ellipsis;
   }
 
   .rc-name {
