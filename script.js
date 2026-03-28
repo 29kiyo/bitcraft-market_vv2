@@ -615,18 +615,10 @@ function renderItemHeader(item) {
   if (item.tag && cachedMarketItems) {
     const sameCategoryItems = cachedMarketItems.filter(i => i.tag === item.tag);
 
-    const tagWords = new Set(item.tag.toLowerCase().split(/\s+/));
-    const currentWords = new Set(
-      item.name.toLowerCase().split(/\s+/)
-        .filter(w => w.length >= 2 && !tagWords.has(w))
+    const tagWords = item.tag.toLowerCase().split(/\s+/);
+    const relatedItems = sameCategoryItems.filter(i =>
+      tagWords.some(w => i.name.toLowerCase().includes(w) && w.length >= 4)
     );
-
-    const relatedItems = currentWords.size === 0
-      ? sameCategoryItems
-      : sameCategoryItems.filter(i => {
-          const words = i.name.toLowerCase().split(/\s+/).filter(w => w.length >= 2 && !tagWords.has(w));
-          return words.some(w => currentWords.has(w));
-        });
 
     const uniqueTiers = [...new Set(relatedItems.map(i => i.tier))];
 
