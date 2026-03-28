@@ -93,7 +93,7 @@ header {
 main {
   position: relative; z-index: 1;
   max-width: 1200px;
-  margin: 0;
+  margin: 0 auto;
   padding: 32px 24px 64px;
 }
 
@@ -254,9 +254,17 @@ main {
 }
 .item-ja { color: var(--text2); font-size: 1.3rem; }
 .item-badges { display: flex; gap: 8px; flex-wrap: nowrap; align-items: center; }
-.item-name-row { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 8px; align-items: baseline; white-space: nowrap; }
 .item-ja-name { margin: 0; font-size: 1.8rem; white-space: nowrap; }
 .item-en-name { color: var(--text2); font-size: 1.3rem; white-space: nowrap; }
+
+.item-name-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 8px;
+  align-items: baseline;
+  white-space: nowrap;
+}
 .badge {
   font-family: 'Rajdhani', sans-serif;
   font-size: 0.8rem;
@@ -753,7 +761,7 @@ footer a:hover { color: var(--accent); }
 .rarity-mythic { color: #ff4d6d; }
 .search-results {
   max-width: 1000px;
-  margin: 0;
+  margin: 0 auto;
   padding: 20px;
 }
 
@@ -1378,6 +1386,26 @@ footer a:hover { color: var(--accent); }
     margin-left: 8px;
     flex-shrink: 1;
     min-width: 0;
+  }
+
+  /* アイテム詳細のタイトル名：スマホでは日本語と英語を縦並び */
+  .item-name-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    white-space: normal;
+  }
+
+  .item-ja-name {
+    font-size: 1.3rem;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .item-en-name {
+    font-size: 1rem;
+    white-space: normal;
+    word-break: break-word;
   }
 }
 
