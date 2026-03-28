@@ -631,7 +631,7 @@ function renderItemHeader(item) {
         <div class="tier-select-wrap">
           <select class="tier-select" onchange="selectItem(this.value)">
             ${tiers.map(tier => {
-              const repItem = tierMap.get(tier);
+              const repItem = repTierMap.get(tier);
               return `<option value="${repItem.id}" ${tier === item.tier ? 'selected' : ''}>Tier ${tier}</option>`;
             }).join('')}
           </select>
