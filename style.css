@@ -1207,8 +1207,8 @@ footer a:hover { color: var(--accent); }
   .search-results {
     max-width: 100%;
     padding: 12px;
-    margin: 0;
-    text-align: left;
+    margin: 0 !important;
+    text-align: left !important;
   }
   .result-grid {
     margin-top: 0;
@@ -1218,7 +1218,7 @@ footer a:hover { color: var(--accent); }
     flex-direction: column !important;
     padding: 10px 12px;
     gap: 6px;
-    text-align: left;
+    text-align: left !important;
   }
 
   .rc-top {
@@ -1234,7 +1234,7 @@ footer a:hover { color: var(--accent); }
   }
 
   .rc-info {
-    white-space: nowrap;
+    white-space: normal;
     gap: 2px;
     flex-direction: column;
   }
