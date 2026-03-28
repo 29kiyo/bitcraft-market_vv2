@@ -728,6 +728,8 @@ footer a:hover { color: var(--accent); }
   align-items: center;
   gap: 6px;
   justify-content: flex-start;
+  flex-wrap: wrap;
+  max-width: 100%;
 }
 
 .s-tier {
@@ -810,10 +812,10 @@ footer a:hover { color: var(--accent); }
 .rc-badges {
   flex: 0 0 auto;
   width: auto;
-  max-width: 50%;
+  max-width: 100%;
   display: flex;
   flex-direction: row;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 6px;
 }

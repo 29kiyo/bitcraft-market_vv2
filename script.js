@@ -359,8 +359,8 @@ async function doSearch() {
 
   // 検索ワードが変わったときだけフィルターをクリア
   if (q !== window._lastSearchQuery) {
-    document.querySelectorAll('#tierDropdown input[type=checkbox]').forEach(cb => cb.checked = false);
-    document.getElementById('tierLabel').textContent = 'すべて';
+    const tierSelect = document.getElementById('tierFilter');
+    if (tierSelect) tierSelect.value = '';
     document.querySelectorAll('#rarityDropdown input[type=checkbox]').forEach(cb => cb.checked = false);
     document.getElementById('rarityLabel').textContent = 'すべて';
     document.querySelectorAll('#categoryDropdown input[type=checkbox]').forEach(cb => cb.checked = false);
@@ -369,9 +369,10 @@ async function doSearch() {
 // if (otf) otf.value = ''; // 削除済み
     window._lastSearchQuery = q;
   }
-  const tiers = getCheckedValues('tier');
-const rarities = getCheckedValues('rarity');
-const categories = getCheckedValues('category');
+  const tierVal = document.getElementById('tierFilter')?.value;
+  const tiers = tierVal ? [tierVal] : [];
+  const rarities = getCheckedValues('rarity');
+  const categories = getCheckedValues('category');
 
 if (!q && tiers.length === 0 && rarities.length === 0 && categories.length === 0) return;
   
@@ -580,7 +581,8 @@ const orderType = '';
 // フィルター適用
 // ============================================
 function applyFilters() {
-  const tiers = getCheckedValues('tier');
+  const tierVal = document.getElementById('tierFilter')?.value;
+  const tiers = tierVal ? [tierVal] : [];
   const rarities = getCheckedValues('rarity');
   const categories = getCheckedValues('category');
   const q = searchInput.value.trim();
@@ -1171,8 +1173,8 @@ window.refreshTradeLog = async function() {
 
 window.clearAllFilters = function() {
   // Tier
-  document.querySelectorAll('#tierDropdown input[type=checkbox]').forEach(cb => cb.checked = false);
-  document.getElementById('tierLabel').textContent = 'すべて';
+  const tierSelect = document.getElementById('tierFilter');
+  if (tierSelect) tierSelect.value = '';
   
   // レア度
   document.querySelectorAll('#rarityDropdown input[type=checkbox]').forEach(cb => cb.checked = false);
