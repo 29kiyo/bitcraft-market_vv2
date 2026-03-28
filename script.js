@@ -1415,13 +1415,13 @@ window.openCalcList = function() {
                   <td class="price-cell">${formatPrice(i.priceThreshold)}</td>
                   <td>
                     <div style="display:flex;align-items:center;gap:3px;flex-wrap:nowrap;">
-                      <button onclick="updateCalcListQty(${idx}, ${i.buyQty - 10})" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#aaa;width:32px;height:24px;border-radius:4px;cursor:pointer;font-size:10px;">-10</button>
-                      <button onclick="updateCalcListQty(${idx}, ${i.buyQty - 1})" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:14px;">－</button>
+                      <button onclick="updateCalcListQty(${idx}, window._calcList[${idx}].buyQty - 10)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#aaa;width:32px;height:24px;border-radius:4px;cursor:pointer;font-size:10px;">-10</button>
+                      <button onclick="updateCalcListQty(${idx}, window._calcList[${idx}].buyQty - 1)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:14px;">－</button>
                       <input type="number" min="1" max="${i.quantity}" value="${i.buyQty}"
                         style="width:50px;background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;border-radius:4px;padding:2px 4px;font-size:12px;text-align:center;"
                         onchange="updateCalcListQty(${idx}, this.value)">
-                      <button onclick="updateCalcListQty(${idx}, ${i.buyQty + 1})" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:14px;">＋</button>
-                      <button onclick="updateCalcListQty(${idx}, ${i.buyQty + 10})" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#aaa;width:32px;height:24px;border-radius:4px;cursor:pointer;font-size:10px;">+10</button>
+                      <button onclick="updateCalcListQty(${idx}, window._calcList[${idx}].buyQty + 1)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:14px;">＋</button>
+                      <button onclick="updateCalcListQty(${idx}, window._calcList[${idx}].buyQty + 10)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#aaa;width:32px;height:24px;border-radius:4px;cursor:pointer;font-size:10px;">+10</button>
                       <span style="font-size:10px;color:#666;">/${formatNum(i.quantity)}</span>
                     </div>
                   </td>
