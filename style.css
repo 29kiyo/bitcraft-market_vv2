@@ -1210,6 +1210,9 @@ footer a:hover { color: var(--accent); }
     margin: 0;
     text-align: left;
   }
+  .result-grid {
+    margin-top: 0;
+  }
 
   .result-card {
     flex-direction: column !important;
@@ -1245,7 +1248,7 @@ footer a:hover { color: var(--accent); }
   }
 
   .rc-badges {
-    margin-left: 40px;
+    margin-left: 32px;
     gap: 4px;
   }
 
