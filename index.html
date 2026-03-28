@@ -49,21 +49,27 @@
   <!-- Tier -->
   <div class="filter-group">
     <label>Tier</label>
-    <select id="tierFilter">
-      <option value="">すべて</option>
-      <option value="-1">Tier -1</option>
-      <option value="0">Tier 0</option>
-      <option value="1">Tier 1</option>
-      <option value="2">Tier 2</option>
-      <option value="3">Tier 3</option>
-      <option value="4">Tier 4</option>
-      <option value="5">Tier 5</option>
-      <option value="6">Tier 6</option>
-      <option value="7">Tier 7</option>
-      <option value="8">Tier 8</option>
-      <option value="9">Tier 9</option>
-      <option value="10">Tier 10</option>
-    </select>
+    <div class="multi-select-wrap">
+      <div class="multi-select-btn" onclick="toggleDropdown('tierDropdown')">
+        <span id="tierLabel">すべて</span>
+        <span class="ms-arrow">▼</span>
+      </div>
+      <div class="multi-select-dropdown hidden" id="tierDropdown">
+        <label class="ms-item ms-all"><input type="checkbox" value="all" onchange="handleMultiAll('tier', this)"> すべて解除</label>
+        <label class="ms-item"><input type="checkbox" value="-1" onchange="updateMultiLabel('tier')"> Tier -1</label>
+        <label class="ms-item"><input type="checkbox" value="0" onchange="updateMultiLabel('tier')"> Tier 0</label>
+        <label class="ms-item"><input type="checkbox" value="1" onchange="updateMultiLabel('tier')"> Tier 1</label>
+        <label class="ms-item"><input type="checkbox" value="2" onchange="updateMultiLabel('tier')"> Tier 2</label>
+        <label class="ms-item"><input type="checkbox" value="3" onchange="updateMultiLabel('tier')"> Tier 3</label>
+        <label class="ms-item"><input type="checkbox" value="4" onchange="updateMultiLabel('tier')"> Tier 4</label>
+        <label class="ms-item"><input type="checkbox" value="5" onchange="updateMultiLabel('tier')"> Tier 5</label>
+        <label class="ms-item"><input type="checkbox" value="6" onchange="updateMultiLabel('tier')"> Tier 6</label>
+        <label class="ms-item"><input type="checkbox" value="7" onchange="updateMultiLabel('tier')"> Tier 7</label>
+        <label class="ms-item"><input type="checkbox" value="8" onchange="updateMultiLabel('tier')"> Tier 8</label>
+        <label class="ms-item"><input type="checkbox" value="9" onchange="updateMultiLabel('tier')"> Tier 9</label>
+        <label class="ms-item"><input type="checkbox" value="10" onchange="updateMultiLabel('tier')"> Tier 10</label>
+      </div>
+    </div>
   </div>
 
   <!-- レア度 -->
