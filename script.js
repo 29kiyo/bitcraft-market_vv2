@@ -98,7 +98,7 @@ window.changeOrderClaim = function(claim) {
   clearTimeout(claimDebounceTimer);
   claimDebounceTimer = setTimeout(() => {
     currentOrderClaim = claim;
-    renderOrders(currentOrders, orderTypeFilter.value, 1, currentOrderSort, currentOrderRegion, claim);
+    renderOrders(currentOrders, '', 1, currentOrderSort, currentOrderRegion, claim);
     const input = document.getElementById('claimSearchInput');
     if (input) {
       input.value = claim;
@@ -110,11 +110,11 @@ window.changeOrderClaim = function(claim) {
 };
 
 window.changeOrderPage = function(page) {
-  renderOrders(currentOrders, orderTypeFilter.value, page, currentOrderSort, currentOrderRegion, currentOrderClaim);
+  renderOrders(currentOrders, '', page, currentOrderSort, currentOrderRegion, currentOrderClaim);
 };
 
 window.changeOrderSort = function(sort) {
-  renderOrders(currentOrders, orderTypeFilter.value, 1, sort, currentOrderRegion, currentOrderClaim);
+  renderOrders(currentOrders, '', 1, sort, currentOrderRegion, currentOrderClaim);
 };
 
 window.changeOrderType = function(type) {
@@ -124,7 +124,7 @@ window.changeOrderType = function(type) {
 
 window.changeOrderRegion = function(region) {
   currentOrderRegion = region;
-  renderOrders(currentOrders, orderTypeFilter.value, 1, currentOrderSort, region, currentOrderClaim);
+  renderOrders(currentOrders, '', 1, currentOrderSort, region, currentOrderClaim);
 };
 
 const ITEMS_PER_PAGE = 20;
@@ -994,9 +994,6 @@ document.getElementById('ordersList').innerHTML = `
   <div class="orders-list-header">
     <h3 class="section-title">📋 注文一覧 <span class="order-count">${filtered.length}件</span></h3>
     <div class="order-type-tabs">
-      <button class="tab-btn ${orderType === '' ? 'active' : ''}" onclick="changeOrderType('')">売り＆買い (${orders.length})</button>
-      <button class="tab-btn ${orderType === 'sell' ? 'active' : ''}" onclick="changeOrderType('sell')">売り (${sellCount})</button>
-      <button class="tab-btn ${orderType === 'buy' ? 'active' : ''}" onclick="changeOrderType('buy')">買い (${buyCount})</button>
       <select class="region-order-filter" onchange="changeOrderRegion(this.value)">
         <option value="">全リージョン</option>
         ${regionOptions}
