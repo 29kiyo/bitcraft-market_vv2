@@ -631,7 +631,6 @@ function renderItemHeader(item) {
     if (relatedTiers.length > 1 && relatedItems.length === relatedTiers.length) {
       const repTierMap = new Map(relatedItems.map(i => [i.tier, i]));
       const tiers = relatedTiers.sort((a, b) => a - b);
-      const tiers = uniqueTiers.sort((a, b) => a - b);
       tierTabs = `
         <div class="tier-select-wrap">
           <select class="tier-select" onchange="selectItem(this.value)">
