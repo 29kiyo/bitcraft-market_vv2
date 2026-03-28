@@ -482,12 +482,14 @@ function renderSearchResults(items, page = 1) {
         const displayName = useJaName ? `${jaName} ${item.name}` : item.name;
         return `
           <div class="result-card" onclick="selectItem('${item.id}')">
-            <div class="rc-icon">
-              <img class="rc-icon-img" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
-            </div>
-            <div class="rc-info">
-              <div class="rc-name">${useJaName ? jaName : item.name}</div>
-              ${useJaName ? `<div class="rc-sub">${item.name}</div>` : ''}
+            <div class="rc-top">
+              <div class="rc-icon">
+                <img class="rc-icon-img" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
+              </div>
+              <div class="rc-info">
+                <div class="rc-name">${useJaName ? jaName : item.name}</div>
+                ${useJaName ? `<div class="rc-sub">${item.name}</div>` : ''}
+              </div>
             </div>
             <div class="rc-badges">
               ${item.tier && item.tier > 0 ? `<span class="badge tier">T${item.tier}</span>` : ''}
