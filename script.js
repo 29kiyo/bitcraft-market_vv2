@@ -1376,7 +1376,7 @@ function updateCalcListCount() {
 }
 
 window.addToCalcList = function(order, itemName) {
-  window._calcList.push({ ...order, itemName, buyQty: Number(order.quantity) });
+  window._calcList.push({ ...order, itemName, buyQty: 0 });
   updateCalcListCount();
   const toast = document.createElement('div');
   toast.textContent = `「${itemName}」を集計リストに追加しました`;
