@@ -615,20 +615,18 @@ function renderItemHeader(item) {
   if (item.tag && cachedMarketItems) {
     const sameCategoryItems = cachedMarketItems.filter(i => i.tag === item.tag);
 
-    const relatedItems = sameCategoryItems.filter(i => {
-      if (i.id === item.id) return true;
-      const tagSet = new Set(item.tag.toLowerCase().split(/\s+/));
-      const iWords = i.name.toLowerCase().split(/\s+/).filter(w => w.length >= 4 && !tagSet.has(w));
-      const itemWords = item.name.toLowerCase().split(/\s+/).filter(w => w.length >= 4 && !tagSet.has(w));
-      return iWords.some(w => itemWords.includes(w));
+    const tierMap = new Map();
+    sameCategoryItems.forEach(i => {
+      if (i.tier != null) {
+        if (!tierMap.has(i.tier)) tierMap.set(i.tier, []);
+        tierMap.get(i.tier).push(i);
+      }
     });
-    const uniqueTiers = [...new Set(relatedItems.map(i => i.tier))];
-    if (uniqueTiers.length > 1) {
-      const tierMap = new Map();
-      relatedItems.forEach(i => {
-        if (i.tier != null && !tierMap.has(i.tier)) tierMap.set(i.tier, i);
-      });
-      const tiers = Array.from(tierMap.keys()).sort((a, b) => a - b);
+    const allTiersUnique = [...tierMap.values()].every(arr => arr.length === 1);
+    const uniqueTiers = [...tierMap.keys()];
+    if (allTiersUnique && uniqueTiers.length > 1) {
+      const repTierMap = new Map([...tierMap.entries()].map(([k, v]) => [k, v[0]]));
+      const tiers = uniqueTiers.sort((a, b) => a - b);
       tierTabs = `
         <div class="tier-select-wrap">
           <select class="tier-select" onchange="selectItem(this.value)">
