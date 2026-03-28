@@ -482,17 +482,15 @@ function renderSearchResults(items, page = 1) {
         const displayName = useJaName ? `${jaName} ${item.name}` : item.name;
         return `
           <div class="result-card" onclick="selectItem('${item.id}')">
-            <div class="rc-top">
-              <div class="rc-icon">
-                <img class="rc-icon-img" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
-              </div>
-              <div class="rc-info">
-                <div class="rc-name">${useJaName ? jaName : item.name}</div>
-                ${useJaName ? `<div class="rc-sub">${item.name}</div>` : ''}
+            <div class="s-top">
+              <img class="s-icon" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
+              <div class="s-text">
+                <span class="s-name">${useJaName ? jaName : item.name}</span>
+                ${useJaName ? `<span class="s-sub">${item.name}</span>` : ''}
               </div>
             </div>
-            <div class="rc-badges">
-              ${item.tier && item.tier > 0 ? `<span class="badge tier">T${item.tier}</span>` : ''}
+            <div class="s-tags">
+              ${item.tier && item.tier > 0 ? `<span class="s-tier">T${item.tier}</span>` : ''}
               <span class="s-rarity rarity-${item.rarityStr?.toLowerCase()}">${item.rarityStr || ''}</span>
               ${item.tag ? `
                 ${parentCategoryMap[item.tag] ? `<span class="s-parent-category">${getJaName(parentCategoryMap[item.tag]) || parentCategoryMap[item.tag]}</span>` : ''}
