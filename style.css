@@ -1237,19 +1237,26 @@ footer a:hover { color: var(--accent); }
     white-space: normal;
     gap: 2px;
     flex-direction: column;
+    text-align: left;
   }
 
   .rc-name {
     font-size: 13px;
+    text-align: left;
   }
 
   .rc-sub {
     font-size: 11px;
+    text-align: left;
   }
 
   .rc-badges {
     margin-left: 32px;
     gap: 4px;
+    text-align: left;
+  }
+  .result-card {
+    justify-content: flex-start;
   }
 
   .rc-badges {
