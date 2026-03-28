@@ -610,6 +610,40 @@ function renderItemHeader(item) {
   const useJaName = jaName && jaName.length > 2;
   const iconUrl = getCachedIcon(item.iconAssetName);
 
+  // 同じカテゴリーの他のティアアイテムを取得
+  let tierTabs = '';
+  if (item.tag && cachedMarketItems) {
+    const sameCategoryItems = cachedMarketItems.filter(i => i.tag === item.tag);
+    if (sameCategoryItems.length > 0) {
+      // ティアでグループ化し、各ティアの最初のアイテムを代表として使用
+      const tierMap = new Map();
+      sameCategoryItems.forEach(i => {
+        if (i.tier != null && !tierMap.has(i.tier)) {
+          tierMap.set(i.tier, i);
+        }
+      });
+      const tiers = Array.from(tierMap.keys()).sort((a, b) => a - b);
+      tierTabs = `
+        <div class="tier-tabs">
+          ${tiers.map(tier => {
+            const repItem = tierMap.get(tier);
+            const isActive = tier === item.tier;
+            const jaRepName = getJaName(repItem.name);
+            const useJaRepName = jaRepName && jaRepName.length > 2;
+            const displayName = useJaRepName ? jaRepName : repItem.name;
+            return `
+              <button class="tier-tab ${isActive ? 'active' : ''}" 
+                      onclick="selectItem('${repItem.id}')" 
+                      title="${displayName}">
+                Tier ${tier}
+              </button>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+  }
+
   document.getElementById('itemHeader').innerHTML = `
     <div class="item-title">
       <img class="item-icon" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
@@ -624,6 +658,7 @@ function renderItemHeader(item) {
           ` : ''}
         </div>
       </div>
+      ${tierTabs}
     </div>
   `;
 }
