@@ -931,16 +931,10 @@ footer a:hover { color: var(--accent); }
 .item-title-text {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 .item-title-text h2 {
   margin: 0 0 8px 0;
-  font-size: 1.8rem;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  font-size: 1.6rem;
 }
 
 .price-chart-section {
@@ -1213,6 +1207,8 @@ footer a:hover { color: var(--accent); }
   .search-results {
     max-width: 100%;
     padding: 12px;
+    margin: 0;
+    text-align: left;
   }
 
   .result-card {
@@ -1669,7 +1665,7 @@ footer a:hover { color: var(--accent); }
 
 @media (max-width: 768px) {
   .item-title-text h2 {
-    font-size: 1.4rem;
+    font-size: 1.2rem;
   }
 }
 
