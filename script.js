@@ -660,8 +660,8 @@ function renderItemHeader(item) {
             <span class="s-tag">${getJaName(item.tag) || item.tag}</span>
           ` : ''}
         </div>
+        ${tierTabs}
       </div>
-      ${tierTabs}
     </div>
   `;
 }
