@@ -1139,8 +1139,8 @@ footer a:hover { color: var(--accent); }
   }
 
   .result-card {
-    flex-direction: row;
-    align-items: flex-start;
+    flex-direction: row !important;
+    align-items: flex-start !important;
     padding: 10px 12px;
     gap: 12px;
   }
@@ -1169,9 +1169,9 @@ footer a:hover { color: var(--accent); }
 
   .rc-info {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     flex-wrap: nowrap;
-    gap: 8px;
+    gap: 2px;
   }
 
   .rc-sub {
@@ -1182,7 +1182,7 @@ footer a:hover { color: var(--accent); }
   .rc-badges {
     flex: 0 0 auto;
     width: auto;
-    max-width: 100%;
+    max-width: 50%;
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
