@@ -648,7 +648,10 @@ function renderItemHeader(item) {
     <div class="item-title">
       <img class="item-icon" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
       <div class="item-title-text">
-        <h2>${useJaName ? jaName : item.name}${useJaName ? ` <span class="item-ja">/ ${item.name}</span>` : ''}</h2>
+        <div class="item-name-row">
+          <h2 class="item-ja-name">${useJaName ? jaName : item.name}</h2>
+          ${useJaName ? `<span class="item-en-name">/ ${item.name}</span>` : ''}
+        </div>
         <div class="item-badges">
           ${item.tier && item.tier > 0 ? `<span class="badge tier">Tier ${item.tier}</span>` : ''}
           <span class="s-rarity rarity-${item.rarityStr?.toLowerCase()}">${item.rarityStr || ''}</span>
