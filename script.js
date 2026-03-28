@@ -616,17 +616,16 @@ function renderItemHeader(item) {
     const sameCategoryItems = cachedMarketItems.filter(i => i.tag === item.tag);
 
     const tagWords = item.tag.toLowerCase().split(/\s+/);
-    const relatedItems = sameCategoryItems.filter(i =>
-      tagWords.some(w => i.name.toLowerCase().includes(w) && w.length >= 4)
-    );
-
-    const uniqueTiers = [...new Set(relatedItems.map(i => i.tier))];
-
-    if (uniqueTiers.length > 1) {
-      const tierMap = new Map();
-      relatedItems.forEach(i => {
-        if (i.tier != null && !tierMap.has(i.tier)) tierMap.set(i.tier, i);
-      });
+    const relatedItems = sameCategoryItems.filter(i => {
+      if (i.id === item.id) return true;
+      const iWords = i.name.toLowerCase().split(/\s+/).filter(w => w.length >= 4);
+      const itemWords = item.name.toLowerCase().split(/\s+/).filter(w => w.length >= 4);
+      // タグ単語以外で共通する単語が1つ以上ある
+      const tagWords2 = new Set(item.tag.toLowerCase().split(/\s+/));
+      const iUnique = iWords.filter(w => !tagWords2.has(w));
+      const itemUnique = itemWords.filter(w => !tagWords2.has(w));
+      return iUnique.some(w => itemUnique.includes(w));
+    });
       const tiers = Array.from(tierMap.keys()).sort((a, b) => a - b);
       tierTabs = `
         <div class="tier-select-wrap">
