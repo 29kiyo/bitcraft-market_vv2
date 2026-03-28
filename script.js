@@ -98,7 +98,7 @@ window.changeOrderClaim = function(claim) {
   clearTimeout(claimDebounceTimer);
   claimDebounceTimer = setTimeout(() => {
     currentOrderClaim = claim;
-    renderOrders(currentOrders, '', 1, currentOrderSort, currentOrderRegion, claim);
+    renderOrders(currentOrders, '', 1, currentOrderSort, currentOrderRegion, claim, false);
     const input = document.getElementById('claimSearchInput');
     if (input) {
       input.value = claim;
@@ -110,21 +110,21 @@ window.changeOrderClaim = function(claim) {
 };
 
 window.changeOrderPage = function(page) {
-  renderOrders(currentOrders, '', page, currentOrderSort, currentOrderRegion, currentOrderClaim);
+  renderOrders(currentOrders, '', page, currentOrderSort, currentOrderRegion, currentOrderClaim, false);
 };
 
 window.changeOrderSort = function(sort) {
-  renderOrders(currentOrders, '', 1, sort, currentOrderRegion, currentOrderClaim);
+  renderOrders(currentOrders, '', 1, sort, currentOrderRegion, currentOrderClaim, false);
 };
 
 window.changeOrderType = function(type) {
   if (orderTypeFilter) orderTypeFilter.value = type;
-  renderOrders(currentOrders, type, 1, currentOrderSort, currentOrderRegion, currentOrderClaim);
+  renderOrders(currentOrders, type, 1, currentOrderSort, currentOrderRegion, currentOrderClaim, true);
 };
 
 window.changeOrderRegion = function(region) {
   currentOrderRegion = region;
-  renderOrders(currentOrders, '', 1, currentOrderSort, region, currentOrderClaim);
+  renderOrders(currentOrders, '', 1, currentOrderSort, region, currentOrderClaim, false);
 };
 
 const ITEMS_PER_PAGE = 20;
@@ -594,7 +594,7 @@ function renderResult(item, priceData, orders, orderType) {
   renderPriceSummary(item, priceData);
   renderPriceChart(priceData);
   renderSupplyDemand(orders);
-  renderOrders(orders, orderType);
+  renderOrders(orders, orderType, 1, 'asc', '', '', true);
   renderTradeLog(priceData); // 追加
 
   resultSection.classList.remove('hidden');
@@ -914,7 +914,7 @@ window.updateSupplyDemand = function() {
 };
 
 
-function renderOrders(orders, orderType, page = 1, sort = 'asc', regionFilter = '', claimFilter = '') {
+function renderOrders(orders, orderType, page = 1, sort = 'asc', regionFilter = '', claimFilter = '', showTabs = true) {
   currentOrderPage = page;
   currentOrderSort = sort;
 
@@ -994,7 +994,7 @@ document.getElementById('ordersList').innerHTML = `
   <div class="orders-list-header">
     <h3 class="section-title">📋 注文一覧 <span class="order-count">${filtered.length}件</span></h3>
     <div class="order-type-tabs">
-      ${orderType === undefined ? `
+      ${showTabs ? `
         <button class="tab-btn ${(orderType || '') === '' ? 'active' : ''}" onclick="changeOrderType('')">売り＆買い (${orders.length})</button>
         <button class="tab-btn ${(orderType || '') === 'sell' ? 'active' : ''}" onclick="changeOrderType('sell')">売り (${sellCount})</button>
         <button class="tab-btn ${(orderType || '') === 'buy' ? 'active' : ''}" onclick="changeOrderType('buy')">買い (${buyCount})</button>
