@@ -1412,7 +1412,7 @@ window.openCalcList = function() {
                   <td style="color:#e0e0e0;font-size:12px;">${i.itemName}</td>
                   <td class="claim-name">
                     ${i.claimLocationX != null
-                      ? `<a href="https://map.bitjita.com/?x=${Math.round(i.claimLocationX)}&y=${Math.round(i.claimLocationZ)}&zoom=5" target="_blank" style="color:#00c896;text-decoration:none;">${i.claimName || '—'}</a>`
+                      ? `<span onclick="openCalcMap(${idx})" style="color:#00c896;cursor:pointer;text-decoration:underline;">${i.claimName || '—'}</span>`
                       : (i.claimName || '—')}
                     ${i.claimLocationX != null ? `<div style="font-size:10px;color:#666;">N:${Math.round(i.claimLocationZ/3)}, E:${Math.round(i.claimLocationX/3)}</div>` : ''}
                   </td>
@@ -1478,4 +1478,253 @@ window.openCalcList = function() {
     updateCalcListCount();
     modal.innerHTML = renderContent();
   };
+};
+
+window.openCalcMap = async function(focusIdx) {
+  // モーダル先に表示してローディング
+  let modal = document.getElementById('calcMapModal');
+  if (modal) modal.remove();
+  modal = document.createElement('div');
+  modal.id = 'calcMapModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML = `
+    <div style="background:#0d1827;border:1px solid #2a4f72;border-radius:14px;padding:24px;width:100%;max-width:700px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 class="section-title" style="margin:0;">🗺 マップ</h3>
+        <button onclick="document.getElementById('calcMapModal').remove()" style="background:none;border:none;color:#aaa;font-size:20px;cursor:pointer;">✕</button>
+      </div>
+      <div id="calcMapContent" style="text-align:center;padding:60px;color:#aaa;">領地データを取得中...</div>
+    </div>
+  `;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+
+  // 全領地取得
+  const allClaims = [];
+  const limit = 100;
+  let offset = 0;
+  const total = 1400;
+  while (offset < total) {
+    try {
+      const res = await fetch(`${API_BASE}/claims?limit=${limit}&offset=${offset}`, { headers: HEADERS });
+      if (!res.ok) break;
+      const json = await res.json();
+      const claims = json.claims || [];
+      allClaims.push(...claims);
+      if (claims.length < limit) break;
+      offset += limit;
+    } catch(e) { break; }
+  }
+
+  if (allClaims.length === 0) {
+    document.getElementById('calcMapContent').textContent = '領地データの取得に失敗しました';
+    return;
+  }
+
+  // 集計リストの領地をマッチング
+  const calcList = window._calcList;
+  const focusItem = calcList[focusIdx];
+
+  // Canvas描画
+  const W = 640, H = 480;
+  const xs = allClaims.map(c => c.locationX);
+  const zs = allClaims.map(c => c.locationZ);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minZ = Math.min(...zs), maxZ = Math.max(...zs);
+  const pad = 0.05;
+  const rangeX = (maxX - minX) * (1 + pad * 2);
+  const rangeZ = (maxZ - minZ) * (1 + pad * 2);
+
+  function toCanvasX(x) { return ((x - minX + (maxX - minX) * pad) / rangeX) * W; }
+  function toCanvasZ(z) { return ((z - minZ + (maxZ - minZ) * pad) / rangeZ) * H; }
+
+  // ズーム・パン状態
+  let scale = 1, panX = 0, panZ = 0;
+  let isDragging = false, dragStartX = 0, dragStartZ = 0, dragPanX = 0, dragPanZ = 0;
+
+  // focusItemの座標
+  const focusX = focusItem?.claimLocationX;
+  const focusZ = focusItem?.claimLocationZ;
+
+  document.getElementById('calcMapContent').innerHTML = `
+    <div style="position:relative;">
+      <canvas id="calcMapCanvas" width="${W}" height="${H}" style="width:100%;border-radius:8px;cursor:grab;display:block;"></canvas>
+      <div id="calcMapPopup" style="display:none;position:absolute;background:#0d1827;border:1px solid #2a4f72;border-radius:8px;padding:12px 16px;min-width:200px;max-width:280px;z-index:10;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,0.5);"></div>
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:#666;text-align:left;">スクロールでズーム・ドラッグで移動・マーカーをクリックで詳細</div>
+    <div style="margin-top:4px;font-size:11px;color:#666;text-align:left;">
+      <span style="color:#00c896;">●</span> 集計リストの領地 &nbsp;
+      <span style="color:#2a4f72;">●</span> その他の領地
+    </div>
+  `;
+
+  const canvas = document.getElementById('calcMapCanvas');
+  const ctx = canvas.getContext('2d');
+  const popup = document.getElementById('calcMapPopup');
+
+  // 集計リストの領地セット
+  const calcClaimNames = new Set(calcList.map(i => i.claimName).filter(Boolean));
+
+  // focusにズーム
+  if (focusX != null) {
+    scale = 8;
+    const cx = toCanvasX(focusX);
+    const cz = toCanvasZ(focusZ);
+    panX = W / 2 - cx * scale;
+    panZ = H / 2 - cz * scale;
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#0a1220';
+    ctx.fillRect(0, 0, W, H);
+
+    // グリッド
+    ctx.strokeStyle = '#1e3048';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= 10; i++) {
+      const x = (W / 10) * i;
+      const z = (H / 10) * i;
+      ctx.beginPath(); ctx.moveTo(x * scale + panX, 0); ctx.lineTo(x * scale + panX, H); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, z * scale + panZ); ctx.lineTo(W, z * scale + panZ); ctx.stroke();
+    }
+
+    // 全領地
+    allClaims.forEach(c => {
+      const cx = toCanvasX(c.locationX) * scale + panX;
+      const cz = toCanvasZ(c.locationZ) * scale + panZ;
+      if (cx < -10 || cx > W + 10 || cz < -10 || cz > H + 10) return;
+      const isCalc = calcClaimNames.has(c.name);
+      const isFocus = focusX != null && Math.abs(c.locationX - focusX) < 10 && Math.abs(c.locationZ - focusZ) < 10;
+      const r = Math.max(2, 4 * scale / 8);
+      ctx.beginPath();
+      ctx.arc(cx, cz, isFocus ? r * 1.8 : isCalc ? r * 1.4 : r, 0, Math.PI * 2);
+      ctx.fillStyle = isFocus ? '#f0a500' : isCalc ? '#00c896' : '#2a4f72';
+      ctx.fill();
+      if (isFocus || isCalc) {
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    });
+  }
+
+  draw();
+
+  // ズーム
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const scaleRatio = canvas.width / rect.width;
+    const mx = (e.clientX - rect.left) * scaleRatio;
+    const mz = (e.clientY - rect.top) * scaleRatio;
+    const delta = e.deltaY < 0 ? 1.2 : 0.8;
+    panX = mx - (mx - panX) * delta;
+    panZ = mz - (mz - panZ) * delta;
+    scale *= delta;
+    popup.style.display = 'none';
+    draw();
+  }, { passive: false });
+
+  // ドラッグ
+  canvas.addEventListener('mousedown', e => {
+    isDragging = false;
+    dragStartX = e.clientX; dragStartZ = e.clientY;
+    dragPanX = panX; dragPanZ = panZ;
+    canvas.style.cursor = 'grabbing';
+    const onMove = e2 => {
+      const dx = e2.clientX - dragStartX, dz = e2.clientY - dragStartZ;
+      if (Math.abs(dx) > 3 || Math.abs(dz) > 3) isDragging = true;
+      const rect = canvas.getBoundingClientRect();
+      const scaleRatio = canvas.width / rect.width;
+      panX = dragPanX + dx * scaleRatio;
+      panZ = dragPanZ + dz * scaleRatio;
+      draw();
+    };
+    const onUp = () => {
+      canvas.style.cursor = 'grab';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  });
+
+  // タッチ対応
+  let lastTouchDist = null;
+  canvas.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) {
+      lastTouchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    } else {
+      dragStartX = e.touches[0].clientX; dragStartZ = e.touches[0].clientY;
+      dragPanX = panX; dragPanZ = panZ;
+    }
+  }, { passive: true });
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      if (lastTouchDist) {
+        const delta = dist / lastTouchDist;
+        const rect = canvas.getBoundingClientRect();
+        const scaleRatio = canvas.width / rect.width;
+        const mx = ((e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left) * scaleRatio;
+        const mz = ((e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top) * scaleRatio;
+        panX = mx - (mx - panX) * delta;
+        panZ = mz - (mz - panZ) * delta;
+        scale *= delta;
+        draw();
+      }
+      lastTouchDist = dist;
+    } else {
+      const rect = canvas.getBoundingClientRect();
+      const scaleRatio = canvas.width / rect.width;
+      panX = dragPanX + (e.touches[0].clientX - dragStartX) * scaleRatio;
+      panZ = dragPanZ + (e.touches[0].clientY - dragStartZ) * scaleRatio;
+      draw();
+    }
+  }, { passive: false });
+
+  // クリックでポップアップ
+  canvas.addEventListener('click', e => {
+    if (isDragging) return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleRatio = canvas.width / rect.width;
+    const mx = (e.clientX - rect.left) * scaleRatio;
+    const mz = (e.clientY - rect.top) * scaleRatio;
+    const hitRadius = Math.max(8, 6 * scale / 8);
+
+    let hit = null, hitDist = Infinity;
+    allClaims.forEach(c => {
+      const cx = toCanvasX(c.locationX) * scale + panX;
+      const cz = toCanvasZ(c.locationZ) * scale + panZ;
+      const d = Math.hypot(mx - cx, mz - cz);
+      if (d < hitRadius && d < hitDist) { hit = c; hitDist = d; }
+    });
+
+    if (!hit) { popup.style.display = 'none'; return; }
+
+    const calcItems = calcList.filter(i => i.claimName === hit.name);
+    const px = Math.min(e.clientX - rect.left + 12, rect.width - 300);
+    const pz = Math.max(e.clientY - rect.top - 20, 0);
+    popup.style.left = px + 'px';
+    popup.style.top = pz + 'px';
+    popup.style.display = 'block';
+    popup.innerHTML = `
+      <button onclick="document.getElementById('calcMapPopup').style.display='none'" style="position:absolute;top:6px;right:8px;background:none;border:none;color:#aaa;cursor:pointer;font-size:14px;">✕</button>
+      <div style="font-weight:700;color:#fff;margin-bottom:2px;">${hit.name}</div>
+      <div style="font-size:11px;color:#aaa;margin-bottom:6px;">${hit.regionName || ''} (R${hit.regionId || ''}) · N:${Math.round(hit.locationZ/3)}, E:${Math.round(hit.locationX/3)}</div>
+      ${calcItems.length > 0 ? `
+        <div style="border-top:1px solid #1e3048;padding-top:6px;margin-top:4px;">
+          ${calcItems.map(i => `
+            <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:3px;font-size:12px;">
+              <span style="color:#aaa;">${i.itemName}</span>
+              <span style="color:#fff;">${formatPrice(i.priceThreshold)} ×${i.buyQty}</span>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+      <a href="https://map.bitjita.com/?x=${hit.locationX}&y=${hit.locationZ}&zoom=6" target="_blank" style="display:block;margin-top:8px;color:#00c896;font-size:11px;text-decoration:none;">🗺 bitjita mapで開く</a>
+    `;
+  });
 };
