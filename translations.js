@@ -292,6 +292,8 @@ const ITEM_TRANSLATIONS = {
   "バウチャー": "Business Voucher",
   "ロストシップメント": "Lost Shipment",
   "帆": "Sail Cloth",
+  "塩": "Salt",
+  "砂糖": "Sugar",
 
 // ===== 未登録タグ追加 =====
   "研究":"research",
@@ -1083,8 +1085,8 @@ const EN_ITEM_BASE = {
   "Roasted Meat": "焼き肉",
   "Roasted Ocean Fish": "焼き海水魚",
   "Skewered Baitfish": "ベイトフィッシュ串焼き",
-  "Sugar": "砂糖",
-  "Salt": "塩",
+  "sugar": "砂糖",
+  "salt": "塩",
 
   // ===== 研究・コーデックス =====
   "Cloth Research": "布研究",
@@ -1148,8 +1150,6 @@ const EN_EQUIPMENT_BASES = new Set([
 
 const EN_EXACT = {
   "Energized Sentinel's Shortsword": "エナジャイズドセンチネルのショートソード",
-  "Sugar": "砂糖",
-  "Salt": "塩",
   "Package":"パッケージ",
   "Energized Sentinel's Spear & Shield": "エナジャイズドセンチネルの槍と盾",
   "Eye of the Sentinel": "センチネルの瞳",
