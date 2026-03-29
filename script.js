@@ -1491,8 +1491,8 @@ window.openBitjitaMapModal = function(x, z, claimName, regionName, regionId) {
   const mapZ = Math.round(z / 3);
   
   // map.bitjita.comのURL（centerパラメータ使用、zoom=1.5は確認済み）
-  // 座標系：X = E（経度）、Z = N（緯度）
-  let mapUrl = `https://map.bitjita.com/?center=${mapX},${mapZ}&zoom=1.5`;
+  // 座標系：ZがN、XがE の可能性がある（順序を試す）
+  let mapUrl = `https://map.bitjita.com/?center=${mapZ},${mapX}&zoom=1.5`;
   
   // 領地名をパラメータとして追加（自動ポップアップの可能性を試す）
   if (claimName) {
