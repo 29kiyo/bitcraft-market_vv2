@@ -1150,8 +1150,8 @@ const EN_EQUIPMENT_BASES = new Set([
 
 const EN_EXACT = {
   "Energized Sentinel's Shortsword": "エナジャイズドセンチネルのショートソード",
-  "sugar": "砂糖",
-  "salt": "塩",
+  "Sugar": "砂糖",
+  "Salt": "塩",
   "Package":"パッケージ",
   "Energized Sentinel's Spear & Shield": "エナジャイズドセンチネルの槍と盾",
   "Eye of the Sentinel": "センチネルの瞳",
