@@ -1416,7 +1416,7 @@ window.openCalcList = function() {
                     ${i.claimLocationX != null
                       ? `<a href="#" onclick="event.preventDefault();openBitjitaMapModal(${Math.round(i.claimLocationX)}, ${Math.round(i.claimLocationZ)}, '${(i.claimName || '').replace(/'/g, "\\'")}', '${(i.regionName || '').replace(/'/g, "\\'")}', '${i.regionId || ''}')" style="color:#00c896;text-decoration:none;">${i.claimName || '—'}</a>`
                       : (i.claimName || '—')}
-                    ${i.claimLocationX != null ? `<div style="font-size:10px;color:#666;">N:${Math.round(i.claimLocationZ/3)}, E:${Math.round(i.claimLocationX/3)}</div>` : ''}
+                    ${i.claimLocationX != null ? `<div style="font-size:10px;color:#666;">N:${Math.round(i.claimLocationZ)}, E:${Math.round(i.claimLocationX)}</div>` : ''}
                   </td>
                   <td style="font-size:12px;">${i.regionName ? `${i.regionName} (R${i.regionId})` : '—'}</td>
                   <td class="price-cell">${formatPrice(i.priceThreshold)}</td>
@@ -1486,21 +1486,26 @@ window.openCalcList = function() {
 // Bitjita Map モーダル
 // ============================================
 window.openBitjitaMapModal = function(x, z, claimName, regionName, regionId) {
-  // 座標をマップ座標に変換（/3する）
+  // map.bitjita.comでは座標を3で割る必要がある
   const mapX = Math.round(x / 3);
   const mapZ = Math.round(z / 3);
   
-  // map.bitjita.comのURL（centerパラメータ使用）
-  let mapUrl = `https://map.bitjita.com/?center=${mapX},${mapZ}&zoom=4`;
+  // map.bitjita.comのURL（centerパラメータ使用、zoom=1.5は確認済み）
+  // 座標系：X = E（経度）、Z = N（緯度）
+  let mapUrl = `https://map.bitjita.com/?center=${mapX},${mapZ}&zoom=1.5`;
   
-  // 領地名をパラメータとして追加してみる
+  // 領地名をパラメータとして追加（自動ポップアップの可能性を試す）
   if (claimName) {
     // 複数のパラメータ名を試す
     mapUrl += `&claim=${encodeURIComponent(claimName)}`;
     mapUrl += `&name=${encodeURIComponent(claimName)}`;
     mapUrl += `&territory=${encodeURIComponent(claimName)}`;
+    // 追加のパラメータを試す
+    mapUrl += `&select=${encodeURIComponent(claimName)}`;
+    mapUrl += `&popup=${encodeURIComponent(claimName)}`;
   }
   
+  // 表示用の座標：XがE、ZがN（/3する）
   const n = Math.round(z / 3);
   const e = Math.round(x / 3);
   
