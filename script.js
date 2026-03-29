@@ -1340,8 +1340,8 @@ function formatNum(val) {
 
 function formatCoords(order) {
   if (order.claimLocationX == null) return '—';
-  const n = Math.round(order.claimLocationZ / 3);
-  const e = Math.round(order.claimLocationX / 3);
+  const n = Math.round(order.claimLocationX / 3);
+  const e = Math.round(order.claimLocationZ / 3);
   return `N:${n}, E:${e}`;
 }
 
@@ -1416,7 +1416,7 @@ window.openCalcList = function() {
                     ${i.claimLocationX != null
                       ? `<a href="#" onclick="event.preventDefault();openBitjitaMapModal(${Math.round(i.claimLocationX)}, ${Math.round(i.claimLocationZ)}, '${(i.claimName || '').replace(/'/g, "\\'")}', '${(i.regionName || '').replace(/'/g, "\\'")}', '${i.regionId || ''}')" style="color:#00c896;text-decoration:none;">${i.claimName || '—'}</a>`
                       : (i.claimName || '—')}
-                    ${i.claimLocationX != null ? `<div style="font-size:10px;color:#666;">N:${Math.round(i.claimLocationZ)}, E:${Math.round(i.claimLocationX)}</div>` : ''}
+                    ${i.claimLocationX != null ? `<div style="font-size:10px;color:#666;">N:${Math.round(i.claimLocationX/3)}, E:${Math.round(i.claimLocationZ/3)}</div>` : ''}
                   </td>
                   <td style="font-size:12px;">${i.regionName ? `${i.regionName} (R${i.regionId})` : '—'}</td>
                   <td class="price-cell">${formatPrice(i.priceThreshold)}</td>
@@ -1505,9 +1505,9 @@ window.openBitjitaMapModal = function(x, z, claimName, regionName, regionId) {
     mapUrl += `&popup=${encodeURIComponent(claimName)}`;
   }
   
-  // 表示用の座標：XがE、ZがN（/3する）
-  const n = Math.round(z / 3);
-  const e = Math.round(x / 3);
+  // 表示用の座標：xがN、zがE
+  const n = Math.round(x / 3);
+  const e = Math.round(z / 3);
   
   let mapModal = document.getElementById('bitjitaMapModal');
   if (mapModal) mapModal.remove();
