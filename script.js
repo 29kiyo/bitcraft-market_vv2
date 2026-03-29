@@ -1495,23 +1495,27 @@ window.openBitjitaMapModal = function(x, z, claimName, regionName, regionId) {
   
   mapModal = document.createElement('div');
   mapModal.id = 'bitjitaMapModal';
-  mapModal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:2000;display:flex;flex-direction:column;align-items:center;padding:20px;';
+  mapModal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;';
   mapModal.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;width:100%;max-width:1200px;margin-bottom:12px;">
-      <div style="color:#e0e0e0;font-size:16px;">
-        <span style="color:#00c896;font-weight:600;">${claimName || '領地'}</span>
-        <span style="color:#666;margin-left:12px;font-size:13px;">N: ${n}, E: ${e}</span>
-        ${regionName ? `<span style="color:#666;margin-left:12px;font-size:13px;">${regionName} (R${regionId || ''})</span>` : ''}
+    <div style="background:#0d1827;border:1px solid #2a4f72;border-radius:14px;padding:24px;width:100%;max-width:380px;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+        <div>
+          <div style="font-size:11px;color:#00c896;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">CLAIM</div>
+          <div style="font-size:20px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;">
+            ${claimName || '不明な領地'}
+          </div>
+        </div>
+        <button onclick="document.getElementById('bitjitaMapModal').remove()" style="background:none;border:none;color:#666;font-size:20px;cursor:pointer;padding:0 4px;">✕</button>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <button onclick="document.getElementById('bitjitaMapModal').remove()" style="background:none;border:none;color:#aaa;font-size:24px;cursor:pointer;padding:4px 8px;">✕</button>
+      
+      <div style="font-size:14px;color:#aaa;margin-bottom:16px;">
+        <div style="margin-bottom:4px;"><span style="color:#00c896;">N:</span> ${n}  <span style="color:#00c896;">E:</span> ${e}</div>
+        ${regionName ? `<div><span style="color:#00c896;">Region:</span> ${regionName} (R${regionId || ''})</div>` : ''}
       </div>
-    </div>
-    <div style="width:100%;max-width:1200px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-      <iframe src="${mapUrl}" style="width:100%;height:100%;min-height:500px;border:1px solid #2a4f72;border-radius:12px;background:#0d1520;" allowfullscreen></iframe>
-      <div style="margin-top:12px;color:#666;font-size:12px;text-align:center;">
-        マップ上で領地をクリックすると詳細が表示されます
-      </div>
+      
+      <a href="${mapUrl}" target="_blank" style="display:block;text-align:center;background:#00c896;color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:12px;border-radius:8px;margin-top:16px;">
+        Mapで開く ↗
+      </a>
     </div>
   `;
   
