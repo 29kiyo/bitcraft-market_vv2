@@ -987,7 +987,7 @@ function renderOrders(orders, orderType, page = 1, sort = 'asc', regionFilter = 
                 <td class="price-cell">${formatPrice(o.priceThreshold)}</td>
                 <td>${formatNum(o.quantity)}</td>
                 <td class="claim-name">${o.claimLocationX != null
-                  ? `<a href="#" onclick="event.preventDefault();openBitjitaMapModal(${Math.round(o.claimLocationX)}, ${Math.round(o.claimLocationZ)}, '${(o.claimName || '').replace(/'/g, "\\'")}')" style="color:#00c896;text-decoration:none;">${o.claimName || '—'}</a>`
+                  ? `<a href="#" onclick="event.preventDefault();openBitjitaMapModal(${Math.round(o.claimLocationX)}, ${Math.round(o.claimLocationZ)}, '${(o.claimName || '').replace(/'/g, "\\'")}', '${(o.regionName || '').replace(/'/g, "\\'")}', '${o.regionId || ''}')" style="color:#00c896;text-decoration:none;">${o.claimName || '—'}</a>`
                   : (o.claimName || '—')}</td>
                 <td>${o.regionName ? `${o.regionName} (R${o.regionId})` : '—'}</td>
                 <td class="coords">${formatCoords(o)}</td>
@@ -1414,7 +1414,7 @@ window.openCalcList = function() {
                   <td style="color:#e0e0e0;font-size:12px;">${i.itemName}</td>
                   <td class="claim-name">
                     ${i.claimLocationX != null
-                      ? `<a href="#" onclick="event.preventDefault();openBitjitaMapModal(${Math.round(i.claimLocationX)}, ${Math.round(i.claimLocationZ)}, '${(i.claimName || '').replace(/'/g, "\\'")}')" style="color:#00c896;text-decoration:none;">${i.claimName || '—'}</a>`
+                      ? `<a href="#" onclick="event.preventDefault();openBitjitaMapModal(${Math.round(i.claimLocationX)}, ${Math.round(i.claimLocationZ)}, '${(i.claimName || '').replace(/'/g, "\\'")}', '${(i.regionName || '').replace(/'/g, "\\'")}', '${i.regionId || ''}')" style="color:#00c896;text-decoration:none;">${i.claimName || '—'}</a>`
                       : (i.claimName || '—')}
                     ${i.claimLocationX != null ? `<div style="font-size:10px;color:#666;">N:${Math.round(i.claimLocationZ/3)}, E:${Math.round(i.claimLocationX/3)}</div>` : ''}
                   </td>
@@ -1485,27 +1485,53 @@ window.openCalcList = function() {
 // ============================================
 // Bitjita Map モーダル
 // ============================================
-window.openBitjitaMapModal = function(x, z, claimName) {
+window.openBitjitaMapModal = function(x, z, claimName, regionName, regionId) {
   const mapUrl = `https://map.bitjita.com/?x=${Math.round(x)}&y=${Math.round(z)}&zoom=6`;
+  const n = Math.round(z / 3);
+  const e = Math.round(x / 3);
   
   let mapModal = document.getElementById('bitjitaMapModal');
   if (mapModal) mapModal.remove();
   
   mapModal = document.createElement('div');
   mapModal.id = 'bitjitaMapModal';
-  mapModal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:2000;display:flex;flex-direction:column;align-items:center;padding:20px;';
+  mapModal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;';
   mapModal.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;width:100%;max-width:1200px;margin-bottom:12px;">
-      <div style="color:#e0e0e0;font-size:16px;">
-        <span style="color:#00c896;font-weight:600;">${claimName || '領地'}</span>
-        <span style="color:#666;margin-left:12px;font-size:13px;">X: ${Math.round(x)}, Y: ${Math.round(z)}</span>
+    <div style="background:#0d1827;border:1px solid #2a4f72;border-radius:14px;padding:24px;width:100%;max-width:380px;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+        <div>
+          <div style="font-size:11px;color:#00c896;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">CLAIM</div>
+          <div style="font-size:20px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px;">
+            ${claimName || '不明な領地'}
+            <span style="background:rgba(0,200,150,0.15);color:#00c896;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">T7</span>
+          </div>
+        </div>
+        <button onclick="document.getElementById('bitjitaMapModal').remove()" style="background:none;border:none;color:#666;font-size:20px;cursor:pointer;padding:0 4px;">✕</button>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <a href="${mapUrl}" target="_blank" style="color:#00c896;font-size:13px;text-decoration:none;background:rgba(0,200,150,0.1);padding:6px 12px;border-radius:6px;border:1px solid rgba(0,200,150,0.3);">↗ 新しいタブで開く</a>
-        <button onclick="document.getElementById('bitjitaMapModal').remove()" style="background:none;border:none;color:#aaa;font-size:24px;cursor:pointer;padding:4px 8px;">✕</button>
+      
+      <div style="font-size:14px;color:#aaa;margin-bottom:16px;">
+        <span style="color:#00c896;">N:</span> ${n}  <span style="color:#00c896;">E:</span> ${e}
       </div>
+      
+      <div style="border-top:1px solid #1e3048;padding-top:16px;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+          <span style="color:#aaa;font-size:13px;">Bank</span>
+          <span style="color:#00c896;font-size:13px;font-weight:600;">Yes</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+          <span style="color:#aaa;font-size:13px;">Market</span>
+          <span style="color:#00c896;font-size:13px;font-weight:600;">Yes</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+          <span style="color:#aaa;font-size:13px;">Waystone</span>
+          <span style="color:#00c896;font-size:13px;font-weight:600;">Yes</span>
+        </div>
+      </div>
+      
+      <a href="${mapUrl}" target="_blank" style="display:block;text-align:center;color:#00c896;text-decoration:none;font-size:13px;padding:12px;border:1px solid #00c896;border-radius:8px;margin-top:16px;">
+        View on bitjita.com ↗
+      </a>
     </div>
-    <iframe src="${mapUrl}" style="width:100%;max-width:1200px;flex:1;border:1px solid #2a4f72;border-radius:12px;background:#0d1520;" allowfullscreen></iframe>
   `;
   
   mapModal.addEventListener('click', e => { if (e.target === mapModal) mapModal.remove(); });
