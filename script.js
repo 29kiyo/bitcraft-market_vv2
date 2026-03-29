@@ -986,7 +986,9 @@ function renderOrders(orders, orderType, page = 1, sort = 'asc', regionFilter = 
                 <td><span class="order-badge ${o.orderType}">${o.orderType === 'sell' ? '売り' : '買い'}</span></td>
                 <td class="price-cell">${formatPrice(o.priceThreshold)}</td>
                 <td>${formatNum(o.quantity)}</td>
-                <td class="claim-name">${o.claimName || '—'}</td>
+                <td class="claim-name">${o.claimLocationX != null
+                  ? `<a href="#" onclick="event.preventDefault();openBitjitaMapModal(${Math.round(o.claimLocationX)}, ${Math.round(o.claimLocationZ)}, '${(o.claimName || '').replace(/'/g, "\\'")}')" style="color:#00c896;text-decoration:none;">${o.claimName || '—'}</a>`
+                  : (o.claimName || '—')}</td>
                 <td>${o.regionName ? `${o.regionName} (R${o.regionId})` : '—'}</td>
                 <td class="coords">${formatCoords(o)}</td>
                 ${o.orderType === 'sell' ? `<td><button onclick="addToCalcList(${JSON.stringify(o).replace(/"/g, '&quot;')}, '${window._currentItem?.name || ''}')" style="background:rgba(0,200,150,0.1);border:1px solid rgba(0,200,150,0.3);color:#00c896;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:12px;">追加</button></td>` : '<td></td>'}
@@ -1412,7 +1414,7 @@ window.openCalcList = function() {
                   <td style="color:#e0e0e0;font-size:12px;">${i.itemName}</td>
                   <td class="claim-name">
                     ${i.claimLocationX != null
-                      ? `<span onclick="openCalcMap(${idx})" style="color:#00c896;cursor:pointer;text-decoration:underline;">${i.claimName || '—'}</span>`
+                      ? `<a href="#" onclick="event.preventDefault();openBitjitaMapModal(${Math.round(i.claimLocationX)}, ${Math.round(i.claimLocationZ)}, '${(i.claimName || '').replace(/'/g, "\\'")}')" style="color:#00c896;text-decoration:none;">${i.claimName || '—'}</a>`
                       : (i.claimName || '—')}
                     ${i.claimLocationX != null ? `<div style="font-size:10px;color:#666;">N:${Math.round(i.claimLocationZ/3)}, E:${Math.round(i.claimLocationX/3)}</div>` : ''}
                   </td>
@@ -1480,104 +1482,32 @@ window.openCalcList = function() {
   };
 };
 
-
-window.openCalcMap = function(focusIdx) {
-  const list = window._calcList.filter(i => i.claimLocationX != null);
-  if (list.length === 0) return;
-
-  const xs = list.map(i => Number(i.claimLocationX));
-  const zs = list.map(i => Number(i.claimLocationZ));
-  const minX = Math.min(...xs), maxX = Math.max(...xs);
-  const minZ = Math.min(...zs), maxZ = Math.max(...zs);
-  const padX = (maxX - minX) * 0.2 || 1000;
-  const padZ = (maxZ - minZ) * 0.2 || 1000;
-  const W = 500, H = 400;
-
-  function mapX(x) { return 30 + ((x - minX + padX) / (maxX - minX + padX * 2)) * (W - 60); }
-  function mapZ(z) { return 30 + ((z - minZ + padZ) / (maxZ - minZ + padZ * 2)) * (H - 60); }
-
-  // 同じ領地をグループ化
-  const claimGroups = {};
-  window._calcList.forEach((item, idx) => {
-    if (item.claimLocationX == null) return;
-    const key = item.claimName || `${item.claimLocationX},${item.claimLocationZ}`;
-    if (!claimGroups[key]) claimGroups[key] = { items: [], x: Number(item.claimLocationX), z: Number(item.claimLocationZ), claimName: item.claimName, regionName: item.regionName, regionId: item.regionId };
-    claimGroups[key].items.push({ ...item, idx });
-  });
-
-  const groups = Object.values(claimGroups);
-
-  const markers = groups.map((g, gi) => {
-    const cx = mapX(g.x);
-    const cy = mapZ(g.z);
-    const isFocus = g.items.some(i => i.idx === focusIdx);
-    const color = isFocus ? '#f0a500' : '#00c896';
-    const r = isFocus ? 14 : 10;
-    return `
-      <g class="map-marker" onclick="showCalcMarkerInfo(${gi})" style="cursor:pointer">
-        <circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" opacity="0.85" stroke="#fff" stroke-width="1.5"/>
-        ${isFocus ? `<circle cx="${cx}" cy="${cy}" r="${r}" fill="transparent" stroke="${color}" stroke-width="3" opacity="0.4" class="pulse-ring"/>` : ''}
-        <text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="9" font-weight="bold" fill="#fff">${g.items.length}</text>
-      </g>
-    `;
-  }).join('');
-
-  const modal = document.createElement('div');
-  modal.id = 'calcMapModal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;';
-  modal.innerHTML = `
-    <div style="background:#0d1827;border:1px solid #2a4f72;border-radius:14px;padding:24px;width:100%;max-width:600px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <h3 class="section-title" style="margin:0;">🗺 集計リスト マップ</h3>
-        <button onclick="document.getElementById('calcMapModal').remove()" style="background:none;border:none;color:#aaa;font-size:20px;cursor:pointer;">✕</button>
+// ============================================
+// Bitjita Map モーダル
+// ============================================
+window.openBitjitaMapModal = function(x, z, claimName) {
+  const mapUrl = `https://map.bitjita.com/?x=${Math.round(x)}&y=${Math.round(z)}&zoom=6`;
+  
+  let mapModal = document.getElementById('bitjitaMapModal');
+  if (mapModal) mapModal.remove();
+  
+  mapModal = document.createElement('div');
+  mapModal.id = 'bitjitaMapModal';
+  mapModal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:2000;display:flex;flex-direction:column;align-items:center;padding:20px;';
+  mapModal.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;width:100%;max-width:1200px;margin-bottom:12px;">
+      <div style="color:#e0e0e0;font-size:16px;">
+        <span style="color:#00c896;font-weight:600;">${claimName || '領地'}</span>
+        <span style="color:#666;margin-left:12px;font-size:13px;">X: ${Math.round(x)}, Y: ${Math.round(z)}</span>
       </div>
-      <div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid #1e3048;">
-        <svg id="calcMapSvg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;background:#0d1520;">
-          <rect width="${W}" height="${H}" rx="8" fill="#0d1520"/>
-          ${Array.from({length: 6}, (_, i) => `
-            <line x1="${30 + i * (W-60)/5}" y1="30" x2="${30 + i * (W-60)/5}" y2="${H-30}" stroke="#1e3048" stroke-width="0.5"/>
-            <line x1="30" y1="${30 + i * (H-60)/5}" x2="${W-30}" y2="${30 + i * (H-60)/5}" stroke="#1e3048" stroke-width="0.5"/>
-          `).join('')}
-          ${markers}
-        </svg>
-        <div id="calcMarkerInfo" class="marker-info hidden"></div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <a href="${mapUrl}" target="_blank" style="color:#00c896;font-size:13px;text-decoration:none;background:rgba(0,200,150,0.1);padding:6px 12px;border-radius:6px;border:1px solid rgba(0,200,150,0.3);">↗ 新しいタブで開く</a>
+        <button onclick="document.getElementById('bitjitaMapModal').remove()" style="background:none;border:none;color:#aaa;font-size:24px;cursor:pointer;padding:4px 8px;">✕</button>
       </div>
-      <div style="margin-top:8px;font-size:11px;color:#666;">マーカーをクリックで詳細 · 🟡 選択中の領地</div>
     </div>
+    <iframe src="${mapUrl}" style="width:100%;max-width:1200px;flex:1;border:1px solid #2a4f72;border-radius:12px;background:#0d1520;" allowfullscreen></iframe>
   `;
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-  document.body.appendChild(modal);
-
-  window._calcMapGroups = groups;
-
-  // フォーカス領地のmarkerInfoを自動表示
-  const focusGroupIdx = groups.findIndex(g => g.items.some(i => i.idx === focusIdx));
-  if (focusGroupIdx >= 0) setTimeout(() => showCalcMarkerInfo(focusGroupIdx), 100);
-};
-
-window.showCalcMarkerInfo = function(gi) {
-  const group = window._calcMapGroups?.[gi];
-  if (!group) return;
-  const info = document.getElementById('calcMarkerInfo');
-  if (!info) return;
-
-  info.innerHTML = `
-    <button onclick="document.getElementById('calcMarkerInfo').classList.add('hidden')" class="mi-close">✕</button>
-    <div class="mi-header">
-      <strong>${group.claimName || '不明な領地'}</strong>
-      <span class="mi-region">${group.regionName || ''} ${group.regionId ? `(R${group.regionId})` : ''}</span>
-    </div>
-    <div class="mi-coords">📍 N:${Math.round(group.z/3)}, E:${Math.round(group.x/3)}</div>
-    <div class="mi-orders">
-      ${group.items.map(i => `
-        <div class="mi-order" style="display:flex;align-items:center;gap:8px;font-size:12px;padding:4px 8px;background:#0d1520;border-radius:4px;margin-bottom:4px;">
-          <span style="color:#aaa;font-size:11px;">${i.itemName}</span>
-          <span class="price-cell" style="font-size:12px;">${formatPrice(i.priceThreshold)}</span>
-          <span style="color:#666;font-size:11px;">×${i.buyQty}</span>
-        </div>
-      `).join('')}
-    </div>
-    <a href="https://map.bitjita.com/?x=${Math.round(group.x)}&y=${Math.round(group.z)}&zoom=6" target="_blank" class="mi-maplink">🗺 bitjita mapで開く</a>
-  `;
-  info.classList.remove('hidden');
+  
+  mapModal.addEventListener('click', e => { if (e.target === mapModal) mapModal.remove(); });
+  document.body.appendChild(mapModal);
 };
