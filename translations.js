@@ -292,8 +292,6 @@ const ITEM_TRANSLATIONS = {
   "バウチャー": "Business Voucher",
   "ロストシップメント": "Lost Shipment",
   "帆": "Sail Cloth",
-  "塩": "Salt",
-  "砂糖": "Sugar",
 
 // ===== 未登録タグ追加 =====
   "研究":"research",
@@ -1085,8 +1083,8 @@ const EN_ITEM_BASE = {
   "Roasted Meat": "焼き肉",
   "Roasted Ocean Fish": "焼き海水魚",
   "Skewered Baitfish": "ベイトフィッシュ串焼き",
-  "sugar": "砂糖",
-  "salt": "塩",
+  "Sugar": "砂糖",
+  "Salt": "塩",
 
   // ===== 研究・コーデックス =====
   "Cloth Research": "布研究",
