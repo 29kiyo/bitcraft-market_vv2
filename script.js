@@ -987,7 +987,11 @@ function renderOrders(orders, orderType, page = 1, sort = 'asc', regionFilter = 
                 <td><span class="order-badge ${o.orderType}">${o.orderType === 'sell' ? '売り' : '買い'}</span></td>
                 <td class="price-cell">${formatPrice(o.priceThreshold)}</td>
                 <td>${formatNum(o.quantity)}</td>
-                <td class="claim-name">${o.claimName || '—'}</td>
+                <td class="claim-name">
+                  ${o.claimLocationX != null
+                    ? `<a href="https://map.bitjita.com/?center=${Math.round(o.claimLocationZ/3)},${Math.round(o.claimLocationX/3)}&zoom=1.5" target="_blank" style="color:#00c896;text-decoration:none;">${o.claimName || '—'}</a>`
+                    : (o.claimName || '—')}
+                </td>
                 <td>${o.regionName ? `${o.regionName} (R${o.regionId})` : '—'}</td>
                 <td class="coords">${formatCoords(o)}</td>
                 ${o.orderType === 'sell' ? `<td><button onclick="addToCalcList(${JSON.stringify(o).replace(/"/g, '&quot;')}, '${window._currentItem?.name || ''}')" style="background:rgba(0,200,150,0.1);border:1px solid rgba(0,200,150,0.3);color:#00c896;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:12px;">追加</button></td>` : '<td></td>'}
