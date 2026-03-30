@@ -989,7 +989,7 @@ function renderOrders(orders, orderType, page = 1, sort = 'asc', regionFilter = 
                 <td>${formatNum(o.quantity)}</td>
                 <td class="claim-name">
                   ${o.claimLocationX != null
-                    ? `<a href="https://map.bitjita.com/?center=${Math.round(o.claimLocationZ/3)},${Math.round(o.claimLocationX/3)}&zoom=1.5" target="_blank" style="color:#00c896;text-decoration:none;">${o.claimName || '—'}</a>`
+                    ? `<span onclick="openMapModal(${Math.round(o.claimLocationZ/3)},${Math.round(o.claimLocationX/3)},'${(o.claimName||'').replace(/'/g,"\\'")}')" style="color:#00c896;cursor:pointer;text-decoration:underline;">${o.claimName || '—'}</span>`
                     : (o.claimName || '—')}
                 </td>
                 <td>${o.regionName ? `${o.regionName} (R${o.regionId})` : '—'}</td>
@@ -1417,7 +1417,7 @@ window.openCalcList = function() {
                   <td style="color:#e0e0e0;font-size:12px;">${i.itemName}</td>
                   <td class="claim-name">
                     ${i.claimLocationX != null
-                      ? `<a href="https://map.bitjita.com/?center=${Math.round(i.claimLocationZ/3)},${Math.round(i.claimLocationX/3)}&zoom=1.5" target="_blank" style="color:#00c896;text-decoration:none;">${i.claimName || '—'}</a>`
+                      ? `<span onclick="openMapModal(${Math.round(i.claimLocationZ/3)},${Math.round(i.claimLocationX/3)},'${(i.claimName||'').replace(/'/g,"\\'")}')" style="color:#00c896;cursor:pointer;text-decoration:underline;">${i.claimName || '—'}</span>`
                       : (i.claimName || '—')}
                     ${i.claimLocationX != null ? `<div style="font-size:10px;color:#666;">N:${Math.round(i.claimLocationZ/3)}, E:${Math.round(i.claimLocationX/3)}</div>` : ''}
                   </td>
@@ -1492,3 +1492,36 @@ window.addEventListener('popstate', e => {
     setTimeout(() => window.scrollTo(0, savedScrollPosition), 0);
   }
 });
+
+// ============================================
+// マップモーダル（iframe）
+// ============================================
+window.openMapModal = function(n, e, claimName) {
+  let modal = document.getElementById('mapIframeModal');
+  if (modal) modal.remove();
+
+  modal = document.createElement('div');
+  modal.id = 'mapIframeModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:3000;display:flex;align-items:center;justify-content:center;padding:16px;';
+
+  const url = `https://map.bitjita.com/?center=${n},${e}&zoom=1.5`;
+
+  modal.innerHTML = `
+    <div style="background:#0d1827;border:1px solid #2a4f72;border-radius:14px;width:100%;max-width:900px;height:80vh;display:flex;flex-direction:column;overflow:hidden;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-bottom:1px solid #1e3048;flex-shrink:0;">
+        <div>
+          <span style="font-weight:700;color:#fff;font-size:15px;">🗺 ${claimName || 'マップ'}</span>
+          <span style="font-size:11px;color:#666;margin-left:8px;">N:${n}, E:${e}</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <a href="${url}" target="_blank" style="color:#00c896;font-size:12px;text-decoration:none;border:1px solid rgba(0,200,150,0.3);padding:4px 10px;border-radius:4px;">別タブで開く</a>
+          <button onclick="document.getElementById('mapIframeModal').remove()" style="background:none;border:none;color:#aaa;font-size:22px;cursor:pointer;line-height:1;">✕</button>
+        </div>
+      </div>
+      <iframe src="${url}" style="flex:1;border:none;width:100%;height:100%;" allowfullscreen></iframe>
+    </div>
+  `;
+
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+};
