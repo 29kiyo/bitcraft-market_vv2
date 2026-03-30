@@ -1104,7 +1104,7 @@ window.openMapModal = function(n, e, claimName) {
     <div style="background:#0d1827;border:1px solid #2a4f72;border-radius:14px;width:100%;max-width:900px;height:80vh;display:flex;flex-direction:column;overflow:hidden;">
       <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-bottom:1px solid #1e3048;flex-shrink:0;">
         <div>
-          <span style="font-weight:700;color:#fff;font-size:15px;">🗺 ${claimName || 'マップ'}</span>
+          <span style="font-weight:700;color:#fff;font-size:15px;"> ${claimName || 'マップ'}</span>
           <span style="font-size:11px;color:#666;margin-left:8px;">N:${n}, E:${e}</span>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
