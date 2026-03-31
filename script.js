@@ -343,21 +343,31 @@ async function doSearch() {
     if (tiers.length > 0) filtered = filtered.filter(item => tiers.includes(String(item.tier)));
     if (rarities.length > 0) filtered = filtered.filter(item => rarities.includes(String(item.rarity)));
     if (categories.length > 0) {
-      const allTags = new Set();
-      categories.forEach(cat => {
-        if (cat.startsWith('__group__')) {
-          const options = [...document.querySelectorAll('#categoryDropdown input[type=checkbox]')];
-          const groupIdx = options.findIndex(o => o.value === cat);
-          for (let i = groupIdx + 1; i < options.length; i++) {
-            if (options[i].value.startsWith('__group__')) break;
-            allTags.add(options[i].value);
-          }
-        } else {
-          allTags.add(cat);
-        }
-      });
-      filtered = filtered.filter(item => allTags.has(item.tag));
+  const allTags = new Set();
+  const kwFilters = []; // { tag, keyword }
+
+  categories.forEach(cat => {
+    if (cat.startsWith('__kw__')) {
+      const parts = cat.split('__').filter(Boolean);
+      // parts: ['kw', 'Weapon', 'Claymore']
+      kwFilters.push({ tag: parts[1], keyword: parts[2] });
+    } else if (cat.startsWith('__group__')) {
+      const options = [...document.querySelectorAll('#categoryDropdown input[type=checkbox]')];
+      const groupIdx = options.findIndex(o => o.value === cat);
+      for (let i = groupIdx + 1; i < options.length; i++) {
+        if (options[i].value.startsWith('__group__')) break;
+        if (!options[i].value.startsWith('__kw__')) allTags.add(options[i].value);
+      }
+    } else {
+      allTags.add(cat);
     }
+  });
+
+  filtered = filtered.filter(item => {
+    if (allTags.has(item.tag)) return true;
+    return kwFilters.some(f => f.tag === item.tag && item.name.toLowerCase().includes(f.keyword.toLowerCase()));
+  });
+}
 
     currentItems = filtered;
     if (currentItems.length === 0) {
