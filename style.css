@@ -1980,6 +1980,16 @@ text-overflow: ellipsis;
 .craft-filter-clear:hover {
   background: rgba(255,77,109,0.2);
 }
+.craft-quantity-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+  font-size: 0.9rem;
+}
+.craft-quantity-wrap label {
+  margin-right: 4px;
+}
 .craft-item-header {
   display: flex;
   align-items: center;

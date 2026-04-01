@@ -1503,9 +1503,17 @@ window.selectCraftItem = async function(itemId, itemName) {
   }
 };
 
-window.updateCraftQuantity = function() {
+window.updateCraftQuantity = function(delta = 0) {
   const quantityInput = document.getElementById('craftQuantity');
-  let quantity = parseInt(quantityInput.value) || 1;
+  if (!quantityInput) return;
+  let quantity;
+  if (delta === 0) {
+    // 直接入力された場合
+    quantity = parseInt(quantityInput.value) || 1;
+  } else {
+    // ボタンクリックの場合
+    quantity = craftCurrentQuantity + delta;
+  }
   if (quantity < 1) quantity = 1;
   if (quantity > 999) quantity = 999;
   quantityInput.value = quantity;
