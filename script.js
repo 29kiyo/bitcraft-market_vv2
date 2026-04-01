@@ -106,6 +106,7 @@ let craftCurrentPage = 1;
 const craftItemsPerPage = 12;
 let craftCurrentQuantity = 1;
 let craftSelectedItem = null;
+let selectedRegion = '';
 let currentOrderRegion = '';
 let currentOrderClaim = '';
 let currentOrderType = '';
@@ -1502,6 +1503,24 @@ window.selectCraftItem = async function(itemId, itemName) {
   viewIngredientDetail(itemId, itemName);
 };
 
+window.updateCraftRegion = function() {
+  const regionSelect = document.getElementById('craftRegion');
+  if (regionSelect) {
+    selectedRegion = regionSelect.value;
+    // クラフトツリーを再描画
+    if (craftSelectedItem) {
+      const craftResultEl = document.getElementById('craftResult');
+      if (craftResultEl) {
+        // 現在のツリーを再取得する必要があるが、キャッシュがあるので再計算
+        const quantity = parseInt(document.getElementById('craftQuantity')?.value) || 1;
+        buildCraftTree(craftSelectedItem.id, quantity).then(tree => {
+          renderCraftTree(tree);
+        });
+      }
+    }
+  }
+};
+
 window.updateCraftQuantity = function(delta = 0) {
   const quantityInput = document.getElementById('craftQuantity');
   if (!quantityInput) return;
@@ -1542,38 +1561,10 @@ let craftModalState = {
   currentResult: null
 };
 
-// 素材詳細ページを表示
+// 素材のクラフトツリーを表示
 window.viewIngredientDetail = async function(itemId, itemName) {
-  // クラフトモーダルの状態を保存
-  const craftSearchInput = document.getElementById('craftSearchInput');
-  const craftResult = document.getElementById('craftResult');
-  
-  craftModalState = {
-    query: craftSearchInput ? craftSearchInput.value : '',
-    tierFilter: '', // フィルター状態は保存しない
-    rarityFilter: '',
-    categoryFilter: '',
-    currentResult: craftResult ? craftResult.innerHTML : ''
-  };
-  
-  closeCraftModal();
-  // 現在のアイテムを取得
-  const allItems = await fetchAllMarketItems();
-  const item = allItems.find(i => i.id === itemId);
-  if (!item) {
-    // 見つからない場合は検索にフォールバック
-    searchInput.value = itemName;
-    doSearch();
-    return;
-  }
-  // 詳細ページを表示
-  currentItems = [item]; // currentItemsを更新
-  searchResults.classList.add('hidden');
-  await loadItemDetail(item);
-  // クラフト計算からの来訪フラグを設定
-  window._fromCraftModal = true;
-  history.pushState({ page: 'detail', itemId: item.id, fromCraft: true }, '');
-  window.scrollTo(0, 0);
+  // クラフトモーダルを開いたまま、その素材のクラフトツリーを表示
+  selectCraftItem(itemId, itemName);
 };
 
 // クラフト計算に戻る
@@ -1648,6 +1639,7 @@ async function buildCraftTree(itemId, quantity, depth = 0) {
     jaName: getJaName(item.name),
     icon: item.iconAssetName || '',
     lowestSell,
+    sellOrders: sells, // 全リージョンの注文を保持
     recipes: [],
   };
 
@@ -1670,7 +1662,17 @@ async function buildCraftTree(itemId, quantity, depth = 0) {
 function calcTotalCost(node) {
   if (!node) return 0;
   if (node.recipes.length === 0 || !node.recipes[0].ingredients.length) {
-    return node.lowestSell ? node.lowestSell.price * node.quantity : 0;
+    // リージョン別に最安値を取得
+    let lowestPrice = 0;
+    if (node.sellOrders && selectedRegion) {
+      const regionOrders = node.sellOrders.filter(order => order.regionName === selectedRegion);
+      if (regionOrders.length > 0) {
+        lowestPrice = Math.floor(Number(regionOrders[0].priceThreshold));
+      }
+    } else if (node.lowestSell) {
+      lowestPrice = node.lowestSell.price;
+    }
+    return lowestPrice * node.quantity;
   }
   return node.recipes[0].ingredients.reduce((sum, child) => sum + calcTotalCost(child), 0);
 }
@@ -1684,6 +1686,35 @@ function renderCraftTree(tree) {
     return;
   }
   const totalCost = calcTotalCost(tree);
+  
+  // リージョンのリストを取得
+  const regions = new Set(['']); // すべてのリージョンを含む
+  function collectRegions(node) {
+    if (node.sellOrders) {
+      node.sellOrders.forEach(order => {
+        if (order.regionName) regions.add(order.regionName);
+      });
+    }
+    if (node.recipes && node.recipes[0] && node.recipes[0].ingredients) {
+      node.recipes[0].ingredients.forEach(child => collectRegions(child));
+    }
+  }
+  collectRegions(tree);
+  
+  // リージョン選択UIを更新
+  const regionSelect = document.getElementById('craftRegion');
+  if (regionSelect) {
+    const currentRegion = regionSelect.value;
+    regionSelect.innerHTML = '';
+    regions.forEach(region => {
+      const option = document.createElement('option');
+      option.value = region;
+      option.textContent = region || 'すべてのリージョン';
+      if (region === currentRegion) option.selected = true;
+      regionSelect.appendChild(option);
+    });
+  }
+  
   const html = `
     <div class="craft-item-header" style="display:flex;justify-content:space-between;align-items:center;">
       <div style="display:flex;align-items:center;gap:12px;">
@@ -1725,7 +1756,26 @@ function renderIngredients(ingredients, depth = 0) {
       ${ingredients.map(ing => {
         const hasCraft = ing.recipes.length > 0 && ing.recipes[0].ingredients.length > 0;
         const craftCost = calcTotalCost(ing);
-        const buyCost = ing.lowestSell ? ing.lowestSell.price * ing.quantity : null;
+        
+        // リージョン別に最安値を取得
+        let lowestSell = null;
+        let regionLabel = '';
+        if (selectedRegion && ing.sellOrders && ing.sellOrders.length > 0) {
+          const regionOrders = ing.sellOrders.filter(order => order.regionName === selectedRegion);
+          if (regionOrders.length > 0) {
+            lowestSell = {
+              price: Math.floor(Number(regionOrders[0].priceThreshold)),
+              claimName: regionOrders[0].claimName || '—',
+              regionName: regionOrders[0].regionName || '—',
+              regionId: regionOrders[0].regionId || '',
+            };
+            regionLabel = `(${selectedRegion})`;
+          }
+        } else if (ing.lowestSell) {
+          lowestSell = ing.lowestSell;
+        }
+        
+        const buyCost = lowestSell ? lowestSell.price * ing.quantity : null;
         const cheaper = hasCraft && buyCost !== null
           ? (craftCost < buyCost ? 'craft' : 'buy') : null;
         return `
@@ -1740,10 +1790,10 @@ function renderIngredients(ingredients, depth = 0) {
               ${cheaper === 'buy' ? `<span style="font-size:11px;color:var(--accent)">🛒 購入の方が安い</span>` : ''}
             </div>
             <div class="craft-ingredient-price">
-              ${ing.lowestSell
-                ? `<div class="craft-ingredient-sell">${(ing.lowestSell.price * ing.quantity).toLocaleString('ja-JP')} 🪙</div>
-                   <div class="craft-ingredient-claim">${ing.lowestSell.claimName} / ${ing.lowestSell.regionName}${ing.lowestSell.regionId ? ` (R${ing.lowestSell.regionId})` : ''}</div>
-                   <div class="craft-ingredient-claim">${ing.lowestSell.price.toLocaleString('ja-JP')} 🪙 × ${ing.quantity}</div>`
+              ${lowestSell
+                ? `<div class="craft-ingredient-sell">${(lowestSell.price * ing.quantity).toLocaleString('ja-JP')} 🪙</div>
+                   <div class="craft-ingredient-claim">${lowestSell.claimName} / ${lowestSell.regionName}${lowestSell.regionId ? ` (R${lowestSell.regionId})` : ''} ${regionLabel}</div>
+                   <div class="craft-ingredient-claim">${lowestSell.price.toLocaleString('ja-JP')} 🪙 × ${ing.quantity}</div>`
                 : '<div style="font-size:12px;color:var(--text3)">売り注文なし</div>'
               }
             </div>

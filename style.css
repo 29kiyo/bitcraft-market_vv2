@@ -1990,6 +1990,27 @@ text-overflow: ellipsis;
 .craft-quantity-wrap label {
   margin-right: 4px;
 }
+.craft-region-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+  font-size: 0.9rem;
+}
+.craft-region-select {
+  padding: 6px 8px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  min-width: 150px;
+}
+.craft-region-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
 .craft-item-header {
   display: flex;
   align-items: center;

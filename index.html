@@ -918,6 +918,14 @@
 
       <button class="craft-filter-clear" onclick="clearCraftFilters()">クリア</button>
     </div>
+    <!-- 個数選択（後で動的に配置） -->
+    <!-- リージョン選択 -->
+    <div class="craft-region-wrap">
+      <label for="craftRegion">リージョン:</label>
+      <select id="craftRegion" class="craft-region-select" onchange="updateCraftRegion()">
+        <option value="">すべてのリージョン</option>
+      </select>
+    </div>
     <div id="craftSuggestions" class="craft-suggestions hidden"></div>
     <div id="craftResult" class="craft-result"></div>
   </div>
