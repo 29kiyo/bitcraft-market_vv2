@@ -1203,9 +1203,12 @@ window.openCraftModal = function() {
 };
 
 window.closeCraftModal = function() {
-  document.getElementById('craftModal').classList.add('hidden');
-  document.getElementById('craftSuggestions').classList.add('hidden');
-  document.getElementById('craftResult').innerHTML = '';
+  const craftModal = document.getElementById('craftModal');
+  if (craftModal) craftModal.classList.add('hidden');
+  const craftSuggestions = document.getElementById('craftSuggestions');
+  if (craftSuggestions) craftSuggestions.classList.add('hidden');
+  const craftResult = document.getElementById('craftResult');
+  if (craftResult) craftResult.innerHTML = '';
   // 状態はクリアしない（クラフトの内容を保持）
 };
 
@@ -1562,12 +1565,15 @@ let craftModalState = {
 // 素材詳細ページを表示
 window.viewIngredientDetail = async function(itemId, itemName) {
   // クラフトモーダルの状態を保存
+  const craftSearchInput = document.getElementById('craftSearchInput');
+  const craftResult = document.getElementById('craftResult');
+  
   craftModalState = {
-    query: document.getElementById('craftSearchInput').value,
-    tierFilter: document.getElementById('craftTierFilter').value,
-    rarityFilter: document.getElementById('craftRarityFilter').value,
-    categoryFilter: document.getElementById('craftCategoryFilter').value,
-    currentResult: document.getElementById('craftResult').innerHTML
+    query: craftSearchInput ? craftSearchInput.value : '',
+    tierFilter: '', // フィルター状態は保存しない
+    rarityFilter: '',
+    categoryFilter: '',
+    currentResult: craftResult ? craftResult.innerHTML : ''
   };
   
   closeCraftModal();
@@ -1597,13 +1603,14 @@ window.returnToCraftModal = function() {
   emptyState.classList.remove('hidden');
   // クラフトモーダルを開く
   openCraftModal();
-  // 状態を復元
-  document.getElementById('craftSearchInput').value = craftModalState.query;
-  document.getElementById('craftTierFilter').value = craftModalState.tierFilter;
-  document.getElementById('craftRarityFilter').value = craftModalState.rarityFilter;
-  document.getElementById('craftCategoryFilter').value = craftModalState.categoryFilter;
-  if (craftModalState.currentResult) {
-    document.getElementById('craftResult').innerHTML = craftModalState.currentResult;
+  // 状態を復元（検索クエリと結果のみ）
+  const craftSearchInput = document.getElementById('craftSearchInput');
+  const craftResult = document.getElementById('craftResult');
+  if (craftSearchInput && craftModalState.query) {
+    craftSearchInput.value = craftModalState.query;
+  }
+  if (craftResult && craftModalState.currentResult) {
+    craftResult.innerHTML = craftModalState.currentResult;
   }
 };
 
