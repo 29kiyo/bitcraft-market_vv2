@@ -104,6 +104,8 @@ const ITEMS_PER_PAGE = 20;
 let currentOrderSort = 'asc';
 let craftCurrentPage = 1;
 const craftItemsPerPage = 12;
+let craftCurrentQuantity = 1;
+let craftSelectedItem = null;
 let currentOrderRegion = '';
 let currentOrderClaim = '';
 let currentOrderType = '';
@@ -1470,6 +1472,10 @@ window.clearCraftFilters = function() {
   });
   // 検索ボックスもクリア
   document.getElementById('craftSearchInput').value = '';
+  // 個数をリセット
+  document.getElementById('craftQuantity').value = '1';
+  craftCurrentQuantity = 1;
+  craftSelectedItem = null;
   // 検索結果をクリア
   document.getElementById('craftResult').innerHTML = '';
   document.getElementById('craftSuggestions').classList.add('hidden');
@@ -1483,14 +1489,38 @@ document.addEventListener('DOMContentLoaded', () => {
 window.selectCraftItem = async function(itemId, itemName) {
   document.getElementById('craftSuggestions').classList.add('hidden');
   document.getElementById('craftSearchInput').value = itemName;
+  craftSelectedItem = { id: itemId, name: itemName };
   document.getElementById('craftResult').innerHTML =
     '<div class="craft-loading"><div class="spinner" style="margin:0 auto 12px"></div>レシピ取得中...</div>';
   try {
-    const tree = await buildCraftTree(itemId, 1);
+    const quantity = parseInt(document.getElementById('craftQuantity').value) || 1;
+    craftCurrentQuantity = quantity;
+    const tree = await buildCraftTree(itemId, quantity);
     renderCraftTree(tree);
   } catch(e) {
     document.getElementById('craftResult').innerHTML =
       `<div class="craft-no-recipe">エラー: ${e.message}</div>`;
+  }
+};
+
+window.updateCraftQuantity = function() {
+  const quantityInput = document.getElementById('craftQuantity');
+  let quantity = parseInt(quantityInput.value) || 1;
+  if (quantity < 1) quantity = 1;
+  if (quantity > 999) quantity = 999;
+  quantityInput.value = quantity;
+  craftCurrentQuantity = quantity;
+  
+  // 現在選択されているアイテムがあれば再計算
+  if (craftSelectedItem) {
+    document.getElementById('craftResult').innerHTML =
+      '<div class="craft-loading"><div class="spinner" style="margin:0 auto 12px"></div>再計算中...</div>';
+    buildCraftTree(craftSelectedItem.id, quantity).then(tree => {
+      renderCraftTree(tree);
+    }).catch(e => {
+      document.getElementById('craftResult').innerHTML =
+        `<div class="craft-no-recipe">エラー: ${e.message}</div>`;
+    });
   }
 };
 
