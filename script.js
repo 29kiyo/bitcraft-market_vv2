@@ -1498,28 +1498,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.selectCraftItem = async function(itemId, itemName) {
-  const craftSuggestionsEl = document.getElementById('craftSuggestions');
-  if (craftSuggestionsEl) craftSuggestionsEl.classList.add('hidden');
-  const craftSearchInputEl = document.getElementById('craftSearchInput');
-  if (craftSearchInputEl) craftSearchInputEl.value = itemName;
-  craftSelectedItem = { id: itemId, name: itemName };
-  const craftResultEl = document.getElementById('craftResult');
-  if (craftResultEl) {
-    craftResultEl.innerHTML =
-      '<div class="craft-loading"><div class="spinner" style="margin:0 auto 12px"></div>レシピ取得中...</div>';
-  }
-  try {
-    const craftQuantityEl = document.getElementById('craftQuantity');
-    const quantity = craftQuantityEl ? parseInt(craftQuantityEl.value) || 1 : 1;
-    craftCurrentQuantity = quantity;
-    const tree = await buildCraftTree(itemId, quantity);
-    if (craftResultEl) renderCraftTree(tree);
-  } catch(e) {
-    if (craftResultEl) {
-      craftResultEl.innerHTML =
-        `<div class="craft-no-recipe">エラー: ${e.message}</div>`;
-    }
-  }
+  // 詳細ページを表示
+  viewIngredientDetail(itemId, itemName);
 };
 
 window.updateCraftQuantity = function(delta = 0) {
