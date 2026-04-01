@@ -1292,6 +1292,13 @@ window.selectCraftItem = async function(itemId, itemName) {
 // レシピキャッシュ
 const recipeCache = {};
 
+// 素材詳細ページを表示
+window.viewIngredientDetail = async function(itemId, itemName) {
+  closeCraftModal();
+  searchInput.value = itemName;
+  doSearch();
+};
+
 async function fetchItemData(itemId) {
   if (recipeCache[itemId]) return recipeCache[itemId];
   const res = await fetch(`${API_BASE}/items/${itemId}`, { headers: HEADERS });
@@ -1397,7 +1404,7 @@ function renderIngredients(ingredients, depth = 0) {
         const cheaper = hasCraft && buyCost !== null
           ? (craftCost < buyCost ? 'craft' : 'buy') : null;
         return `
-          <div class="craft-ingredient">
+          <div class="craft-ingredient" onclick="viewIngredientDetail('${ing.id}','${ing.name.replace(/'/g,"\\'")}')">
             <img src="https://bitjita.com/${ing.icon}.webp" class="craft-ingredient-icon"
               onerror="this.style.display='none'">
             <div class="craft-ingredient-info">
