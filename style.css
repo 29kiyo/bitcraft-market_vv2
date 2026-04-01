@@ -1935,6 +1935,25 @@ text-overflow: ellipsis;
 .craft-suggest-item:hover { background: rgba(0,200,150,0.08); }
 .craft-suggest-item:last-child { border-bottom: none; }
 .craft-result { margin-top: 16px; }
+.craft-result-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.craft-result-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.craft-result-item:hover {
+  background: rgba(0,200,150,0.08);
+}
 .craft-item-header {
   display: flex;
   align-items: center;

@@ -1179,47 +1179,53 @@ document.getElementById('craftModal').addEventListener('click', e => {
 });
 
 // サジェスト
-document.getElementById('craftSearchInput').addEventListener('input', async function() {
+document.getElementById('craftSearchInput').addEventListener('input', function() {
   const q = this.value.trim();
   if (q.length < 2) {
     document.getElementById('craftSuggestions').classList.add('hidden');
     return;
   }
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => fetchCraftSuggestions(q), 500);
+});
+
+async function fetchCraftSuggestions(q) {
   try {
     const allItems = await fetchAllMarketItems();
     const hasJa = /[\u3040-\u30ff\u4e00-\u9faf]/.test(q);
     let filtered;
     if (hasJa) {
-      const matchedEn = new Set();
-      const sorted = Object.entries(ITEM_TRANSLATIONS).sort((a, b) => b[0].length - a[0].length);
-      for (const [ja, en] of sorted) {
-        if (q.includes(ja) || ja.includes(q)) matchedEn.add(en.toLowerCase());
-      }
-      filtered = allItems.filter(item => {
-        const name = item.name.toLowerCase();
-        for (const en of matchedEn) { if (name.includes(en)) return true; }
-        return false;
-      });
+      filtered = filterByJapanese(allItems, q);
     } else {
       filtered = allItems.filter(i => i.name.toLowerCase().includes(q.toLowerCase()));
     }
-    const top = filtered.slice(0, 8);
-    const sugg = document.getElementById('craftSuggestions');
-    if (top.length === 0) { sugg.classList.add('hidden'); return; }
-    sugg.innerHTML = top.map(item => {
-      const ja = getJaName(item.name);
-      const icon = `https://bitjita.com/${item.iconAssetName}.webp`;
-      return `<div class="craft-suggest-item" onclick="selectCraftItem('${item.id}','${item.name.replace(/'/g,"\\'")}')">
-        <img src="${icon}" width="28" height="28" style="border-radius:4px;background:var(--bg2)" onerror="this.style.display='none'">
-        <div>
-          <div style="font-size:13px;font-weight:500">${ja || item.name}</div>
-          ${ja ? `<div style="font-size:11px;color:var(--text3)">${item.name}</div>` : ''}
-        </div>
-      </div>`;
-    }).join('');
-    sugg.classList.remove('hidden');
-  } catch(e) {}
-});
+    filtered = filtered.slice(0, 8);
+    if (filtered.length === 0) {
+      document.getElementById('craftSuggestions').classList.add('hidden');
+      return;
+    }
+    showCraftSuggestions(filtered);
+  } catch(e) {
+    console.error('fetchCraftSuggestions error:', e);
+    document.getElementById('craftSuggestions').classList.add('hidden');
+  }
+}
+
+function showCraftSuggestions(items) {
+  const sugg = document.getElementById('craftSuggestions');
+  sugg.innerHTML = items.map(item => {
+    const ja = getJaName(item.name);
+    const icon = `https://bitjita.com/${item.iconAssetName}.webp`;
+    return `<div class="craft-suggest-item" onclick="selectCraftItem('${item.id}','${item.name.replace(/'/g,"\\'")}')">
+      <img src="${icon}" width="28" height="28" style="border-radius:4px;background:var(--bg2)" onerror="this.style.display='none'">
+      <div>
+        <div style="font-size:13px;font-weight:500">${ja || item.name}</div>
+        ${ja ? `<div style="font-size:11px;color:var(--text3)">${item.name}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  sugg.classList.remove('hidden');
+}
 
 document.getElementById('craftSearchInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') doCraftSearch();
@@ -1237,22 +1243,36 @@ window.doCraftSearch = async function() {
   document.getElementById('craftSuggestions').classList.add('hidden');
   const allItems = await fetchAllMarketItems();
   const hasJa = /[\u3040-\u30ff\u4e00-\u9faf]/.test(q);
-  let found;
+  let filtered;
   if (hasJa) {
-    const sorted = Object.entries(ITEM_TRANSLATIONS).sort((a, b) => b[0].length - a[0].length);
-    for (const [ja, en] of sorted) {
-      if (q.includes(ja) || ja.includes(q)) {
-        found = allItems.find(i => i.name.toLowerCase().includes(en.toLowerCase()));
-        if (found) break;
-      }
-    }
+    filtered = filterByJapanese(allItems, q);
   } else {
-    found = allItems.find(i => i.name.toLowerCase() === q.toLowerCase())
-      || allItems.find(i => i.name.toLowerCase().includes(q.toLowerCase()));
+    filtered = allItems.filter(i => i.name.toLowerCase().includes(q.toLowerCase()));
   }
-  if (found) selectCraftItem(found.id, found.name);
-  else document.getElementById('craftResult').innerHTML =
-    `<div class="craft-no-recipe">「${q}」は見つかりませんでした</div>`;
+  filtered = filtered.slice(0, 8);
+  if (filtered.length === 0) {
+    document.getElementById('craftResult').innerHTML =
+      `<div class="craft-no-recipe">「${q}」は見つかりませんでした</div>`;
+    return;
+  }
+  // 検索結果一覧を表示
+  const resultHtml = filtered.map(item => {
+    const ja = getJaName(item.name);
+    const icon = `https://bitjita.com/${item.iconAssetName}.webp`;
+    return `<div class="craft-result-item" onclick="selectCraftItem('${item.id}','${item.name.replace(/'/g,"\\'")}')">
+      <img src="${icon}" width="32" height="32" style="border-radius:4px;background:var(--bg2)" onerror="this.style.display='none'">
+      <div>
+        <div style="font-size:14px;font-weight:500">${ja || item.name}</div>
+        ${ja ? `<div style="font-size:12px;color:var(--text3)">${item.name}</div>` : ''}
+        <div style="font-size:12px;color:var(--text2)">
+          ${item.tier && item.tier > 0 ? `T${item.tier}` : ''}
+          ${item.rarityStr ? ` ${item.rarityStr}` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('craftResult').innerHTML =
+    `<div class="craft-result-list">${resultHtml}</div>`;
 };
 
 window.selectCraftItem = async function(itemId, itemName) {
