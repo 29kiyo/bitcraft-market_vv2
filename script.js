@@ -1547,6 +1547,8 @@ window.updateCraftQuantity = function(delta = 0) {
 
 // レシピキャッシュ
 const recipeCache = {};
+// 市場データキャッシュ
+const marketDataCache = {};
 
 // クラフトモーダルの状態を保存
 let craftModalState = {
@@ -1623,9 +1625,17 @@ async function fetchItemData(itemId) {
 }
 
 async function fetchMarketData(itemId) {
-  const res = await fetch(`${API_BASE}/market/item/${itemId}`, { headers: HEADERS });
-  if (!res.ok) return null;
-  return await res.json();
+  if (marketDataCache[itemId]) return marketDataCache[itemId];
+  try {
+    const res = await fetch(`${API_BASE}/market/item/${itemId}`, { headers: HEADERS });
+    if (!res.ok) return null;
+    const data = await res.json();
+    marketDataCache[itemId] = data;
+    return data;
+  } catch (err) {
+    console.error(`Error fetching market data for ${itemId}:`, err);
+    return null;
+  }
 }
 
 // クラフトツリー再帰構築
