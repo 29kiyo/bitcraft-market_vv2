@@ -1468,17 +1468,22 @@ window.clearCraftFilters = function() {
     const dropdownId = `${type}Dropdown`;
     document.querySelectorAll(`#${dropdownId} input[type="checkbox"]`).forEach(cb => cb.checked = false);
     const labelId = `${type}Label`;
-    document.getElementById(labelId).textContent = 'すべて';
+    const label = document.getElementById(labelId);
+    if (label) label.textContent = 'すべて';
   });
   // 検索ボックスもクリア
-  document.getElementById('craftSearchInput').value = '';
+  const searchInput = document.getElementById('craftSearchInput');
+  if (searchInput) searchInput.value = '';
   // 個数をリセット
-  document.getElementById('craftQuantity').value = '1';
+  const quantityInput = document.getElementById('craftQuantity');
+  if (quantityInput) quantityInput.value = '1';
   craftCurrentQuantity = 1;
   craftSelectedItem = null;
   // 検索結果をクリア
-  document.getElementById('craftResult').innerHTML = '';
-  document.getElementById('craftSuggestions').classList.add('hidden');
+  const craftResult = document.getElementById('craftResult');
+  if (craftResult) craftResult.innerHTML = '';
+  const craftSuggestions = document.getElementById('craftSuggestions');
+  if (craftSuggestions) craftSuggestions.classList.add('hidden');
 };
 
 // フィルター変更時に自動で検索を再実行
@@ -1487,19 +1492,27 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.selectCraftItem = async function(itemId, itemName) {
-  document.getElementById('craftSuggestions').classList.add('hidden');
-  document.getElementById('craftSearchInput').value = itemName;
+  const craftSuggestionsEl = document.getElementById('craftSuggestions');
+  if (craftSuggestionsEl) craftSuggestionsEl.classList.add('hidden');
+  const craftSearchInputEl = document.getElementById('craftSearchInput');
+  if (craftSearchInputEl) craftSearchInputEl.value = itemName;
   craftSelectedItem = { id: itemId, name: itemName };
-  document.getElementById('craftResult').innerHTML =
-    '<div class="craft-loading"><div class="spinner" style="margin:0 auto 12px"></div>レシピ取得中...</div>';
+  const craftResultEl = document.getElementById('craftResult');
+  if (craftResultEl) {
+    craftResultEl.innerHTML =
+      '<div class="craft-loading"><div class="spinner" style="margin:0 auto 12px"></div>レシピ取得中...</div>';
+  }
   try {
-    const quantity = parseInt(document.getElementById('craftQuantity').value) || 1;
+    const craftQuantityEl = document.getElementById('craftQuantity');
+    const quantity = craftQuantityEl ? parseInt(craftQuantityEl.value) || 1 : 1;
     craftCurrentQuantity = quantity;
     const tree = await buildCraftTree(itemId, quantity);
-    renderCraftTree(tree);
+    if (craftResultEl) renderCraftTree(tree);
   } catch(e) {
-    document.getElementById('craftResult').innerHTML =
-      `<div class="craft-no-recipe">エラー: ${e.message}</div>`;
+    if (craftResultEl) {
+      craftResultEl.innerHTML =
+        `<div class="craft-no-recipe">エラー: ${e.message}</div>`;
+    }
   }
 };
 
@@ -1666,8 +1679,10 @@ function calcTotalCost(node) {
 }
 
 function renderCraftTree(tree) {
+  const craftResultEl = document.getElementById('craftResult');
+  if (!craftResultEl) return;
   if (!tree) {
-    document.getElementById('craftResult').innerHTML =
+    craftResultEl.innerHTML =
       '<div class="craft-no-recipe">データが取得できませんでした</div>';
     return;
   }
@@ -1691,7 +1706,7 @@ function renderCraftTree(tree) {
       <span class="craft-total-value">${totalCost.toLocaleString('ja-JP')} 🪙</span>
     </div>` : ''}
   `;
-  document.getElementById('craftResult').innerHTML = html;
+  craftResultEl.innerHTML = html;
 }
 
 function renderIngredients(ingredients, depth = 0) {
