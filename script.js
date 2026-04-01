@@ -1278,6 +1278,7 @@ document.addEventListener('click', e => {
 
 window.doCraftSearch = async function() {
   const q = document.getElementById('craftSearchInput').value.trim();
+  clearTimeout(debounceTimer);
   document.getElementById('craftSuggestions').classList.add('hidden');
   const allItems = await fetchAllMarketItems();
   let filtered;
@@ -1555,11 +1556,19 @@ window.returnToCraftModal = function() {
 
 async function fetchItemData(itemId) {
   if (recipeCache[itemId]) return recipeCache[itemId];
-  const res = await fetch(`${API_BASE}/items/${itemId}`, { headers: HEADERS });
-  if (!res.ok) return null;
-  const data = await res.json();
-  recipeCache[itemId] = data;
-  return data;
+  try {
+    const res = await fetch(`${API_BASE}/items/${itemId}`, { headers: HEADERS });
+    if (!res.ok) {
+      console.warn(`Item ${itemId} not found (${res.status})`);
+      return null;
+    }
+    const data = await res.json();
+    recipeCache[itemId] = data;
+    return data;
+  } catch (err) {
+    console.error(`Error fetching item ${itemId}:`, err);
+    return null;
+  }
 }
 
 async function fetchMarketData(itemId) {
