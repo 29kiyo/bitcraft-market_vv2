@@ -195,7 +195,14 @@ function updateMultiLabel(type) {
   const label = document.getElementById(`${type}Label`);
   if (!label) return;
   label.textContent = values.length === 0 ? 'すべて' : `${values.length}件選択中`;
-  applyFilters();
+  
+  // クラフト計算フィルターの場合はapplyCraftFiltersを呼出
+  if (type.startsWith('craft')) {
+    const q = document.getElementById('craftSearchInput').value.trim();
+    if (q) doCraftSearch();
+  } else {
+    applyFilters();
+  }
 }
 
 function handleMultiAll(type, cb) {
@@ -503,6 +510,18 @@ async function loadItemDetail(item) {
     window._currentItem = enrichedItem;
     currentOrderType = '';
     renderResult(enrichedItem, priceData, currentOrders, '');
+    
+    // クラフト計算からの来訪の場合は戻るボタンを変更
+    if (window._fromCraftModal) {
+      const backBtn = document.getElementById('backBtn');
+      if (backBtn) {
+        backBtn.textContent = '← クラフト計算に戻る';
+        backBtn.onclick = () => {
+          returnToCraftModal();
+          window._fromCraftModal = false;
+        };
+      }
+    }
   } catch (err) {
     showError(`詳細取得エラー: ${err.message}`);
     console.error(err);
@@ -1166,14 +1185,24 @@ window.openMapModal = function(n, e, claimName) {
 
 window.openCraftModal = function() {
   document.getElementById('craftModal').classList.remove('hidden');
-  document.getElementById('craftSearchInput').focus();
+  // 状態が保存されていれば復元
+  if (craftModalState.query || craftModalState.currentResult) {
+    document.getElementById('craftSearchInput').value = craftModalState.query;
+    document.getElementById('craftTierFilter').value = craftModalState.tierFilter;
+    document.getElementById('craftRarityFilter').value = craftModalState.rarityFilter;
+    document.getElementById('craftCategoryFilter').value = craftModalState.categoryFilter;
+    if (craftModalState.currentResult) {
+      document.getElementById('craftResult').innerHTML = craftModalState.currentResult;
+    }
+  } else {
+    document.getElementById('craftSearchInput').focus();
+  }
 };
 
 window.closeCraftModal = function() {
   document.getElementById('craftModal').classList.add('hidden');
-  document.getElementById('craftResult').innerHTML = '';
-  document.getElementById('craftSearchInput').value = '';
   document.getElementById('craftSuggestions').classList.add('hidden');
+  // 状態はクリアしない（クラフトの内容を保持）
 };
 
 // ESCで閉じる
@@ -1288,24 +1317,59 @@ window.doCraftSearch = async function() {
 };
 
 function applyCraftFilters(items) {
-  const tierFilter = document.getElementById('craftTierFilter').value;
-  const rarityFilter = document.getElementById('craftRarityFilter').value;
-  const categoryFilter = document.getElementById('craftCategoryFilter').value;
+  // マルチセレクトのチェックボックス値を取得
+  const tierValues = getCheckedValues('craftTier');
+  const rarityValues = getCheckedValues('craftRarity');
+  const categoryValues = getCheckedValues('craftCategory');
   
   return items.filter(item => {
     // Tier フィルター
-    if (tierFilter !== '' && item.tier !== parseInt(tierFilter)) {
+    if (tierValues.length > 0 && !tierValues.includes(String(item.tier))) {
       return false;
     }
     // レア度フィルター
-    if (rarityFilter !== '' && item.rarity !== parseInt(rarityFilter)) {
+    if (rarityValues.length > 0 && !rarityValues.includes(String(item.rarity))) {
       return false;
     }
     // カテゴリーフィルター
-    if (categoryFilter !== '') {
-      const itemCategory = parentCategoryMap[item.tag] || '';
+    if (categoryValues.length > 0) {
+      const itemTag = item.tag || '';
+      const itemCategory = parentCategoryMap[itemTag] || '';
       const jaItemCategory = getJaName(itemCategory) || itemCategory;
-      if (!jaItemCategory.includes(categoryFilter) && !itemCategory.includes(categoryFilter)) {
+      
+      // グループ値をチェック
+      const groupValues = categoryValues.filter(v => v.startsWith('__group__'));
+      if (groupValues.length > 0) {
+        const matchedGroup = groupValues.some(gv => {
+          const groupName = gv.replace('__group__', '');
+          return jaItemCategory.includes(groupName) || itemCategory.includes(groupName);
+        });
+        if (matchedGroup) return true;
+      }
+      
+      // 個別アイテム値をチェック
+      const itemValues = categoryValues.filter(v => !v.startsWith('__group__') && !v.startsWith('__kw__'));
+      if (itemValues.length > 0) {
+        if (itemValues.includes(itemTag)) return true;
+      }
+      
+      // キーワード値をチェック
+      const kwValues = categoryValues.filter(v => v.startsWith('__kw__'));
+      if (kwValues.length > 0) {
+        const matchedKw = kwValues.some(kw => {
+          const parts = kw.split('__');
+          if (parts.length >= 3) {
+            const kwCategory = parts[2];
+            const kwSubcategory = parts[3] || '';
+            return itemTag.includes(kwCategory) || (kwSubcategory && itemTag.includes(kwSubcategory));
+          }
+          return false;
+        });
+        if (matchedKw) return true;
+      }
+      
+      // どのフィルターにも一致しない場合は除外
+      if (groupValues.length > 0 || itemValues.length > 0 || kwValues.length > 0) {
         return false;
       }
     }
@@ -1313,10 +1377,50 @@ function applyCraftFilters(items) {
   });
 }
 
+window.handleCraftMultiAll = function(type, checkbox) {
+  const dropdownId = `craft${type.charAt(0).toUpperCase() + type.slice(1)}Dropdown`;
+  const checkboxes = document.querySelectorAll(`#${dropdownId} input[type="checkbox"]`);
+  checkboxes.forEach(cb => {
+    cb.checked = checkbox.checked;
+  });
+  updateCraftMultiLabel(type);
+  const q = document.getElementById('craftSearchInput').value.trim();
+  if (q) doCraftSearch();
+};
+
+window.updateCraftMultiLabel = function(type) {
+  const dropdownId = `craft${type.charAt(0).toUpperCase() + type.slice(1)}Dropdown`;
+  const labelId = `craft${type.charAt(0).toUpperCase() + type.slice(1)}Label`;
+  const checkboxes = document.querySelectorAll(`#${dropdownId} input[type="checkbox"]:checked`);
+  const values = Array.from(checkboxes).map(cb => cb.value).filter(v => v !== 'all');
+  const label = document.getElementById(labelId);
+  
+  if (values.length === 0) {
+    label.textContent = 'すべて';
+  } else if (values.length === 1) {
+    if (type === 'tier') {
+      label.textContent = `Tier ${values[0]}`;
+    } else if (type === 'rarity') {
+      const rarityNames = ['Default', 'Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Mythic'];
+      label.textContent = rarityNames[values[0]] || values[0];
+    } else {
+      label.textContent = `${values.length} 選択中`;
+    }
+  } else {
+    label.textContent = `${values.length} 選択中`;
+  }
+  
+  const q = document.getElementById('craftSearchInput').value.trim();
+  if (q) doCraftSearch();
+};
+
 window.clearCraftFilters = function() {
-  document.getElementById('craftTierFilter').value = '';
-  document.getElementById('craftRarityFilter').value = '';
-  document.getElementById('craftCategoryFilter').value = '';
+  ['craftTier', 'craftRarity', 'craftCategory'].forEach(type => {
+    const dropdownId = `${type}Dropdown`;
+    document.querySelectorAll(`#${dropdownId} input[type="checkbox"]`).forEach(cb => cb.checked = false);
+    const labelId = `${type}Label`;
+    document.getElementById(labelId).textContent = 'すべて';
+  });
   // 現在の検索結果を再表示
   const q = document.getElementById('craftSearchInput').value.trim();
   if (q) doCraftSearch();
@@ -1324,22 +1428,7 @@ window.clearCraftFilters = function() {
 
 // フィルター変更時に自動で検索を再実行
 document.addEventListener('DOMContentLoaded', () => {
-  const craftTierFilter = document.getElementById('craftTierFilter');
-  const craftRarityFilter = document.getElementById('craftRarityFilter');
-  const craftCategoryFilter = document.getElementById('craftCategoryFilter');
-  
-  if (craftTierFilter) craftTierFilter.addEventListener('change', () => {
-    const q = document.getElementById('craftSearchInput').value.trim();
-    if (q) doCraftSearch();
-  });
-  if (craftRarityFilter) craftRarityFilter.addEventListener('change', () => {
-    const q = document.getElementById('craftSearchInput').value.trim();
-    if (q) doCraftSearch();
-  });
-  if (craftCategoryFilter) craftCategoryFilter.addEventListener('change', () => {
-    const q = document.getElementById('craftSearchInput').value.trim();
-    if (q) doCraftSearch();
-  });
+  // 既存のイベントリスナーは不要（updateCraftMultiLabel内で処理）
 });
 
 window.selectCraftItem = async function(itemId, itemName) {
@@ -1359,8 +1448,26 @@ window.selectCraftItem = async function(itemId, itemName) {
 // レシピキャッシュ
 const recipeCache = {};
 
+// クラフトモーダルの状態を保存
+let craftModalState = {
+  query: '',
+  tierFilter: '',
+  rarityFilter: '',
+  categoryFilter: '',
+  currentResult: null
+};
+
 // 素材詳細ページを表示
 window.viewIngredientDetail = async function(itemId, itemName) {
+  // クラフトモーダルの状態を保存
+  craftModalState = {
+    query: document.getElementById('craftSearchInput').value,
+    tierFilter: document.getElementById('craftTierFilter').value,
+    rarityFilter: document.getElementById('craftRarityFilter').value,
+    categoryFilter: document.getElementById('craftCategoryFilter').value,
+    currentResult: document.getElementById('craftResult').innerHTML
+  };
+  
   closeCraftModal();
   // 現在のアイテムを取得
   const allItems = await fetchAllMarketItems();
@@ -1375,8 +1482,27 @@ window.viewIngredientDetail = async function(itemId, itemName) {
   currentItems = [item]; // currentItemsを更新
   searchResults.classList.add('hidden');
   await loadItemDetail(item);
-  history.pushState({ page: 'detail', itemId: item.id }, '');
+  // クラフト計算からの来訪フラグを設定
+  window._fromCraftModal = true;
+  history.pushState({ page: 'detail', itemId: item.id, fromCraft: true }, '');
   window.scrollTo(0, 0);
+};
+
+// クラフト計算に戻る
+window.returnToCraftModal = function() {
+  // 詳細ページを非表示
+  resultSection.classList.add('hidden');
+  emptyState.classList.remove('hidden');
+  // クラフトモーダルを開く
+  openCraftModal();
+  // 状態を復元
+  document.getElementById('craftSearchInput').value = craftModalState.query;
+  document.getElementById('craftTierFilter').value = craftModalState.tierFilter;
+  document.getElementById('craftRarityFilter').value = craftModalState.rarityFilter;
+  document.getElementById('craftCategoryFilter').value = craftModalState.categoryFilter;
+  if (craftModalState.currentResult) {
+    document.getElementById('craftResult').innerHTML = craftModalState.currentResult;
+  }
 };
 
 async function fetchItemData(itemId) {

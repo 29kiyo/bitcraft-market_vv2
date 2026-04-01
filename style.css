@@ -191,7 +191,8 @@ main {
 }
 
 /* フィルター */
-.filters {
+.filters,
+.craft-filters {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
