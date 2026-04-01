@@ -1257,10 +1257,14 @@ window.doCraftSearch = async function() {
   } else {
     filtered = allItems.filter(i => i.name.toLowerCase().includes(q.toLowerCase()));
   }
+  
+  // フィルター適用
+  filtered = applyCraftFilters(filtered);
+  
   filtered = filtered.slice(0, 8);
   if (filtered.length === 0) {
     document.getElementById('craftResult').innerHTML =
-      `<div class="craft-no-recipe">「${q}」は見つかりませんでした</div>`;
+      `<div class="craft-no-recipe">「${q}」は見つかりませんでした（フィルター条件に一致するものなし）</div>`;
     return;
   }
   // 検索結果一覧を表示
@@ -1283,6 +1287,61 @@ window.doCraftSearch = async function() {
     `<div class="craft-result-list">${resultHtml}</div>`;
 };
 
+function applyCraftFilters(items) {
+  const tierFilter = document.getElementById('craftTierFilter').value;
+  const rarityFilter = document.getElementById('craftRarityFilter').value;
+  const categoryFilter = document.getElementById('craftCategoryFilter').value;
+  
+  return items.filter(item => {
+    // Tier フィルター
+    if (tierFilter !== '' && item.tier !== parseInt(tierFilter)) {
+      return false;
+    }
+    // レア度フィルター
+    if (rarityFilter !== '' && item.rarity !== parseInt(rarityFilter)) {
+      return false;
+    }
+    // カテゴリーフィルター
+    if (categoryFilter !== '') {
+      const itemCategory = parentCategoryMap[item.tag] || '';
+      const jaItemCategory = getJaName(itemCategory) || itemCategory;
+      if (!jaItemCategory.includes(categoryFilter) && !itemCategory.includes(categoryFilter)) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+window.clearCraftFilters = function() {
+  document.getElementById('craftTierFilter').value = '';
+  document.getElementById('craftRarityFilter').value = '';
+  document.getElementById('craftCategoryFilter').value = '';
+  // 現在の検索結果を再表示
+  const q = document.getElementById('craftSearchInput').value.trim();
+  if (q) doCraftSearch();
+};
+
+// フィルター変更時に自動で検索を再実行
+document.addEventListener('DOMContentLoaded', () => {
+  const craftTierFilter = document.getElementById('craftTierFilter');
+  const craftRarityFilter = document.getElementById('craftRarityFilter');
+  const craftCategoryFilter = document.getElementById('craftCategoryFilter');
+  
+  if (craftTierFilter) craftTierFilter.addEventListener('change', () => {
+    const q = document.getElementById('craftSearchInput').value.trim();
+    if (q) doCraftSearch();
+  });
+  if (craftRarityFilter) craftRarityFilter.addEventListener('change', () => {
+    const q = document.getElementById('craftSearchInput').value.trim();
+    if (q) doCraftSearch();
+  });
+  if (craftCategoryFilter) craftCategoryFilter.addEventListener('change', () => {
+    const q = document.getElementById('craftSearchInput').value.trim();
+    if (q) doCraftSearch();
+  });
+});
+
 window.selectCraftItem = async function(itemId, itemName) {
   document.getElementById('craftSuggestions').classList.add('hidden');
   document.getElementById('craftSearchInput').value = itemName;
@@ -1303,8 +1362,21 @@ const recipeCache = {};
 // 素材詳細ページを表示
 window.viewIngredientDetail = async function(itemId, itemName) {
   closeCraftModal();
-  searchInput.value = itemName;
-  doSearch();
+  // 現在のアイテムを取得
+  const allItems = await fetchAllMarketItems();
+  const item = allItems.find(i => i.id === itemId);
+  if (!item) {
+    // 見つからない場合は検索にフォールバック
+    searchInput.value = itemName;
+    doSearch();
+    return;
+  }
+  // 詳細ページを表示
+  currentItems = [item]; // currentItemsを更新
+  searchResults.classList.add('hidden');
+  await loadItemDetail(item);
+  history.pushState({ page: 'detail', itemId: item.id }, '');
+  window.scrollTo(0, 0);
 };
 
 async function fetchItemData(itemId) {

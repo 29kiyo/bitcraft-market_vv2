@@ -1954,6 +1954,56 @@ text-overflow: ellipsis;
 .craft-result-item:hover {
   background: rgba(0,200,150,0.08);
 }
+.craft-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0;
+  padding: 12px;
+  background: var(--bg3);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+.craft-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 120px;
+}
+.craft-filter-group label {
+  font-size: 0.75rem;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.craft-filter-select {
+  padding: 6px 8px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.craft-filter-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.craft-filter-clear {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text2);
+  font-size: 0.85rem;
+  cursor: pointer;
+  align-self: flex-end;
+  transition: background 0.15s;
+}
+.craft-filter-clear:hover {
+  background: rgba(255,255,255,0.05);
+}
 .craft-item-header {
   display: flex;
   align-items: center;

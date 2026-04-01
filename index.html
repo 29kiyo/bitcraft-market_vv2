@@ -519,6 +519,64 @@
       <input type="text" id="craftSearchInput" class="craft-search-input" placeholder="アイテム名を入力（日本語・英語）...">
       <button class="craft-search-btn" onclick="doCraftSearch()">検索</button>
     </div>
+    <!-- クラフト検索フィルター -->
+    <div class="craft-filters">
+      <div class="craft-filter-group">
+        <label>Tier</label>
+        <select id="craftTierFilter" class="craft-filter-select">
+          <option value="">すべて</option>
+          <option value="-1">Tier -1</option>
+          <option value="0">Tier 0</option>
+          <option value="1">Tier 1</option>
+          <option value="2">Tier 2</option>
+          <option value="3">Tier 3</option>
+          <option value="4">Tier 4</option>
+          <option value="5">Tier 5</option>
+          <option value="6">Tier 6</option>
+          <option value="7">Tier 7</option>
+          <option value="8">Tier 8</option>
+          <option value="9">Tier 9</option>
+          <option value="10">Tier 10</option>
+        </select>
+      </div>
+      <div class="craft-filter-group">
+        <label>レア度</label>
+        <select id="craftRarityFilter" class="craft-filter-select">
+          <option value="">すべて</option>
+          <option value="0">Default</option>
+          <option value="1">Common</option>
+          <option value="2">Uncommon</option>
+          <option value="3">Rare</option>
+          <option value="4">Epic</option>
+          <option value="5">Legendary</option>
+          <option value="6">Mythic</option>
+        </select>
+      </div>
+      <div class="craft-filter-group">
+        <label>カテゴリー</label>
+        <select id="craftCategoryFilter" class="craft-filter-select">
+          <option value="">すべて</option>
+          <option value="木材・建材">木材・建材</option>
+          <option value="鉱石・金属">鉱石・金属</option>
+          <option value="繊維・革">繊維・革</option>
+          <option value="石材">石材</option>
+          <option value="宝石">宝石</option>
+          <option value="食料">食料</option>
+          <option value="魚">魚</option>
+          <option value="ポーション・消耗品">ポーション・消耗品</option>
+          <option value="ツール">ツール</option>
+          <option value="武器・防具">武器・防具</option>
+          <option value="農業">農業</option>
+          <option value="建築・クラフト">建築・クラフト</option>
+          <option value="研究・知識">研究・知識</option>
+          <option value="家具・装飾">家具・装飾</option>
+          <option value="ダンジョン">ダンジョン</option>
+          <option value="動物">動物</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+      <button class="craft-filter-clear" onclick="clearCraftFilters()">フィルタークリア</button>
+    </div>
     <div id="craftSuggestions" class="craft-suggestions hidden"></div>
     <div id="craftResult" class="craft-result"></div>
   </div>
