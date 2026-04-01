@@ -11,12 +11,28 @@ const HEADERS = { 'x-app-identifier': 'bitcraft-market-search-github-pages' };
 const iconCache = new Map();
 function getCachedIcon(iconAssetName) {
   if (!iconAssetName) return '';
-  if (!iconCache.has(iconAssetName)) {
-    iconCache.set(iconAssetName, `https://bitjita.com/${iconAssetName}.webp`);
-  }
-  return iconCache.get(iconAssetName);
-}
+  if (iconCache.has(iconAssetName)) return iconCache.get(iconAssetName);
 
+  let path = iconAssetName;
+
+  // 二重パス修正: GeneratedIcons/Other/GeneratedIcons/ → GeneratedIcons/
+  path = path.replace('GeneratedIcons/Other/GeneratedIcons/', 'GeneratedIcons/');
+
+  // Items/ や Resources/ で始まる場合は GeneratedIcons/ を付与
+  if (path.startsWith('Items/') || path.startsWith('Resources/') || path.startsWith('PremiumIcons/')) {
+    // PremiumIconsはそのまま
+    if (!path.startsWith('PremiumIcons/')) {
+      path = 'GeneratedIcons/' + path;
+    }
+  }
+
+  // スペースをアンダースコアまたは%20に変換
+  path = path.replace(/ /g, '%20');
+
+  const url = `https://bitjita.com/${path}.webp`;
+  iconCache.set(iconAssetName, url);
+  return url;
+}
 // ============================================
 // マーケットデータキャッシュ（1時間）
 // ============================================
@@ -898,9 +914,7 @@ window.filterTradeLog = function() {
   const trades = window._tradeLogs || [];
   const filtered = region ? trades.filter(t => t.regionName === region) : trades;
   currentLogPage = 1;
-  const pageItems = filtered.slice(0, LOG_PER_PAGE * LOG_MAX_PAGES).slice(0, LOG_PER_PAGE);
-  const tbody = document.querySelector('#tradeLog tbody');
-  if (tbody) tbody.innerHTML = renderLogRows(pageItems);
+  renderLogTable(filtered, 1);
 };
 
 // ============================================
@@ -1004,6 +1018,15 @@ function updateCalcListCount() {
 }
 
 window.addToCalcList = function(order, itemName) {
+  const existing = window._calcList.find(i => i.itemName === itemName && i.claimName === order.claimName && i.priceThreshold === order.priceThreshold);
+  if (existing) {
+    const toast = document.createElement('div');
+    toast.textContent = `「${itemName}」はすでに同じ領地でリストに追加されています`;
+    toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0d1827;border:1px solid #f0a500;color:#f0a500;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;pointer-events:none;transition:opacity 0.5s;';
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 2000);
+    return;
+  }
   window._calcList.push({ ...order, itemName, buyQty: 0 });
   updateCalcListCount();
   const toast = document.createElement('div');
