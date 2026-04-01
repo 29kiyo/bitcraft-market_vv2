@@ -1187,18 +1187,21 @@ window.openMapModal = function(n, e, claimName) {
 // ============================================
 
 window.openCraftModal = function() {
-  document.getElementById('craftModal').classList.remove('hidden');
+  const craftModal = document.getElementById('craftModal');
+  if (craftModal) craftModal.classList.remove('hidden');
   // 状態が保存されていれば復元
   if (craftModalState.query || craftModalState.currentResult) {
-    document.getElementById('craftSearchInput').value = craftModalState.query;
-    document.getElementById('craftTierFilter').value = craftModalState.tierFilter;
-    document.getElementById('craftRarityFilter').value = craftModalState.rarityFilter;
-    document.getElementById('craftCategoryFilter').value = craftModalState.categoryFilter;
+    const craftSearchInput = document.getElementById('craftSearchInput');
+    if (craftSearchInput && craftModalState.query) {
+      craftSearchInput.value = craftModalState.query;
+    }
     if (craftModalState.currentResult) {
-      document.getElementById('craftResult').innerHTML = craftModalState.currentResult;
+      const craftResult = document.getElementById('craftResult');
+      if (craftResult) craftResult.innerHTML = craftModalState.currentResult;
     }
   } else {
-    document.getElementById('craftSearchInput').focus();
+    const craftSearchInput = document.getElementById('craftSearchInput');
+    if (craftSearchInput) craftSearchInput.focus();
   }
 };
 
@@ -1556,9 +1559,6 @@ const marketDataCache = {};
 // クラフトモーダルの状態を保存
 let craftModalState = {
   query: '',
-  tierFilter: '',
-  rarityFilter: '',
-  categoryFilter: '',
   currentResult: null
 };
 
@@ -1705,12 +1705,24 @@ function renderCraftTree(tree) {
   }
   const totalCost = calcTotalCost(tree);
   const html = `
-    <div class="craft-item-header">
-      <img src="https://bitjita.com/${tree.icon}.webp" width="48" height="48"
-        style="border-radius:6px;background:var(--bg2)" onerror="this.style.display='none'">
-      <div>
-        <div class="craft-item-name">${tree.jaName || tree.name}</div>
-        ${tree.jaName ? `<div class="craft-item-sub">${tree.name}</div>` : ''}
+    <div class="craft-item-header" style="display:flex;justify-content:space-between;align-items:center;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <img src="https://bitjita.com/${tree.icon}.webp" width="48" height="48"
+          style="border-radius:6px;background:var(--bg2)" onerror="this.style.display='none'">
+        <div>
+          <div class="craft-item-name">${tree.jaName || tree.name}</div>
+          ${tree.jaName ? `<div class="craft-item-sub">${tree.name}</div>` : ''}
+        </div>
+      </div>
+      <div class="craft-quantity-selector" style="display:flex;align-items:center;gap:3px;flex-wrap:nowrap;">
+        <button onclick="updateCraftQuantity(-10)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#aaa;width:32px;height:24px;border-radius:4px;cursor:pointer;font-size:10px;">-10</button>
+        <button onclick="updateCraftQuantity(-1)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:14px;">－</button>
+        <input type="number" id="craftQuantity" min="1" max="999" value="${craftCurrentQuantity}"
+          style="width:50px;background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;border-radius:4px;padding:2px 4px;font-size:12px;text-align:center;"
+          onchange="updateCraftQuantity(0)">
+        <button onclick="updateCraftQuantity(1)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:14px;">＋</button>
+        <button onclick="updateCraftQuantity(10)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#aaa;width:32px;height:24px;border-radius:4px;cursor:pointer;font-size:10px;">+10</button>
+        <span style="font-size:10px;color:#666;">個</span>
       </div>
     </div>
     ${tree.recipes.length === 0
