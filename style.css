@@ -191,8 +191,7 @@ main {
 }
 
 /* フィルター */
-.filters,
-.craft-filters {
+.filters {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
@@ -1638,7 +1637,7 @@ text-overflow: ellipsis;
   border-radius: var(--radius);
   z-index: 200;
   min-width: 200px;
-  max-height: 500px;
+  max-height: 300px;
   overflow-y: auto;
   box-shadow: 0 8px 32px rgba(0,0,0,0.5);
 }
@@ -1818,16 +1817,7 @@ text-overflow: ellipsis;
   background: rgba(0,200,150,0.2);
 }
 
-#calcListModal input[type=number]::-webkit-inner-spin-button,
-#calcListModal input[type=number]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-#calcListModal input[type=number] {
-  -moz-appearance: textfield;
-}
-
-/* ---- クラフト計算モーダル ---- */
+/* ---- クラフト計算機 ---- */
 .craft-btn {
   background: rgba(0,200,150,0.1);
   border: 1px solid rgba(0,200,150,0.3);
@@ -1839,29 +1829,29 @@ text-overflow: ellipsis;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
+  margin-left: auto;
 }
 .craft-btn:hover { background: rgba(0,200,150,0.2); }
 .craft-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.7);
-  z-index: 1000;
+  background: rgba(0,0,0,0.75);
+  z-index: 2000;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 24px;
+  overflow-y: auto;
 }
 .craft-modal {
   background: var(--bg2);
   border: 1px solid var(--border2);
   border-radius: var(--radius-lg);
   width: 100%;
-  max-width: 800px;
-  min-height: 600px;
-  max-height: 80vh;
-  overflow-y: auto;
+  max-width: 860px;
   padding: 24px;
   position: relative;
+  margin: auto;
 }
 .craft-modal-header {
   display: flex;
@@ -1884,133 +1874,8 @@ text-overflow: ellipsis;
   padding: 4px 8px;
 }
 .craft-modal-close:hover { color: var(--text); }
-.craft-search-wrap {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
-  position: relative;
-}
-.craft-search-input {
-  flex: 1;
-  background: var(--bg3);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius);
-  padding: 10px 16px;
-  color: var(--text);
-  font-family: 'Noto Sans JP', sans-serif;
-  font-size: 0.95rem;
-  outline: none;
-}
-.craft-search-input:focus { border-color: var(--accent); }
-.craft-search-btn {
-  background: var(--accent);
-  color: #000;
-  border: none;
-  border-radius: var(--radius);
-  padding: 10px 20px;
-  font-family: 'Rajdhani', sans-serif;
-  font-weight: 700;
-  cursor: pointer;
-}
-.craft-suggestions {
-  background: var(--bg3);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius);
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 80px;
-  z-index: 100;
-  max-height: 200px;
-  overflow-y: auto;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-}
-.craft-suggest-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
-  cursor: pointer;
-  border-bottom: 1px solid var(--border);
-  transition: background 0.15s;
-}
-.craft-suggest-item:hover { background: rgba(0,200,150,0.08); }
-.craft-suggest-item:last-child { border-bottom: none; }
+.craft-search-section { margin-bottom: 4px; }
 .craft-result { margin-top: 16px; }
-.craft-result-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.craft-result-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.craft-result-item:hover {
-  background: rgba(0,200,150,0.08);
-}
-.craft-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 12px 0;
-  padding: 12px;
-  background: var(--bg3);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-}
-.craft-filter-clear {
-  background: rgba(255,77,109,0.1);
-  border: 1px solid rgba(255,77,109,0.3);
-  color: var(--danger);
-  padding: 7px 14px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-.craft-filter-clear:hover {
-  background: rgba(255,77,109,0.2);
-}
-.craft-quantity-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 12px 0;
-  font-size: 0.9rem;
-}
-.craft-quantity-wrap label {
-  margin-right: 4px;
-}
-.craft-region-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 12px 0;
-  font-size: 0.9rem;
-}
-.craft-region-select {
-  padding: 6px 8px;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text);
-  font-size: 0.9rem;
-  cursor: pointer;
-  min-width: 150px;
-}
-.craft-region-select:focus {
-  outline: none;
-  border-color: var(--accent);
-}
 .craft-item-header {
   display: flex;
   align-items: center;
@@ -2028,6 +1893,13 @@ text-overflow: ellipsis;
   color: var(--text);
 }
 .craft-item-sub { font-size: 0.8rem; color: var(--text3); }
+.craft-qty-wrap {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
 .craft-recipe {
   background: var(--bg3);
   border: 1px solid var(--border);
@@ -2043,6 +1915,19 @@ text-overflow: ellipsis;
   letter-spacing: 0.06em;
   color: var(--text3);
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.craft-region-select {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  cursor: pointer;
+  margin-left: auto;
 }
 .craft-ingredient {
   display: flex;
@@ -2061,29 +1946,11 @@ text-overflow: ellipsis;
   border-radius: 4px;
 }
 .craft-ingredient-info { flex: 1; min-width: 0; }
-.craft-ingredient-name {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text);
-}
-.craft-ingredient-qty {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 0.85rem;
-  color: var(--text);
-}
-.craft-ingredient-price {
-  text-align: right;
-  font-family: 'Rajdhani', sans-serif;
-}
-.craft-ingredient-sell {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text);
-}
-.craft-ingredient-claim {
-  font-size: 0.75rem;
-  color: var(--text);
-}
+.craft-ingredient-name { font-size: 0.9rem; font-weight: 500; color: var(--text); }
+.craft-ingredient-qty { font-family: 'Rajdhani', sans-serif; font-size: 0.85rem; color: var(--text2); }
+.craft-ingredient-price { text-align: right; font-family: 'Rajdhani', sans-serif; flex-shrink: 0; }
+.craft-ingredient-sell { font-size: 0.95rem; font-weight: 700; color: var(--accent); }
+.craft-ingredient-claim { font-size: 0.75rem; color: var(--text3); }
 .craft-total {
   background: rgba(0,200,150,0.1);
   border: 1px solid rgba(0,200,150,0.3);
@@ -2094,59 +1961,20 @@ text-overflow: ellipsis;
   justify-content: space-between;
   margin-top: 12px;
 }
-.craft-total-label {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text2);
-}
-.craft-total-value {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--accent);
-}
+.craft-total-label { font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 600; color: var(--text2); }
+.craft-total-value { font-family: 'Rajdhani', sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--accent); }
 .craft-sub-recipe {
   margin-left: 24px;
   border-left: 2px solid var(--border);
   padding-left: 12px;
   margin-top: 8px;
 }
-.craft-loading {
-  text-align: center;
-  padding: 40px;
-  color: var(--text3);
-}
-.craft-no-recipe {
-  text-align: center;
-  padding: 24px;
-  color: var(--text3);
-  font-size: 0.9rem;
-}
+.craft-loading { text-align: center; padding: 40px; color: var(--text3); }
+.craft-no-recipe { text-align: center; padding: 24px; color: var(--text3); font-size: 0.9rem; }
 .craft-pagination {
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 12px;
-  margin-top: 16px;
-  padding: 12px;
-  border-top: 1px solid var(--border);
-}
-.craft-page-btn {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 6px 12px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: background 0.2s;
-}
-.craft-page-btn:hover {
-  background: var(--accent);
-  color: #000;
-}
-.craft-page-info {
-  font-size: 0.85rem;
-  color: var(--text2);
+  justify-content: center;
+  gap: 16px;
+  padding: 12px 0;
 }
