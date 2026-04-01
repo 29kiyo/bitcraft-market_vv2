@@ -1638,7 +1638,7 @@ text-overflow: ellipsis;
   border-radius: var(--radius);
   z-index: 200;
   min-width: 200px;
-  max-height: 500px;
+  max-height: 1000px;
   overflow-y: auto;
   box-shadow: 0 8px 32px rgba(0,0,0,0.5);
 }
