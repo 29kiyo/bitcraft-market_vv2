@@ -1203,6 +1203,7 @@ window.openCraftModal = function() {
 window.closeCraftModal = function() {
   document.getElementById('craftModal').classList.add('hidden');
   document.getElementById('craftSuggestions').classList.add('hidden');
+  document.getElementById('craftResult').innerHTML = '';
   // 状態はクリアしない（クラフトの内容を保持）
 };
 
@@ -1319,15 +1320,21 @@ window.doCraftSearch = async function() {
   const resultHtml = pageItems.map(item => {
     const ja = getJaName(item.name);
     const icon = `https://bitjita.com/${item.iconAssetName}.webp`;
+    const parentCategory = parentCategoryMap[item.tag] || '';
+    const jaParentCategory = getJaName(parentCategory) || parentCategory;
     return `<div class="craft-result-item" onclick="selectCraftItem('${item.id}','${item.name.replace(/'/g,"\\'")}')">
       <img src="${icon}" width="32" height="32" style="border-radius:4px;background:var(--bg2)" loading="lazy" onerror="this.style.display='none'">
-      <div>
-        <div style="font-size:14px;font-weight:500">${ja || item.name}</div>
-        ${ja ? `<div style="font-size:12px;color:var(--text3)">${item.name}</div>` : ''}
-        <div style="font-size:12px;color:var(--text2)">
-          ${item.tier && item.tier > 0 ? `T${item.tier}` : ''}
-          ${item.rarityStr ? ` ${item.rarityStr}` : ''}
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:14px;font-weight:500">${ja || item.name}</span>
+          <div class="s-tags">
+            ${item.tier && item.tier > 0 ? `<span class="s-tier">T${item.tier}</span>` : ''}
+            <span class="s-rarity rarity-${item.rarityStr?.toLowerCase()}">${item.rarityStr || ''}</span>
+            ${parentCategory ? `<span class="s-parent-category">${jaParentCategory}</span>` : ''}
+            ${item.tag ? `<span class="s-tag">${getJaName(item.tag) || item.tag}</span>` : ''}
+          </div>
         </div>
+        ${ja ? `<div style="font-size:12px;color:var(--text3)">${item.name}</div>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -1347,7 +1354,7 @@ window.doCraftSearch = async function() {
   }
   
   document.getElementById('craftResult').innerHTML =
-    `<div class="craft-result-list">${resultHtml}</div>${paginationHtml}`;
+    `${paginationHtml}<div class="craft-result-list">${resultHtml}</div>${paginationHtml}`;
 };
 
 window.changeCraftPage = function(page) {

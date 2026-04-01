@@ -1858,7 +1858,7 @@ text-overflow: ellipsis;
   width: 100%;
   max-width: 800px;
   min-height: 600px;
-  max-height: 90vh;
+  max-height: 80vh;
   overflow-y: auto;
   padding: 24px;
   position: relative;
@@ -1868,11 +1868,6 @@ text-overflow: ellipsis;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20px;
-  position: sticky;
-  top: 0;
-  background: var(--bg2);
-  padding-bottom: 16px;
-  z-index: 10;
 }
 .craft-modal-title {
   font-family: 'Rajdhani', sans-serif;
