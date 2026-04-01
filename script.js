@@ -57,6 +57,14 @@ function startCacheClearTimer() {
 startCacheClearTimer();
 window.addEventListener('pagehide', clearCaches);
 
+// アプリ起動時にバックグラウンドでマーケットデータを取得
+window.addEventListener('load', () => {
+  // 少し遅延させて、ページの表示を優先
+  setTimeout(() => {
+    fetchAllMarketItems().catch(() => {});
+  }, 1000);
+});
+
 async function fetchAllMarketItems() {
   if (cachedMarketItems) return cachedMarketItems;
   if (fetchPromise) return fetchPromise;
@@ -296,7 +304,7 @@ function showSuggestions(items) {
     const jaParentCategory = getJaName(parentCategory) || parentCategory;
     div.innerHTML = `
       <div class="s-top">
-        <img class="s-icon" src="${iconUrl}" alt="${item.name}" onerror="this.style.display='none'">
+        <img class="s-icon" src="${iconUrl}" alt="${item.name}" loading="lazy" onerror="this.style.display='none'">
         <div class="s-text">
           <span class="s-name">${useJaName ? jaName : item.name}</span>
           ${useJaName ? `<span class="s-sub">${item.name}</span>` : ''}
@@ -1217,7 +1225,7 @@ function showCraftSuggestions(items) {
     const ja = getJaName(item.name);
     const icon = `https://bitjita.com/${item.iconAssetName}.webp`;
     return `<div class="craft-suggest-item" onclick="selectCraftItem('${item.id}','${item.name.replace(/'/g,"\\'")}')">
-      <img src="${icon}" width="28" height="28" style="border-radius:4px;background:var(--bg2)" onerror="this.style.display='none'">
+      <img src="${icon}" width="28" height="28" style="border-radius:4px;background:var(--bg2)" loading="lazy" onerror="this.style.display='none'">
       <div>
         <div style="font-size:13px;font-weight:500">${ja || item.name}</div>
         ${ja ? `<div style="font-size:11px;color:var(--text3)">${item.name}</div>` : ''}
@@ -1260,7 +1268,7 @@ window.doCraftSearch = async function() {
     const ja = getJaName(item.name);
     const icon = `https://bitjita.com/${item.iconAssetName}.webp`;
     return `<div class="craft-result-item" onclick="selectCraftItem('${item.id}','${item.name.replace(/'/g,"\\'")}')">
-      <img src="${icon}" width="32" height="32" style="border-radius:4px;background:var(--bg2)" onerror="this.style.display='none'">
+      <img src="${icon}" width="32" height="32" style="border-radius:4px;background:var(--bg2)" loading="lazy" onerror="this.style.display='none'">
       <div>
         <div style="font-size:14px;font-weight:500">${ja || item.name}</div>
         ${ja ? `<div style="font-size:12px;color:var(--text3)">${item.name}</div>` : ''}
