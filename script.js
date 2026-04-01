@@ -1628,7 +1628,8 @@ window.doCraftSearch = async function() {
   document.getElementById('craftSuggestions').classList.add('hidden');
   const tiers = getCraftCheckedValues('tier');
   const rarities = getCraftCheckedValues('rarity');
-  if (!q && tiers.length === 0 && rarities.length === 0) return;
+  const cats = getCraftCheckedValues('category');
+  if (!q && tiers.length === 0 && rarities.length === 0 && cats.length === 0) return;
 
   try {
     const allItems = await fetchAllMarketItems();
@@ -1640,6 +1641,14 @@ window.doCraftSearch = async function() {
     }
     if (tiers.length > 0) filtered = filtered.filter(i => tiers.includes(String(i.tier)));
     if (rarities.length > 0) filtered = filtered.filter(i => rarities.includes(String(i.rarity)));
+    if (cats.length > 0) {
+      const allTags = new Set();
+      cats.forEach(cat => {
+        if (cat.startsWith('__group__') || cat.startsWith('__kw__') || cat.startsWith('__ex__')) return;
+        allTags.add(cat);
+      });
+      if (allTags.size > 0) filtered = filtered.filter(i => allTags.has(i.tag));
+    }
     craftItems = filtered;
     craftCurrentPage = 1;
     renderCraftSearchResults();
