@@ -102,6 +102,8 @@ let currentOrderPage = 1;
 const ORDERS_PER_PAGE = 7;
 const ITEMS_PER_PAGE = 20;
 let currentOrderSort = 'asc';
+let craftCurrentPage = 1;
+const craftItemsPerPage = 12;
 let currentOrderRegion = '';
 let currentOrderClaim = '';
 let currentOrderType = '';
@@ -198,8 +200,7 @@ function updateMultiLabel(type) {
   
   // クラフト計算フィルターの場合はapplyCraftFiltersを呼出
   if (type.startsWith('craft')) {
-    const q = document.getElementById('craftSearchInput').value.trim();
-    if (q) doCraftSearch();
+    doCraftSearch();
   } else {
     applyFilters();
   }
@@ -1276,28 +1277,46 @@ document.addEventListener('click', e => {
 
 window.doCraftSearch = async function() {
   const q = document.getElementById('craftSearchInput').value.trim();
-  if (!q) return;
   document.getElementById('craftSuggestions').classList.add('hidden');
   const allItems = await fetchAllMarketItems();
-  const hasJa = /[\u3040-\u30ff\u4e00-\u9faf]/.test(q);
   let filtered;
-  if (hasJa) {
-    filtered = filterByJapanese(allItems, q);
+  
+  if (q) {
+    const hasJa = /[\u3040-\u30ff\u4e00-\u9faf]/.test(q);
+    if (hasJa) {
+      filtered = filterByJapanese(allItems, q);
+    } else {
+      filtered = allItems.filter(i => i.name.toLowerCase().includes(q.toLowerCase()));
+    }
   } else {
-    filtered = allItems.filter(i => i.name.toLowerCase().includes(q.toLowerCase()));
+    // 検索ボックスが空の場合は全アイテム
+    filtered = allItems;
   }
   
   // フィルター適用
   filtered = applyCraftFilters(filtered);
   
-  filtered = filtered.slice(0, 8);
+  // ページネーション
+  const totalPages = Math.ceil(filtered.length / craftItemsPerPage);
+  let start = (craftCurrentPage - 1) * craftItemsPerPage;
+  let end = start + craftItemsPerPage;
+  let pageItems = filtered.slice(start, end);
+  
+  if (pageItems.length === 0 && filtered.length > 0) {
+    craftCurrentPage = totalPages;
+    start = (craftCurrentPage - 1) * craftItemsPerPage;
+    end = start + craftItemsPerPage;
+    pageItems = filtered.slice(start, end);
+  }
+  
   if (filtered.length === 0) {
     document.getElementById('craftResult').innerHTML =
-      `<div class="craft-no-recipe">「${q}」は見つかりませんでした（フィルター条件に一致するものなし）</div>`;
+      `<div class="craft-no-recipe">${q ? `「${q}」は見つかりませんでした` : 'フィルター条件に一致するものなし'}</div>`;
     return;
   }
+  
   // 検索結果一覧を表示
-  const resultHtml = filtered.map(item => {
+  const resultHtml = pageItems.map(item => {
     const ja = getJaName(item.name);
     const icon = `https://bitjita.com/${item.iconAssetName}.webp`;
     return `<div class="craft-result-item" onclick="selectCraftItem('${item.id}','${item.name.replace(/'/g,"\\'")}')">
@@ -1312,8 +1331,28 @@ window.doCraftSearch = async function() {
       </div>
     </div>`;
   }).join('');
+  
+  // ページネーションボタン
+  let paginationHtml = '';
+  if (totalPages > 1) {
+    paginationHtml = `<div class="craft-pagination">`;
+    if (craftCurrentPage > 1) {
+      paginationHtml += `<button class="craft-page-btn" onclick="changeCraftPage(${craftCurrentPage - 1})">← 前</button>`;
+    }
+    paginationHtml += `<span class="craft-page-info">${craftCurrentPage} / ${totalPages}</span>`;
+    if (craftCurrentPage < totalPages) {
+      paginationHtml += `<button class="craft-page-btn" onclick="changeCraftPage(${craftCurrentPage + 1})">次 →</button>`;
+    }
+    paginationHtml += `</div>`;
+  }
+  
   document.getElementById('craftResult').innerHTML =
-    `<div class="craft-result-list">${resultHtml}</div>`;
+    `<div class="craft-result-list">${resultHtml}</div>${paginationHtml}`;
+};
+
+window.changeCraftPage = function(page) {
+  craftCurrentPage = page;
+  doCraftSearch();
 };
 
 function applyCraftFilters(items) {
@@ -1421,9 +1460,11 @@ window.clearCraftFilters = function() {
     const labelId = `${type}Label`;
     document.getElementById(labelId).textContent = 'すべて';
   });
-  // 現在の検索結果を再表示
-  const q = document.getElementById('craftSearchInput').value.trim();
-  if (q) doCraftSearch();
+  // 検索ボックスもクリア
+  document.getElementById('craftSearchInput').value = '';
+  // 検索結果をクリア
+  document.getElementById('craftResult').innerHTML = '';
+  document.getElementById('craftSuggestions').classList.add('hidden');
 };
 
 // フィルター変更時に自動で検索を再実行
@@ -1615,7 +1656,7 @@ function renderIngredients(ingredients, depth = 0) {
               onerror="this.style.display='none'">
             <div class="craft-ingredient-info">
               <div class="craft-ingredient-name">${ing.jaName || ing.name}</div>
-              ${ing.jaName ? `<div style="font-size:11px;color:var(--text3)">${ing.name}</div>` : ''}
+              ${ing.jaName ? `<div style="font-size:11px;color:var(--text)">${ing.name}</div>` : ''}
               <div class="craft-ingredient-qty">× ${ing.quantity}</div>
               ${cheaper === 'craft' ? `<span style="font-size:11px;color:#f0a500">⚒ クラフトの方が安い (${craftCost.toLocaleString('ja-JP')} 🪙)</span>` : ''}
               ${cheaper === 'buy' ? `<span style="font-size:11px;color:var(--accent)">🛒 購入の方が安い</span>` : ''}
