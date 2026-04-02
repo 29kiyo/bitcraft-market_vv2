@@ -1899,15 +1899,29 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
     
     // 自分のレシピがあればそれを使用
     if (selfCraftRecipes.length > 0) {
-      recipes = selfCraftRecipes;
-      recipeSource = 'recipesUsingItem';
+      // 材料の大部分が自分自身のものは除外（再利用レシピ排除）
+      const cleanRecipes = selfCraftRecipes.filter(r => {
+        const materials = r.consumedItemStacks || [];
+        if (materials.length === 0) return true;
+        const selfCount = materials.filter(s => String(s.item_id) === String(itemId)).length;
+        const ratio = selfCount / materials.length;
+        // 材料の70%以上が自分自身なら除外
+        return ratio < 0.7;
+      });
+      
+      if (cleanRecipes.length > 0) {
+        recipes = cleanRecipes;
+        recipeSource = 'recipesUsingItem';
+      }
     } else {
       // 自分を作るレシピがない場合は 材料に自分がないレシピを選択
       const validRecipes = recipesUsingItem.filter(r => {
         const materials = r.consumedItemStacks || [];
+        if (materials.length === 0) return false;
         const selfCount = materials.filter(s => String(s.item_id) === String(itemId)).length;
-        const totalCount = materials.length;
-        return selfCount < totalCount;
+        const ratio = selfCount / materials.length;
+        // 材料の70%以上が自分なら除外
+        return ratio < 0.7;
       });
       if (validRecipes.length > 0) {
         recipes = validRecipes;
@@ -1943,12 +1957,15 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
       craftedItemStacks: r.craftedItemStacks || [],
       name: r.name || 'Recipe',
     }));
-    // 最初のレシピを使用
+    // 最初のレシピを使用（自分自身を除く）
     const recipe = recipes[0];
     const ingredients = [];
     for (const stack of (recipe.consumedItemStacks || [])) {
-      const child = buildTreeFromCache(stack.item_id, stack.quantity * quantity, depth + 1);
-      if (child) ingredients.push(child);
+      // 材料が自分と同じものは除外（無限ループ防止）
+      if (String(stack.item_id) !== String(itemId)) {
+        const child = buildTreeFromCache(stack.item_id, stack.quantity * quantity, depth + 1);
+        if (child) ingredients.push(child);
+      }
     }
     node.recipes.push({
       craftedQty: recipe.craftedItemStacks?.[0]?.quantity || 1,
