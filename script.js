@@ -1940,20 +1940,6 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
 
   return node;
 }
-      craftedQty: recipe.craftedItemStacks?.[0]?.quantity || 1,
-      ingredients,
-    });
-  }
-
-  return node;
-}
-      craftedQty: recipe.craftedItemStacks?.[0]?.quantity || 1,
-      ingredients,
-    });
-  }
-
-  return node;
-}
 
 function calcTotalCost(node) {
   if (!node) return 0;
