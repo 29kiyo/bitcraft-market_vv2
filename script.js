@@ -1713,41 +1713,29 @@ let craftModalState = {
   currentResult: null
 };
 
-// 素材のアイテム詳細を表示（メインページへ）
+// 素材アイテムのIDは文字列として保持
 window.viewIngredientDetail = function(itemId, itemName) {
-  console.log('viewIngredientDetail:', itemId, typeof itemId);
-  const itemIdNum = Number(itemId);
   closeCraftModal();
   setTimeout(() => {
-    const item = currentItems.find(i => Number(i.id) === itemIdNum);
-    console.log('currentItems match:', item);
+    const item = currentItems.find(i => String(i.id) === String(itemId));
     if (item) {
-      selectItem(itemIdNum);
+      selectItem(item.id);
     } else {
-      searchAndSelectItem(itemIdNum);
+      searchAndSelectItem(itemId);
     }
   }, 50);
 };
 
 // アイテムを検索して詳細を表示
 async function searchAndSelectItem(itemId) {
-  console.log('searchAndSelectItem called:', itemId);
   const allItems = await fetchAllMarketItems();
-  console.log('allItems length:', allItems.length);
-  
-  // IDの型を確認
-  console.log('sample allItems IDs:', allItems.slice(0, 3).map(i => ({id: i.id, type: typeof i.id})));
-  
   const item = allItems.find(i => String(i.id) === String(itemId));
-  console.log('found item:', item);
   if (item) {
     savedScrollPosition = window.scrollY;
     searchResults.classList.add('hidden');
     await loadItemDetail(item);
     history.pushState({ page: 'detail', itemId: item.id }, '');
     window.scrollTo(0, 0);
-  } else {
-    console.log('Item not found in allItems');
   }
 }
 
