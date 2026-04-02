@@ -1624,11 +1624,13 @@ async function buildAndRenderCraftTree(itemId, quantity, depth = 0) {
     await Promise.all(loadPromises);
   }
   
-  await loadAllChildren(itemId);
-  console.log('All children loaded, rendering...');
+  // 複数回繰り返してすべての最深層までロード
+  for (let i = 0; i < 3; i++) {
+    await loadAllChildren(itemId);
+    console.log('Pass', i + 1, 'completed');
+  }
   
-  // 全ての非同期処理が完了するまで待つ
-  await new Promise(resolve => setTimeout(resolve, 300));
+  console.log('All children loaded, rendering...');
   
   const tree = buildTreeFromCache(itemId, quantity);
   console.log('Tree built, rendering. Has ingredients?', tree?.recipes?.[0]?.ingredients?.length);
