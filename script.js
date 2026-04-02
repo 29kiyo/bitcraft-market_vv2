@@ -1547,7 +1547,6 @@ window.selectCraftItem = async function(itemId, itemName, addToList = false) {
   }
   
   // 単一選択モード
-  // 現在選択中のアイテムがあればリストに追加（重複避免）
   if (!craftSelectedItems.find(i => i.id === itemId)) {
     craftSelectedItems.push({ id: itemId, name: itemName });
   }
@@ -1555,19 +1554,13 @@ window.selectCraftItem = async function(itemId, itemName, addToList = false) {
   craftCurrentPage = 1;
   const quantity = parseInt(document.getElementById('craftQuantity')?.value) || 1;
   document.getElementById('craftResult').innerHTML =
-    '<div class="craft-loading"><div class="spinner" style="margin:0 auto 12px"></div>素材データを取得中...</div>';
-  try {
-    await prefetchAllItemData(itemId);
-    document.getElementById('craftResult').innerHTML =
-      '<div class="craft-loading"><div class="spinner" style="margin:0 auto 12px"></div>市場データを取得中...</div>';
-    await prefetchAllMarketData(itemId);
-    const tree = buildTreeFromCache(itemId, quantity);
-    renderCraftTree(tree);
-    renderCraftItemTabs();
-  } catch(e) {
-    document.getElementById('craftResult').innerHTML =
-      `<div class="craft-no-recipe">エラー: ${e.message}</div>`;
-  }
+    '<div class="craft-loading"><div class="spinner" style="margin:0 auto 12px"></div>読み込み中...</div>';
+  
+  // データ読み込み後に自動再レンダリング
+  await prefetchAllItemData(itemId);
+  await prefetchAllMarketData(itemId);
+  buildAndRenderCraftTree(itemId, quantity);
+  renderCraftItemTabs();
 };
 
 // 選択アイテムのタブを表示
@@ -1601,14 +1594,48 @@ function renderCraftItemTabs() {
   `).join('');
 }
 
+// ツリー構築 & データ読み込み完了后再レンダリング
+async function buildAndRenderCraftTree(itemId, quantity, depth = 0) {
+  // データがなければプリフェッチ
+  if (!recipeCache[itemId]) {
+    await prefetchAllItemData(itemId);
+    await prefetchAllMarketData(itemId);
+  }
+  const tree = buildTreeFromCache(itemId, quantity);
+  
+  // 子が未ロードの場合は再帰的に読み込み
+  if (tree?.recipes?.[0]?.ingredients) {
+    const missingIds = [];
+    tree.recipes[0].ingredients.forEach(ing => {
+      if (!recipeCache[ing.itemId]) {
+        missingIds.push(ing.itemId);
+      }
+    });
+    if (missingIds.length > 0) {
+      // 未ロード分を追加でフェッチ
+      for (const id of missingIds) {
+        if (!recipeCache[id]) {
+          await fetchItemData(id);
+          await fetchMarketData(id);
+        }
+      }
+      // 再レンダリング
+      const tree2 = buildTreeFromCache(itemId, quantity);
+      renderCraftTree(tree2);
+      return;
+    }
+  }
+  
+  renderCraftTree(tree);
+}
+
 // アイテム切り替え
 window.switchCraftItem = function(itemId) {
   const item = craftSelectedItems.find(i => i.id === itemId);
   if (item) {
     craftSelectedItem = { id: item.id, name: item.name };
     const quantity = parseInt(document.getElementById('craftQuantity')?.value) || 1;
-    const tree = buildTreeFromCache(item.id, quantity);
-    renderCraftTree(tree);
+    buildAndRenderCraftTree(item.id, quantity);
     renderCraftItemTabs();
   }
 };
@@ -1622,8 +1649,7 @@ window.removeCraftItem = function(itemId) {
   renderCraftItemTabs();
   if (craftSelectedItem) {
     const quantity = parseInt(document.getElementById('craftQuantity')?.value) || 1;
-    const tree = buildTreeFromCache(craftSelectedItem.id, quantity);
-    renderCraftTree(tree);
+    buildAndRenderCraftTree(craftSelectedItem.id, quantity);
   }
 };
 
@@ -1631,27 +1657,21 @@ window.removeCraftItem = function(itemId) {
 window.pinCraftItem = function(itemId, itemName) {
   const isPinned = craftSelectedItems.find(i => i.id === itemId);
   if (isPinned) {
-    // ピン留め解除（現在のアイテムでなければリストからも削除）
+    // ピン留め解除
     craftSelectedItems = craftSelectedItems.filter(i => i.id !== itemId);
     if (craftSelectedItem?.id === itemId) {
       craftSelectedItem = craftSelectedItems[0] || null;
     }
     if (craftSelectedItem) {
       const quantity = parseInt(document.getElementById('craftQuantity')?.value) || 1;
-      const tree = buildTreeFromCache(craftSelectedItem.id, quantity);
-      renderCraftTree(tree);
+      buildAndRenderCraftTree(craftSelectedItem.id, quantity);
     }
   } else {
     // ピン留め追加
     craftSelectedItems.push({ id: itemId, name: itemName });
     craftSelectedItem = { id: itemId, name: itemName };
-    // データがなければプリフェッチ
-    if (!recipeCache[itemId]) {
-      prefetchAllItemData(itemId).then(() => prefetchAllMarketData(itemId));
-    }
     const quantity = parseInt(document.getElementById('craftQuantity')?.value) || 1;
-    const tree = buildTreeFromCache(itemId, quantity);
-    renderCraftTree(tree);
+    buildAndRenderCraftTree(itemId, quantity);
   }
   renderCraftItemTabs();
 };
@@ -1688,17 +1708,11 @@ window.updateCraftQuantity = function(delta = 0) {
   quantityInput.value = quantity;
   craftCurrentQuantity = quantity;
   
-  // 現在選択されているアイテムがあれば再計算（キャッシュから）
+  // 現在選択されているアイテムがあれば再計算
   if (craftSelectedItem) {
     document.getElementById('craftResult').innerHTML =
       '<div class="craft-loading"><div class="spinner" style="margin:0 auto 12px"></div>再計算中...</div>';
-    try {
-      const tree = buildTreeFromCache(craftSelectedItem.id, quantity);
-      renderCraftTree(tree);
-    } catch(e) {
-      document.getElementById('craftResult').innerHTML =
-        `<div class="craft-no-recipe">エラー: ${e.message}</div>`;
-    }
+    buildAndRenderCraftTree(craftSelectedItem.id, quantity);
   }
 };
 
