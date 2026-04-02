@@ -1631,12 +1631,15 @@ async function fetchMarketData(itemId) {
   if (marketDataCache[itemId]) return marketDataCache[itemId];
   try {
     const res = await fetch(`${API_BASE}/market/item/${itemId}`, { headers: HEADERS });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      if (res.status === 404) return null;
+      console.warn(`Market data ${itemId} failed: ${res.status}`);
+      return null;
+    }
     const data = await res.json();
     marketDataCache[itemId] = data;
     return data;
   } catch (err) {
-    console.error(`Error fetching market data for ${itemId}:`, err);
     return null;
   }
 }
