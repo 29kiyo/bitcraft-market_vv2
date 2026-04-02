@@ -1627,6 +1627,35 @@ window.removeCraftItem = function(itemId) {
   }
 };
 
+// ピン留め（リストに追加）
+window.pinCraftItem = function(itemId, itemName) {
+  const isPinned = craftSelectedItems.find(i => i.id === itemId);
+  if (isPinned) {
+    // ピン留め解除（現在のアイテムでなければリストからも削除）
+    craftSelectedItems = craftSelectedItems.filter(i => i.id !== itemId);
+    if (craftSelectedItem?.id === itemId) {
+      craftSelectedItem = craftSelectedItems[0] || null;
+    }
+    if (craftSelectedItem) {
+      const quantity = parseInt(document.getElementById('craftQuantity')?.value) || 1;
+      const tree = buildTreeFromCache(craftSelectedItem.id, quantity);
+      renderCraftTree(tree);
+    }
+  } else {
+    // ピン留め追加
+    craftSelectedItems.push({ id: itemId, name: itemName });
+    craftSelectedItem = { id: itemId, name: itemName };
+    // データがなければプリフェッチ
+    if (!recipeCache[itemId]) {
+      prefetchAllItemData(itemId).then(() => prefetchAllMarketData(itemId));
+    }
+    const quantity = parseInt(document.getElementById('craftQuantity')?.value) || 1;
+    const tree = buildTreeFromCache(itemId, quantity);
+    renderCraftTree(tree);
+  }
+  renderCraftItemTabs();
+};
+
 window.updateCraftRegion = function() {
   const regionSelect = document.getElementById('craftRegion');
   if (regionSelect) {
@@ -1916,15 +1945,23 @@ function renderCraftTree(tree) {
           ${tree.jaName ? `<div class="craft-item-sub">${tree.name}</div>` : ''}
         </div>
       </div>
-      <div class="craft-quantity-selector" style="display:flex;align-items:center;gap:3px;flex-wrap:nowrap;">
-        <button onclick="updateCraftQuantity(-10)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#aaa;width:32px;height:24px;border-radius:4px;cursor:pointer;font-size:10px;">-10</button>
-        <button onclick="updateCraftQuantity(-1)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:14px;">－</button>
-        <input type="number" id="craftQuantity" min="1" max="999" value="${craftCurrentQuantity}"
-          style="width:50px;background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;border-radius:4px;padding:2px 4px;font-size:12px;text-align:center;"
-          onchange="updateCraftQuantity(0)">
-        <button onclick="updateCraftQuantity(1)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:14px;">＋</button>
-        <button onclick="updateCraftQuantity(10)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#aaa;width:32px;height:24px;border-radius:4px;cursor:pointer;font-size:10px;">+10</button>
-        <span style="font-size:10px;color:#666;">個</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button onclick="pinCraftItem('${tree.itemId}','${tree.name.replace(/'/g,"\\'")}')" title="ピン留め" style="
+          background: ${craftSelectedItems.find(i => i.id === tree.itemId) ? 'var(--accent)' : '#1a2535'};
+          border: 1px solid ${craftSelectedItems.find(i => i.id === tree.itemId) ? 'var(--accent)' : 'rgba(255,255,255,0.15)'};
+          color: ${craftSelectedItems.find(i => i.id === tree.itemId) ? '#000' : '#aaa'};
+          width:32px;height:32px;border-radius:4px;cursor:pointer;font-size:16px;
+        ">📌</button>
+        <div class="craft-quantity-selector" style="display:flex;align-items:center;gap:3px;flex-wrap:nowrap;">
+          <button onclick="updateCraftQuantity(-10)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#aaa;width:32px;height:24px;border-radius:4px;cursor:pointer;font-size:10px;">-10</button>
+          <button onclick="updateCraftQuantity(-1)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:14px;">－</button>
+          <input type="number" id="craftQuantity" min="1" max="999" value="${craftCurrentQuantity}"
+            style="width:50px;background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;border-radius:4px;padding:2px 4px;font-size:12px;text-align:center;"
+            onchange="updateCraftQuantity(0)">
+          <button onclick="updateCraftQuantity(1)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:14px;">＋</button>
+          <button onclick="updateCraftQuantity(10)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#aaa;width:32px;height:24px;border-radius:4px;cursor:pointer;font-size:10px;">+10</button>
+          <span style="font-size:10px;color:#666;">個</span>
+        </div>
       </div>
     </div>
     ${tree.recipes.length === 0
