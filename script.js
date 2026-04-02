@@ -2064,6 +2064,9 @@ function renderCraftTree(tree) {
           </button>
         `).join('')}
       </div>
+      <div style="font-size:11px;color:#666;margin-bottom:8px;">
+        材料: ${tree.recipes[0]?.ingredients?.map(i => i.name).join(', ') || 'なし'}
+      </div>
     ` : ''}
     ${tree.recipes.length === 0
       ? '<div class="craft-no-recipe">このアイテムのクラフトレシピはありません</div>'
