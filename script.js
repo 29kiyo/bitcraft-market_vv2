@@ -1499,8 +1499,18 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.selectCraftItem = async function(itemId, itemName) {
-  // 詳細ページを表示
-  viewIngredientDetail(itemId, itemName);
+  craftSelectedItem = { id: itemId, name: itemName };
+  craftCurrentPage = 1;
+  const quantity = parseInt(document.getElementById('craftQuantity')?.value) || 1;
+  document.getElementById('craftResult').innerHTML =
+    '<div class="craft-loading"><div class="spinner" style="margin:0 auto 12px"></div>読み込み中...</div>';
+  try {
+    const tree = await buildCraftTree(itemId, quantity);
+    renderCraftTree(tree);
+  } catch(e) {
+    document.getElementById('craftResult').innerHTML =
+      `<div class="craft-no-recipe">エラー: ${e.message}</div>`;
+  }
 };
 
 window.updateCraftRegion = function() {
@@ -1561,10 +1571,20 @@ let craftModalState = {
   currentResult: null
 };
 
-// 素材のクラフトツリーを表示
+// 素材のクラフトツリーを表示（Craft modal内で表示）
 window.viewIngredientDetail = async function(itemId, itemName) {
-  // クラフトモーダルを開いたまま、その素材のクラフトツリーを表示
-  selectCraftItem(itemId, itemName);
+  craftSelectedItem = { id: itemId, name: itemName };
+  craftCurrentPage = 1;
+  const quantity = parseInt(document.getElementById('craftQuantity')?.value) || 1;
+  document.getElementById('craftResult').innerHTML =
+    '<div class="craft-loading"><div class="spinner" style="margin:0 auto 12px"></div>読み込み中...</div>';
+  try {
+    const tree = await buildCraftTree(itemId, quantity);
+    renderCraftTree(tree);
+  } catch(e) {
+    document.getElementById('craftResult').innerHTML =
+      `<div class="craft-no-recipe">エラー: ${e.message}</div>`;
+  }
 };
 
 // クラフト計算に戻る
