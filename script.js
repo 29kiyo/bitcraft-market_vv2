@@ -1816,7 +1816,7 @@ async function fetchMarketData(itemId) {
 // 必要なアイテムIDを収集（重複去除）- recipesUsingItemも対象
 function collectAllItemIds(itemId, depth = 0) {
   const ids = new Set([itemId]);
-  if (depth >= 3) return ids;
+  if (depth >= 5) return ids; // 深度5まで許可
   
   const data = recipeCache[itemId];
   if (!data) return ids;
@@ -1824,17 +1824,18 @@ function collectAllItemIds(itemId, depth = 0) {
   // craftingRecipes: このアイテムを的材料にして作れるもの
   if (data.craftingRecipes?.[0]) {
     for (const stack of (data.craftingRecipes[0].consumedItemStacks || [])) {
-      const childIds = collectAllItemIds(stack.item_id, depth + 1);
-      childIds.forEach(id => ids.add(id));
+      if (depth + 1 < 5) {
+        ids.add(String(stack.item_id));
+      }
     }
   }
   
   // recipesUsingItem: このアイテムを作れるレシピの材料のみ（自分自身は除外）
-  if (data.recipesUsingItem?.length && depth < 3) {
+  if (data.recipesUsingItem?.length && depth < 5) {
     for (const recipe of data.recipesUsingItem) {
       // 材料に自分自身が含まれていたらその材料を追加しない
       for (const stack of (recipe.consumedItemStacks || [])) {
-        if (depth + 1 < 3 && String(stack.item_id) !== String(itemId)) {
+        if (depth + 1 < 5 && String(stack.item_id) !== String(itemId)) {
           ids.add(String(stack.item_id));
         }
       }
@@ -1935,7 +1936,7 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
     recipes: [],
   };
 
-  if (recipes.length > 0 && depth < 3) {
+  if (recipes.length > 0 && depth < 5) {
     // 複数のレシピがある場合は選択可能
     node.allRecipes = recipes.map(r => ({
       consumedItemStacks: r.consumedItemStacks || [],
