@@ -1905,17 +1905,32 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
     // 自分のレシピがあればそれを使用
     if (selfCraftRecipes.length > 0) {
       // 材料に自分自身が含まれているものは除外（再利用レシピ排除）
+      // ただし、材料の半分以上が自分なら除外
       const cleanRecipes = selfCraftRecipes.filter(r => {
         const materials = r.consumedItemStacks || [];
         if (materials.length === 0) return true;
         const selfCount = materials.filter(s => String(s.item_id) === String(itemId)).length;
-        // 材料に自分自身が含まれていたら除外（再利用）
-        return selfCount === 0;
+        const ratio = selfCount / materials.length;
+        // 材料の50%以上が自分自身なら除外
+        return ratio < 0.5;
       });
       
       if (cleanRecipes.length > 0) {
         recipes = cleanRecipes;
         recipeSource = 'recipesUsingItem';
+      } else {
+        // 全部除外されたら、元のリストから材料の半分以上が自分じゃないものを表示
+        const fallbackRecipes = selfCraftRecipes.filter(r => {
+          const materials = r.consumedItemStacks || [];
+          if (materials.length === 0) return false;
+          const selfCount = materials.filter(s => String(s.item_id) === String(itemId)).length;
+          const ratio = selfCount / materials.length;
+          return ratio < 1.0; // 全部自分じゃないならOK
+        });
+        if (fallbackRecipes.length > 0) {
+          recipes = fallbackRecipes;
+          recipeSource = 'recipesUsingItem';
+        }
       }
     } else {
       // 自分を作るレシピがない場合は 材料に自分がないレシピを選択
@@ -1923,8 +1938,9 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
         const materials = r.consumedItemStacks || [];
         if (materials.length === 0) return false;
         const selfCount = materials.filter(s => String(s.item_id) === String(itemId)).length;
-        // 材料に自分自身が含まれていたら除外
-        return selfCount === 0;
+        const ratio = selfCount / materials.length;
+        // 材料の50%以上が自分なら除外
+        return ratio < 0.5;
       });
       if (validRecipes.length > 0) {
         recipes = validRecipes;
