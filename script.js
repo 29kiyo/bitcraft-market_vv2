@@ -1889,6 +1889,14 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
   const craftingRecipes = data.craftingRecipes || [];
   const recipesUsingItem = data.recipesUsingItem || [];
   
+  console.log('buildTreeFromCache:', item.name);
+  console.log('  craftingRecipes count:', craftingRecipes.length);
+  console.log('  recipesUsingItem count:', recipesUsingItem.length);
+  if (recipesUsingItem.length > 0) {
+    console.log('  recipesUsingItem[0] name:', recipesUsingItem[0].name);
+    console.log('  recipesUsingItem[0] craftedItemStacks:', recipesUsingItem[0].craftedItemStacks);
+  }
+  
   // レシピ选择：craftingRecipes优先、なければrecipesUsingItem
   let recipes = craftingRecipes;
   let recipeSource = 'craftingRecipes';
