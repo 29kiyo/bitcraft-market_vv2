@@ -1593,31 +1593,28 @@ document.getElementById('craftSearchInput').addEventListener('input', function()
   if (q.length < 2) { document.getElementById('craftSuggestions').classList.add('hidden'); return; }
   craftDebounceTimer = setTimeout(async () => {
     try {
-      const allItems = await fetchAllMarketItems();
-      const filtered = filterByJapanese && /[\u3040-\u30ff\u4e00-\u9faf]/.test(q)
-        ? filterByJapanese(allItems, q)
+    const allItems = await fetchAllMarketItems();
+    const hasJa = /[\u3040-\u30ff\u4e00-\u9faf]/.test(q);
+    let filtered = allItems;
+    if (q) {
+      filtered = hasJa
+        ? getMatchedEnglishNames(q).size > 0
+          ? allItems.filter(item => { const n = item.name.toLowerCase(); for (const en of getMatchedEnglishNames(q)) { if (n.includes(en)) return true; } return false; })
+          : []
         : allItems.filter(i => i.name.toLowerCase().includes(q.toLowerCase()));
-      const top = filtered.slice(0, 8);
-      const sugg = document.getElementById('craftSuggestions');
-      if (!top.length) { sugg.classList.add('hidden'); return; }
-      sugg.innerHTML = top.map(item => {
-        const ja = getJaName(item.name);
-        return `<div class="suggestion-item" onclick="selectCraftItem('${item.id}','${item.name.replace(/'/g,"\\'")}')">
-          <div class="s-top">
-            <img class="s-icon" src="${getCachedIcon(item.iconAssetName)}" onerror="this.style.display='none'">
-            <div class="s-text">
-              <span class="s-name">${ja || item.name}</span>
-              ${ja ? `<span class="s-sub">${item.name}</span>` : ''}
-            </div>
-          </div>
-          <div class="s-tags">
-            ${item.tier > 0 ? `<span class="s-tier">T${item.tier}</span>` : ''}
-            <span class="s-rarity rarity-${item.rarityStr?.toLowerCase()}">${item.rarityStr||''}</span>
-          </div>
-        </div>`;
-      }).join('');
-      sugg.classList.remove('hidden');
-    } catch(e) {}
+    }
+    if (tiers.length > 0) filtered = filtered.filter(i => tiers.includes(String(i.tier)));
+    if (rarities.length > 0) filtered = filtered.filter(i => rarities.includes(String(i.rarity)));
+    if (cats.length > 0) {
+      const allTags = new Set(cats.filter(c => !c.startsWith('__')));
+      if (allTags.size > 0) filtered = filtered.filter(i => allTags.has(i.tag));
+    }
+    craftItems = filtered;
+    craftCurrentPage = 1;
+    renderCraftSearchResults();
+  } catch(e) {
+    console.error('craftSearch error:', e);
+  }
   }, 300);
 });
 
