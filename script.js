@@ -1810,7 +1810,8 @@ async function fetchItemData(itemId) {
     // recipesUsingItemを確認
     console.log('recipesUsingItem for', itemId, ':', data.recipesUsingItem?.length);
     if (data.recipesUsingItem?.length) {
-      console.log('First recipeUsingItem:', data.recipesUsingItem[0]);
+      console.log('recipesUsingItem[0] keys:', Object.keys(data.recipesUsingItem[0]));
+      console.log('recipesUsingItem[0] outputItemStacks:', data.recipesUsingItem[0].outputItemStacks);
     }
     recipeCache[itemId] = data;
     return data;
