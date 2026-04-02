@@ -1734,7 +1734,11 @@ async function searchAndSelectItem(itemId) {
   console.log('searchAndSelectItem called:', itemId);
   const allItems = await fetchAllMarketItems();
   console.log('allItems length:', allItems.length);
-  const item = allItems.find(i => Number(i.id) === Number(itemId));
+  
+  // IDの型を確認
+  console.log('sample allItems IDs:', allItems.slice(0, 3).map(i => ({id: i.id, type: typeof i.id})));
+  
+  const item = allItems.find(i => String(i.id) === String(itemId));
   console.log('found item:', item);
   if (item) {
     savedScrollPosition = window.scrollY;
