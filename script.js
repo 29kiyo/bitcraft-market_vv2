@@ -1590,11 +1590,12 @@ let craftDebounceTimer = null;
 document.getElementById('craftSearchInput').addEventListener('input', function() {
   const q = this.value.trim();
   clearTimeout(craftDebounceTimer);
-  if (q.length < 2) { document.getElementById('craftSuggestions').classList.add('hidden'); return; }
+  document.getElementById('craftSuggestions').classList.add('hidden');
+  if (q.length === 0 && getCraftCheckedValues('tier').length === 0 && getCraftCheckedValues('rarity').length === 0 && getCraftCheckedValues('category').length === 0) return;
   craftDebounceTimer = setTimeout(async () => {
     try {
     const allItems = await fetchAllMarketItems();
-    const hasJa = /[\u3040-\u30ff\u4e00-\u9faf]/.test(q);
+    const hasJa = /[\u3040-\u30ff\u4e00-\x9faf]/.test(q);
     let filtered = allItems;
     if (q) {
       filtered = hasJa
@@ -1603,6 +1604,9 @@ document.getElementById('craftSearchInput').addEventListener('input', function()
           : []
         : allItems.filter(i => i.name.toLowerCase().includes(q.toLowerCase()));
     }
+    const tiers = getCraftCheckedValues('tier');
+    const rarities = getCraftCheckedValues('rarity');
+    const cats = getCraftCheckedValues('category');
     if (tiers.length > 0) filtered = filtered.filter(i => tiers.includes(String(i.tier)));
     if (rarities.length > 0) filtered = filtered.filter(i => rarities.includes(String(i.rarity)));
     if (cats.length > 0) {

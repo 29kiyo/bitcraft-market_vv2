@@ -1860,6 +1860,10 @@ text-overflow: ellipsis;
 .craft-modal > * {
   flex-shrink: 0;
 }
+#craftSearchResults, .craft-result {
+  flex-shrink: 1;
+  min-height: 0;
+}
 .craft-search-section {
   flex-shrink: 0;
   margin-bottom: 4px;
@@ -1885,8 +1889,9 @@ text-overflow: ellipsis;
   padding: 4px 8px;
 }
 .craft-modal-close:hover { color: var(--text); }
-.craft-search-section { margin-bottom: 4px; }
-.craft-result { margin-top: 16px; overflow-y: auto; flex: 1; }
+.craft-search-section { margin-bottom: 4px; flex-shrink: 0; }
+#craftSearchResults { margin-top: 12px; flex: 1; overflow-y: auto; min-height: 0; }
+.craft-result { margin-top: 16px; overflow-y: auto; flex: 1; min-height: 0; }
 .craft-item-header {
   display: flex;
   align-items: center;
