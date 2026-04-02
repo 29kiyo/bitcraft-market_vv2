@@ -1957,9 +1957,9 @@ function renderCraftTree(tree) {
           <span style="font-size:10px;color:#666;">個</span>
         </div>
         <button onclick="pinCraftItem('${tree.itemId}','${tree.name.replace(/'/g,"\\'")}')" title="ピン留め" style="
-          background: ${craftSelectedItems.find(i => i.id === tree.itemId) ? 'var(--accent)' : '#1a2535'};
-          border: 1px solid ${craftSelectedItems.find(i => i.id === tree.itemId) ? 'var(--accent)' : 'rgba(255,255,255,0.15)'};
-          color: ${craftSelectedItems.find(i => i.id === tree.itemId) ? '#000' : '#aaa'};
+          background: ${craftSelectedItems.some(i => i.id === tree.itemId) ? 'var(--accent)' : '#1a2535'};
+          border: 1px solid ${craftSelectedItems.some(i => i.id === tree.itemId) ? 'var(--accent)' : 'rgba(255,255,255,0.15)'};
+          color: ${craftSelectedItems.some(i => i.id === tree.itemId) ? '#000' : '#aaa'};
           width:32px;height:32px;border-radius:4px;cursor:pointer;font-size:16px;
         ">📌</button>
       </div>
