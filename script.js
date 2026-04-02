@@ -1893,15 +1893,34 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
   
   // craftingRecipesがない場合、recipesUsingItemを使用
   if (recipes.length === 0 && recipesUsingItem.length > 0) {
-    // 自分以外の材料があるレシピを選択
-    const validRecipes = recipesUsingItem.filter(r => {
-      const materials = r.consumedItemStacks || [];
-      // 自分以外の材料があるかチェック
-      return materials.some(s => String(s.item_id) !== String(itemId));
+    console.log('  Looking for self-craft recipe...');
+    
+    // recipesUsingItemから、このアイテムを出力するレシピを探す
+    const selfCraftRecipes = recipesUsingItem.filter(r => {
+      const outputs = r.craftedItemStacks || [];
+      console.log('    Recipe:', r.name, 'outputs:', outputs.map(o => o.item_id));
+      return outputs.some(o => String(o.item_id) === String(itemId));
     });
-    if (validRecipes.length > 0) {
-      recipes = validRecipes;
+    
+    console.log('    Found self-craft recipes:', selfCraftRecipes.length);
+    
+    // 自分のレシピがあればそれを使用
+    if (selfCraftRecipes.length > 0) {
+      recipes = selfCraftRecipes;
       recipeSource = 'recipesUsingItem';
+    } else {
+      // 自分を作るレシピがない場合は 材料に自分がないレシピを選択
+      const validRecipes = recipesUsingItem.filter(r => {
+        const materials = r.consumedItemStacks || [];
+        const hasSelf = materials.some(s => String(s.item_id) === String(itemId));
+        const selfCount = materials.filter(s => String(s.item_id) === String(itemId)).length;
+        const totalCount = materials.length;
+        return selfCount < totalCount;
+      });
+      if (validRecipes.length > 0) {
+        recipes = validRecipes;
+        recipeSource = 'recipesUsingItem';
+      }
     }
   }
   
