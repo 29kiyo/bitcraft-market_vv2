@@ -1714,30 +1714,13 @@ let craftModalState = {
 };
 
 // 素材のクラフトツリーを表示（Craft modal内で表示）
-window.viewIngredientDetail = async function(itemId, itemName) {
-  craftSelectedItem = { id: itemId, name: itemName };
-  // ピン留めリストに追加
-  if (!craftSelectedItems.find(i => i.id === itemId)) {
-    craftSelectedItems.push({ id: itemId, name: itemName });
-  }
-  craftCurrentPage = 1;
-  const quantity = parseInt(document.getElementById('craftQuantity')?.value) || 1;
-  document.getElementById('craftResult').innerHTML =
-    '<div class="craft-loading"><div class="spinner" style="margin:0 auto 12px"></div>読み込み中...</div>';
-  try {
-    // データがなければプリフェッチ
-    if (!recipeCache[itemId]) {
-      await prefetchAllItemData(itemId);
-      await prefetchAllMarketData(itemId);
-    }
-    // キャッシュからツリー構築
-    const tree = buildTreeFromCache(itemId, quantity);
-    renderCraftTree(tree);
-    renderCraftItemTabs();
-  } catch(e) {
-    document.getElementById('craftResult').innerHTML =
-      `<div class="craft-no-recipe">エラー: ${e.message}</div>`;
-  }
+window.viewIngredientDetail = function(itemId, itemName) {
+  // クラフトモーダルを閉じる
+  closeCraftModal();
+  // 少し待ってからメインページの詳細を表示
+  setTimeout(() => {
+    selectItem(itemId);
+  }, 100);
 };
 
 // クラフト計算に戻る
