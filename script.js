@@ -1929,12 +1929,6 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
   });
   
   const recipes = uniqueRecipes;
-      if (validRecipes.length > 0) {
-        recipes = validRecipes;
-        recipeSource = 'recipesUsingItem';
-      }
-    }
-  }
   
   const marketData = marketDataCache[itemId] || {};
   const sells = (marketData?.sellOrders || []).sort((a, b) =>
