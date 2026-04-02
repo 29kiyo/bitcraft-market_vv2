@@ -1893,8 +1893,13 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
   // craftingRecipesがない場合、recipesUsingItemを使用
   if (recipes.length === 0 && recipesUsingItem.length > 0) {
     // targetIdを使って、このアイテムを作るレシピを探す
+    // さらにレシピ名がアイテム名を含むかもチェック
     const selfCraftRecipes = recipesUsingItem.filter(r => {
-      return String(r.targetId) === String(itemId);
+      const targetMatch = String(r.targetId) === String(itemId);
+      const nameMatch = r.name && item.name && 
+        r.name.toLowerCase().includes(item.name.toLowerCase()) ||
+        item.name.toLowerCase().includes(r.name.toLowerCase());
+      return targetMatch || nameMatch;
     });
     
     // 自分のレシピがあればそれを使用
