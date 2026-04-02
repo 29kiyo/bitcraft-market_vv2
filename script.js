@@ -1530,6 +1530,11 @@ window.openMapModal = function(n, e, claimName) {
 // クラフト計算機
 // ============================================
 
+document.getElementById('craftBtn').addEventListener('click', function(e) {
+  e.stopPropagation();
+  window.openCraftModal();
+});
+
 // クラフト用フィルター
 function getCraftCheckedValues(type) {
   const dropdown = document.getElementById(`craft${type.charAt(0).toUpperCase()+type.slice(1)}Dropdown`);
@@ -1595,7 +1600,7 @@ document.getElementById('craftSearchInput').addEventListener('input', function()
   craftDebounceTimer = setTimeout(async () => {
     try {
     const allItems = await fetchAllMarketItems();
-    const hasJa = /[\u3040-\u30ff\u4e00-\x9faf]/.test(q);
+    const hasJa = /[\u3040-\u30ff\u4e00-\u9faf\u3000-\u303f]/.test(q);
     let filtered = allItems;
     if (q) {
       filtered = hasJa
@@ -1640,7 +1645,7 @@ window.doCraftSearch = async function() {
 
   try {
     const allItems = await fetchAllMarketItems();
-    const hasJa = /[\u3040-\u30ff\u4e00-\u9faf]/.test(q);
+    const hasJa = /[\u3040-\u30ff\u4e00-\u9faf\u3000-\u303f]/.test(q);
     let filtered = allItems;
     if (q) {
       filtered = hasJa ? filterByJapanese(allItems, q)
