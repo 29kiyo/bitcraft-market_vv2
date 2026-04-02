@@ -1602,37 +1602,7 @@ async function buildAndRenderCraftTree(itemId, quantity, depth = 0) {
     await prefetchAllMarketData(itemId);
   }
   
-  // 再帰的に全子のデータをロード（深度3まで）- 並列処理
-  async function loadAllChildren(parentId, currentDepth = 0) {
-    if (currentDepth >= 3) return;
-    const data = recipeCache[parentId];
-    if (!data?.craftingRecipes?.[0] && !data?.recipesUsingItem?.length) return;
-    
-    const children = data.craftingRecipes?.[0]?.consumedItemStacks || [];
-    // recipesUsingItemからも材料をロード
-    if (data.recipesUsingItem?.length) {
-      for (const recipe of data.recipesUsingItem) {
-        if (recipe.consumedItemStacks) {
-          children.push(...recipe.consumedItemStacks);
-        }
-      }
-    }
-    
-    const loadPromises = children.map(async (stack) => {
-      if (!recipeCache[stack.item_id]) {
-        await fetchItemData(stack.item_id);
-        await fetchMarketData(stack.item_id);
-      }
-      await loadAllChildren(stack.item_id, currentDepth + 1);
-    });
-    
-    await Promise.all(loadPromises);
-  }
-  
-  // 複数回繰り返してすべての最深層までロード
-  for (let i = 0; i < 3; i++) {
-    await loadAllChildren(itemId);
-  }
+  // 再帰的な子ロードは削除（prefetchで十分）
   
   const tree = buildTreeFromCache(itemId, quantity);
   renderCraftTree(tree);
@@ -1843,19 +1813,13 @@ function collectAllItemIds(itemId, depth = 0) {
     }
   }
   
-  // recipesUsingItem: このアイテムを作れるレシピ
+  // recipesUsingItem: このアイテムを作れるレシピの材料のみ（出力アイテムは追加しない）
   if (data.recipesUsingItem?.length && depth < 3) {
     for (const recipe of data.recipesUsingItem) {
-      const outputItemId = recipe.craftedItemStacks?.[0]?.item_id;
-      if (outputItemId) {
-        // 出力アイテムのIDを追加（ただし深度制限内）
-        if (depth < 2) {
-          ids.add(String(outputItemId));
-        }
-        // レシピの材料も追加
-        for (const stack of (recipe.consumedItemStacks || [])) {
-          const childIds = collectAllItemIds(stack.item_id, depth + 1);
-          childIds.forEach(id => ids.add(id));
+      // 材料のみ追加
+      for (const stack of (recipe.consumedItemStacks || [])) {
+        if (depth + 1 < 3) {
+          ids.add(String(stack.item_id));
         }
       }
     }
