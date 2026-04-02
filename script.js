@@ -1831,12 +1831,12 @@ function collectAllItemIds(itemId, depth = 0) {
     }
   }
   
-  // recipesUsingItem: このアイテムを作れるレシピの材料のみ（出力アイテムは追加しない）
+  // recipesUsingItem: このアイテムを作れるレシピの材料のみ（自分自身は除外）
   if (data.recipesUsingItem?.length && depth < 3) {
     for (const recipe of data.recipesUsingItem) {
-      // 材料のみ追加
+      // 材料に自分自身が含まれていたらその材料を追加しない
       for (const stack of (recipe.consumedItemStacks || [])) {
-        if (depth + 1 < 3) {
+        if (depth + 1 < 3 && String(stack.item_id) !== String(itemId)) {
           ids.add(String(stack.item_id));
         }
       }
@@ -1887,28 +1887,25 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
   const craftingRecipes = data.craftingRecipes || [];
   const recipesUsingItem = data.recipesUsingItem || [];
   
-  console.log('buildTreeFromCache:', item.name, 'depth:', depth);
-  console.log('  craftingRecipes count:', craftingRecipes.length);
-  console.log('  recipesUsingItem count:', recipesUsingItem.length);
-  for (let i = 0; i < Math.min(recipesUsingItem.length, 3); i++) {
-    console.log(`  recipesUsingItem[${i}] name:`, recipesUsingItem[i].name);
-    if (recipesUsingItem[i].consumedItemStacks) {
-      recipesUsingItem[i].consumedItemStacks.forEach((stack, idx) => {
-        console.log(`    material[${idx}]:`, stack.item_id);
-      });
-    }
-  }
-  
-  // クラフトRecipes使用（一から作る）
+  // craftingRecipes使用（一から作る）
   let recipes = craftingRecipes;
   let recipeSource = 'craftingRecipes';
   
-  // craftingRecipesがない場合、recipesUsingItemを使用（材料として何が必要か）
+  // craftingRecipesがない場合、材料は Market 价格のみ（Craft不能）
   if (recipes.length === 0 && recipesUsingItem.length > 0) {
-    console.log('  Using recipesUsingItem instead of craftingRecipes');
-    recipes = recipesUsingItem;
-    recipeSource = 'recipesUsingItem';
+    // 材料が自分自身のアイテムの場合は除外
+    const validRecipes = recipesUsingItem.filter(r => {
+      const materials = r.consumedItemStacks || [];
+      // 材料に自分自身が含まれていたら除外
+      return !materials.some(s => String(s.item_id) === String(itemId));
+    });
+    if (validRecipes.length > 0) {
+      recipes = validRecipes;
+      recipeSource = 'recipesUsingItem';
+    }
   }
+  
+  console.log('buildTreeFromCache:', item.name, 'depth:', depth, 'recipes count:', recipes.length, 'source:', recipeSource);
   
   const marketData = marketDataCache[itemId] || {};
   const sells = (marketData?.sellOrders || []).sort((a, b) =>
