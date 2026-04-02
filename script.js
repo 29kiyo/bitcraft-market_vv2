@@ -1596,37 +1596,40 @@ function renderCraftItemTabs() {
 
 // ツリー構築 & データ読み込み完了后再レンダリング
 async function buildAndRenderCraftTree(itemId, quantity, depth = 0) {
+  console.log('buildAndRenderCraftTree start:', itemId);
+  
   // データがなければプリフェッチ
   if (!recipeCache[itemId]) {
+    console.log('Prefetching item data...');
     await prefetchAllItemData(itemId);
     await prefetchAllMarketData(itemId);
   }
-  const tree = buildTreeFromCache(itemId, quantity);
   
-  // 子が未ロードの場合は再帰的に読み込み
-  if (tree?.recipes?.[0]?.ingredients) {
-    const missingIds = [];
-    tree.recipes[0].ingredients.forEach(ing => {
-      if (!recipeCache[ing.itemId]) {
-        missingIds.push(ing.itemId);
+  // 再帰的に全子のデータをロード（深度3まで）
+  async function loadAllChildren(parentId, currentDepth = 0) {
+    if (currentDepth >= 3) return;
+    const data = recipeCache[parentId];
+    if (!data?.craftingRecipes?.[0]) return;
+    
+    for (const stack of data.craftingRecipes[0].consumedItemStacks || []) {
+      if (!recipeCache[stack.item_id]) {
+        console.log('Loading child:', stack.item_id);
+        await fetchItemData(stack.item_id);
+        await fetchMarketData(stack.item_id);
       }
-    });
-    if (missingIds.length > 0) {
-      // 未ロード分を追加でフェッチ
-      for (const id of missingIds) {
-        if (!recipeCache[id]) {
-          await fetchItemData(id);
-          await fetchMarketData(id);
-        }
-      }
-      // 再レンダリング
-      const tree2 = buildTreeFromCache(itemId, quantity);
-      renderCraftTree(tree2);
-      return;
+      await loadAllChildren(stack.item_id, currentDepth + 1);
     }
   }
   
-  renderCraftTree(tree);
+  await loadAllChildren(itemId);
+  console.log('All children loaded, rendering...');
+  
+  // 少し待ってから最終レンダリング
+  setTimeout(() => {
+    const tree = buildTreeFromCache(itemId, quantity);
+    console.log('Tree built, rendering. Has ingredients?', tree?.recipes?.[0]?.ingredients?.length);
+    renderCraftTree(tree);
+  }, 200);
 }
 
 // アイテム切り替え
