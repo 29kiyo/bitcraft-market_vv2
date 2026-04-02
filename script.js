@@ -1192,8 +1192,18 @@ window.openMapModal = function(n, e, claimName) {
 window.openCraftModal = function() {
   const craftModal = document.getElementById('craftModal');
   if (craftModal) craftModal.classList.remove('hidden');
+  
+  // 選択したアイテムがあればそのツリーを表示
+  if (craftSelectedItem && recipeCache[craftSelectedItem.id]) {
+    const quantity = parseInt(document.getElementById('craftQuantity')?.value) || 1;
+    const tree = buildTreeFromCache(craftSelectedItem.id, quantity);
+    renderCraftTree(tree);
+    renderCraftItemTabs();
+  } else if (craftSelectedItems.length > 0) {
+    renderCraftItemTabs();
+  }
   // 状態が保存されていれば復元
-  if (craftModalState.query || craftModalState.currentResult) {
+  else if (craftModalState.query || craftModalState.currentResult) {
     const craftSearchInput = document.getElementById('craftSearchInput');
     if (craftSearchInput && craftModalState.query) {
       craftSearchInput.value = craftModalState.query;
@@ -1537,8 +1547,11 @@ window.selectCraftItem = async function(itemId, itemName, addToList = false) {
   }
   
   // 単一選択モード
+  // 現在選択中のアイテムがあればリストに追加（重複避免）
+  if (!craftSelectedItems.find(i => i.id === itemId)) {
+    craftSelectedItems.push({ id: itemId, name: itemName });
+  }
   craftSelectedItem = { id: itemId, name: itemName };
-  craftSelectedItems = [{ id: itemId, name: itemName }];
   craftCurrentPage = 1;
   const quantity = parseInt(document.getElementById('craftQuantity')?.value) || 1;
   document.getElementById('craftResult').innerHTML =
@@ -1550,6 +1563,7 @@ window.selectCraftItem = async function(itemId, itemName, addToList = false) {
     await prefetchAllMarketData(itemId);
     const tree = buildTreeFromCache(itemId, quantity);
     renderCraftTree(tree);
+    renderCraftItemTabs();
   } catch(e) {
     document.getElementById('craftResult').innerHTML =
       `<div class="craft-no-recipe">エラー: ${e.message}</div>`;
@@ -1591,7 +1605,11 @@ function renderCraftItemTabs() {
 window.switchCraftItem = function(itemId) {
   const item = craftSelectedItems.find(i => i.id === itemId);
   if (item) {
-    selectCraftItem(item.id, item.name);
+    craftSelectedItem = { id: item.id, name: item.name };
+    const quantity = parseInt(document.getElementById('craftQuantity')?.value) || 1;
+    const tree = buildTreeFromCache(item.id, quantity);
+    renderCraftTree(tree);
+    renderCraftItemTabs();
   }
 };
 
@@ -1603,7 +1621,9 @@ window.removeCraftItem = function(itemId) {
   }
   renderCraftItemTabs();
   if (craftSelectedItem) {
-    selectCraftItem(craftSelectedItem.id, craftSelectedItem.name);
+    const quantity = parseInt(document.getElementById('craftQuantity')?.value) || 1;
+    const tree = buildTreeFromCache(craftSelectedItem.id, quantity);
+    renderCraftTree(tree);
   }
 };
 
