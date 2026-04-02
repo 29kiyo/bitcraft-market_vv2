@@ -1884,24 +1884,28 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
   if (!data) return null;
 
   const item = data.item;
-  // craftingRecipes: このアイテムを材料にして作れるもの
-  // recipesUsingItem: このアイテムを作れるレシピ（材料として何を必要するか）
   const craftingRecipes = data.craftingRecipes || [];
   const recipesUsingItem = data.recipesUsingItem || [];
   
-  console.log('buildTreeFromCache:', item.name);
+  console.log('buildTreeFromCache:', item.name, 'depth:', depth);
   console.log('  craftingRecipes count:', craftingRecipes.length);
   console.log('  recipesUsingItem count:', recipesUsingItem.length);
-  if (recipesUsingItem.length > 0) {
-    console.log('  recipesUsingItem[0] name:', recipesUsingItem[0].name);
-    console.log('  recipesUsingItem[0] craftedItemStacks:', recipesUsingItem[0].craftedItemStacks);
+  for (let i = 0; i < Math.min(recipesUsingItem.length, 3); i++) {
+    console.log(`  recipesUsingItem[${i}] name:`, recipesUsingItem[i].name);
+    if (recipesUsingItem[i].consumedItemStacks) {
+      recipesUsingItem[i].consumedItemStacks.forEach((stack, idx) => {
+        console.log(`    material[${idx}]:`, stack.item_id);
+      });
+    }
   }
   
-  // レシピ选择：craftingRecipes优先、なければrecipesUsingItem
+  // クラフトRecipes使用（一から作る）
   let recipes = craftingRecipes;
   let recipeSource = 'craftingRecipes';
   
+  // craftingRecipesがない場合、recipesUsingItemを使用（材料として何が必要か）
   if (recipes.length === 0 && recipesUsingItem.length > 0) {
+    console.log('  Using recipesUsingItem instead of craftingRecipes');
     recipes = recipesUsingItem;
     recipeSource = 'recipesUsingItem';
   }
