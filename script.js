@@ -1891,13 +1891,13 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
   let recipes = craftingRecipes;
   let recipeSource = 'craftingRecipes';
   
-  // craftingRecipesがない場合、材料は Market 价格のみ（Craft不能）
+  // craftingRecipesがない場合、recipesUsingItemを使用
   if (recipes.length === 0 && recipesUsingItem.length > 0) {
-    // 材料が自分自身のアイテムの場合は除外
+    // 自分以外の材料があるレシピを選択
     const validRecipes = recipesUsingItem.filter(r => {
       const materials = r.consumedItemStacks || [];
-      // 材料に自分自身が含まれていたら除外
-      return !materials.some(s => String(s.item_id) === String(itemId));
+      // 自分以外の材料があるかチェック
+      return materials.some(s => String(s.item_id) !== String(itemId));
     });
     if (validRecipes.length > 0) {
       recipes = validRecipes;
