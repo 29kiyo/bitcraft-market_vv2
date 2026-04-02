@@ -1633,7 +1633,6 @@ window.doCraftSearch = async function() {
   const tiers = getCraftCheckedValues('tier');
   const rarities = getCraftCheckedValues('rarity');
   const cats = getCraftCheckedValues('category');
-  if (!q && tiers.length === 0 && rarities.length === 0 && cats.length === 0) return;
 
   try {
     const allItems = await fetchAllMarketItems();

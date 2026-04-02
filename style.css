@@ -1849,7 +1849,7 @@ text-overflow: ellipsis;
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: 860px;
-  max-height: calc(100vh - 48px);
+  height: 90vh;
   padding: 24px;
   position: relative;
   margin: auto;
