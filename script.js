@@ -1603,11 +1603,30 @@ document.getElementById('craftSearchInput').addEventListener('input', function()
     const hasJa = /[\u3040-\u30ff\u4e00-\u9faf\u3000-\u303f]/.test(q);
     let filtered = allItems;
     if (q) {
-      filtered = hasJa
-        ? getMatchedEnglishNames(q).size > 0
-          ? allItems.filter(item => { const n = item.name.toLowerCase(); for (const en of getMatchedEnglishNames(q)) { if (n.includes(en)) return true; } return false; })
-          : []
-        : allItems.filter(i => i.name.toLowerCase().includes(q.toLowerCase()));
+      if (hasJa) {
+        const matchedEn = new Set();
+        const yomiMatched = searchByYomi ? searchByYomi(q) : [];
+        yomiMatched.forEach(en => matchedEn.add(en));
+        const sorted = Object.entries(ITEM_TRANSLATIONS).sort((a, b) => b[0].length - a[0].length);
+        for (const [ja, en] of sorted) {
+          if (ja.includes(q) || q.includes(ja) || toHiragana(ja).includes(toHiragana(q)) || toHiragana(q).includes(toHiragana(ja))) {
+            matchedEn.add(en.toLowerCase());
+          }
+        }
+        if (matchedEn.size > 0) {
+          filtered = allItems.filter(item => {
+            const name = item.name.toLowerCase();
+            for (const en of matchedEn) {
+              if (name.includes(en)) return true;
+            }
+            return false;
+          });
+        } else {
+          filtered = [];
+        }
+      } else {
+        filtered = allItems.filter(i => i.name.toLowerCase().includes(q.toLowerCase()));
+      }
     }
     const tiers = getCraftCheckedValues('tier');
     const rarities = getCraftCheckedValues('rarity');
