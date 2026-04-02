@@ -1849,9 +1849,20 @@ text-overflow: ellipsis;
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: 860px;
+  max-height: calc(100vh - 48px);
   padding: 24px;
   position: relative;
   margin: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.craft-modal > * {
+  flex-shrink: 0;
+}
+.craft-search-section {
+  flex-shrink: 0;
+  margin-bottom: 4px;
 }
 .craft-modal-header {
   display: flex;
@@ -1875,7 +1886,7 @@ text-overflow: ellipsis;
 }
 .craft-modal-close:hover { color: var(--text); }
 .craft-search-section { margin-bottom: 4px; }
-.craft-result { margin-top: 16px; }
+.craft-result { margin-top: 16px; overflow-y: auto; flex: 1; }
 .craft-item-header {
   display: flex;
   align-items: center;
