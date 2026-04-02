@@ -1829,17 +1829,16 @@ text-overflow: ellipsis;
 
 /* ---- クラフト計算モーダル ---- */
 .craft-btn {
-    background: rgba(0, 200, 150, 0.1);
-    border: 1px solid rgba(0, 200, 150, 0.3);
-    color: var(--accent);
-    padding: 7px 16px;
-    border-radius: var(--radius);
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-    margin-left: auto;
+  background: rgba(0,200,150,0.1);
+  border: 1px solid rgba(0,200,150,0.3);
+  color: var(--accent);
+  padding: 7px 16px;
+  border-radius: var(--radius);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 .craft-btn:hover { background: rgba(0,200,150,0.2); }
 .craft-modal-overlay {
@@ -1912,6 +1911,20 @@ text-overflow: ellipsis;
   font-family: 'Rajdhani', sans-serif;
   font-weight: 700;
   cursor: pointer;
+}
+.craft-add-btn {
+  background: #1a2535;
+  color: #aaa;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 16px;
+  cursor: pointer;
+}
+.craft-add-btn.active {
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
 }
 .craft-suggestions {
   background: var(--bg3);

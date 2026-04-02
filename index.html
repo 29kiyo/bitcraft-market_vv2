@@ -19,12 +19,12 @@
     <div class="header-inner">
       <div class="logo" onclick="location.reload()" style="cursor:pointer">
   <span class="logo-icon">🛒</span>
+        <button class="craft-btn" onclick="event.stopPropagation(); openCraftModal()">⚒ クラフト計算</button>
   <div>
     <h1>BitCraft<span class="accent"> Market</span></h1>
     <p class="tagline">Powered by Bitjita API</p>
   </div>
 </div>
-      <button class="craft-btn" onclick="event.stopPropagation(); openCraftModal()">⚒ クラフト計算</button>
     </div>
   </header>
 
@@ -518,7 +518,10 @@
     <div class="craft-search-wrap">
       <input type="text" id="craftSearchInput" class="craft-search-input" placeholder="アイテム名を入力（日本語・英語）...">
       <button class="craft-search-btn" onclick="doCraftSearch()">検索</button>
+      <button class="craft-add-btn" onclick="toggleMultiSelectMode()" id="craftMultiToggle" title="複数選択">+</button>
     </div>
+    <!-- 選択アイテムタブ -->
+    <div id="craftItemTabs" class="craft-item-tabs" style="padding: 8px 16px; display: flex; gap: 8px; flex-wrap: wrap;"></div>
     <!-- クラフト検索フィルター -->
     <div class="craft-filters">
       <!-- Tier -->

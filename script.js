@@ -106,6 +106,8 @@ let craftCurrentPage = 1;
 const craftItemsPerPage = 12;
 let craftCurrentQuantity = 1;
 let craftSelectedItem = null;
+let craftSelectedItems = []; // 複数選択用
+let craftMultiSelectMode = false; // 複数選択モードフラグ
 let selectedRegion = '';
 let currentOrderRegion = '';
 let currentOrderClaim = '';
@@ -1213,7 +1215,22 @@ window.closeCraftModal = function() {
   if (craftSuggestions) craftSuggestions.classList.add('hidden');
   const craftResult = document.getElementById('craftResult');
   if (craftResult) craftResult.innerHTML = '';
-  // 状態はクリアしない（クラフトの内容を保持）
+  // 選択アイテムは保持（キャッシュは維持）
+};
+
+window.clearCraftCache = function() {
+  // キャッシュをクリア
+  Object.keys(recipeCache).forEach(k => delete recipeCache[k]);
+  Object.keys(marketDataCache).forEach(k => delete marketDataCache[k]);
+  craftSelectedItems = [];
+  craftSelectedItem = null;
+  craftMultiSelectMode = false;
+  const btn = document.getElementById('craftMultiToggle');
+  if (btn) btn.classList.remove('active');
+  const tabs = document.getElementById('craftItemTabs');
+  if (tabs) tabs.innerHTML = '';
+  const result = document.getElementById('craftResult');
+  if (result) result.innerHTML = '';
 };
 
 // ESCで閉じる
@@ -1264,16 +1281,24 @@ function showCraftSuggestions(items) {
   sugg.innerHTML = items.map(item => {
     const ja = getJaName(item.name);
     const icon = `https://bitjita.com/${item.iconAssetName}.webp`;
-    return `<div class="craft-suggest-item" onclick="selectCraftItem('${item.id}','${item.name.replace(/'/g,"\\'")}')">
+    const isSelected = craftSelectedItems.find(i => i.id === item.id);
+    return `<div class="craft-suggest-item" onclick="selectCraftItem('${item.id}','${item.name.replace(/'/g,"\\'")}', ${craftMultiSelectMode})">
       <img src="${icon}" width="28" height="28" style="border-radius:4px;background:var(--bg2)" loading="lazy" onerror="this.style.display='none'">
       <div>
         <div style="font-size:13px;font-weight:500">${ja || item.name}</div>
         ${ja ? `<div style="font-size:11px;color:var(--text3)">${item.name}</div>` : ''}
       </div>
+      ${isSelected ? '<span style="color:var(--accent);font-size:14px;">✓</span>' : ''}
     </div>`;
   }).join('');
   sugg.classList.remove('hidden');
 }
+
+window.toggleMultiSelectMode = function() {
+  craftMultiSelectMode = !craftMultiSelectMode;
+  const btn = document.getElementById('craftMultiToggle');
+  if (btn) btn.classList.toggle('active', craftMultiSelectMode);
+};
 
 document.getElementById('craftSearchInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') doCraftSearch();
@@ -1332,11 +1357,12 @@ window.doCraftSearch = async function() {
     const icon = `https://bitjita.com/${item.iconAssetName}.webp`;
     const parentCategory = parentCategoryMap[item.tag] || '';
     const jaParentCategory = getJaName(parentCategory) || parentCategory;
-    return `<div class="craft-result-item" onclick="selectCraftItem('${item.id}','${item.name.replace(/'/g,"\\'")}')">
+    return `<div class="craft-result-item" onclick="selectCraftItem('${item.id}','${item.name.replace(/'/g,"\\'")}', ${craftMultiSelectMode})">
       <img src="${icon}" width="32" height="32" style="border-radius:4px;background:var(--bg2)" loading="lazy" onerror="this.style.display='none'">
       <div style="flex:1">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span style="font-size:14px;font-weight:500">${ja || item.name}</span>
+          ${craftMultiSelectMode && craftSelectedItems.find(i => i.id === item.id) ? '<span style="color:var(--accent);">✓</span>' : ''}
           <div class="s-tags">
             ${item.tier && item.tier > 0 ? `<span class="s-tier">T${item.tier}</span>` : ''}
             <span class="s-rarity rarity-${item.rarityStr?.toLowerCase()}">${item.rarityStr || ''}</span>
@@ -1498,24 +1524,86 @@ document.addEventListener('DOMContentLoaded', () => {
   // 既存のイベントリスナーは不要（updateCraftMultiLabel内で処理）
 });
 
-window.selectCraftItem = async function(itemId, itemName) {
+window.selectCraftItem = async function(itemId, itemName, addToList = false) {
+  if (addToList) {
+    // 複数選択モード
+    if (!craftSelectedItems.find(i => i.id === itemId)) {
+      craftSelectedItems.push({ id: itemId, name: itemName });
+      // プリフェッチ
+      prefetchAllItemData(itemId).then(() => prefetchAllMarketData(itemId));
+    }
+    renderCraftItemTabs();
+    return;
+  }
+  
+  // 単一選択モード
   craftSelectedItem = { id: itemId, name: itemName };
+  craftSelectedItems = [{ id: itemId, name: itemName }];
   craftCurrentPage = 1;
   const quantity = parseInt(document.getElementById('craftQuantity')?.value) || 1;
   document.getElementById('craftResult').innerHTML =
     '<div class="craft-loading"><div class="spinner" style="margin:0 auto 12px"></div>素材データを取得中...</div>';
   try {
-    // プリフェッチ（並列取得）
     await prefetchAllItemData(itemId);
     document.getElementById('craftResult').innerHTML =
       '<div class="craft-loading"><div class="spinner" style="margin:0 auto 12px"></div>市場データを取得中...</div>';
     await prefetchAllMarketData(itemId);
-    // キャッシュからツリー構築
     const tree = buildTreeFromCache(itemId, quantity);
     renderCraftTree(tree);
   } catch(e) {
     document.getElementById('craftResult').innerHTML =
       `<div class="craft-no-recipe">エラー: ${e.message}</div>`;
+  }
+};
+
+// 選択アイテムのタブを表示
+function renderCraftItemTabs() {
+  const container = document.getElementById('craftItemTabs');
+  if (!container) return;
+  
+  if (craftSelectedItems.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  
+  container.innerHTML = craftSelectedItems.map(item => `
+    <div class="craft-item-tab" onclick="switchCraftItem('${item.id}')" style="
+      background: ${craftSelectedItem?.id === item.id ? 'var(--accent)' : '#1a2535'};
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    ">
+      <span>${item.name}</span>
+      <span onclick="event.stopPropagation(); removeCraftItem('${item.id}')" style="
+        color: #888;
+        font-size: 14px;
+        line-height: 1;
+      ">×</span>
+    </div>
+  `).join('');
+}
+
+// アイテム切り替え
+window.switchCraftItem = function(itemId) {
+  const item = craftSelectedItems.find(i => i.id === itemId);
+  if (item) {
+    selectCraftItem(item.id, item.name);
+  }
+};
+
+// アイテム削除
+window.removeCraftItem = function(itemId) {
+  craftSelectedItems = craftSelectedItems.filter(i => i.id !== itemId);
+  if (craftSelectedItem?.id === itemId) {
+    craftSelectedItem = craftSelectedItems[0] || null;
+  }
+  renderCraftItemTabs();
+  if (craftSelectedItem) {
+    selectCraftItem(craftSelectedItem.id, craftSelectedItem.name);
   }
 };
 
