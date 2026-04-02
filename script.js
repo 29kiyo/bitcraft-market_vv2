@@ -1605,13 +1605,19 @@ async function buildAndRenderCraftTree(itemId, quantity, depth = 0) {
     await prefetchAllMarketData(itemId);
   }
   
+  // キャッシュの内容をログ出力
+  const itemData = recipeCache[itemId];
+  console.log('Item data in cache:', itemId, 'recipes:', itemData?.craftingRecipes?.length);
+  
   // 再帰的に全子のデータをロード（深度3まで）- 並列処理
   async function loadAllChildren(parentId, currentDepth = 0) {
     if (currentDepth >= 3) return;
     const data = recipeCache[parentId];
+    console.log('loadAllChildren:', parentId, 'depth:', currentDepth, 'has data:', !!data, 'recipes:', data?.craftingRecipes?.length);
     if (!data?.craftingRecipes?.[0]) return;
     
     const children = data.craftingRecipes[0].consumedItemStacks || [];
+    console.log('Children count:', children.length);
     const loadPromises = children.map(async (stack) => {
       if (!recipeCache[stack.item_id]) {
         console.log('Loading child:', stack.item_id);
@@ -1633,7 +1639,7 @@ async function buildAndRenderCraftTree(itemId, quantity, depth = 0) {
   console.log('All children loaded, rendering...');
   
   const tree = buildTreeFromCache(itemId, quantity);
-  console.log('Tree built, rendering. Has ingredients?', tree?.recipes?.[0]?.ingredients?.length);
+  console.log('Tree built:', tree, 'Has recipes?', tree?.recipes?.length, 'ingredients?', tree?.recipes?.[0]?.ingredients?.length);
   renderCraftTree(tree);
 }
 
