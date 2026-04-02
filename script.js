@@ -1946,12 +1946,6 @@ function renderCraftTree(tree) {
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
-        <button onclick="pinCraftItem('${tree.itemId}','${tree.name.replace(/'/g,"\\'")}')" title="ピン留め" style="
-          background: ${craftSelectedItems.find(i => i.id === tree.itemId) ? 'var(--accent)' : '#1a2535'};
-          border: 1px solid ${craftSelectedItems.find(i => i.id === tree.itemId) ? 'var(--accent)' : 'rgba(255,255,255,0.15)'};
-          color: ${craftSelectedItems.find(i => i.id === tree.itemId) ? '#000' : '#aaa'};
-          width:32px;height:32px;border-radius:4px;cursor:pointer;font-size:16px;
-        ">📌</button>
         <div class="craft-quantity-selector" style="display:flex;align-items:center;gap:3px;flex-wrap:nowrap;">
           <button onclick="updateCraftQuantity(-10)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#aaa;width:32px;height:24px;border-radius:4px;cursor:pointer;font-size:10px;">-10</button>
           <button onclick="updateCraftQuantity(-1)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:14px;">－</button>
@@ -1962,6 +1956,12 @@ function renderCraftTree(tree) {
           <button onclick="updateCraftQuantity(10)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#aaa;width:32px;height:24px;border-radius:4px;cursor:pointer;font-size:10px;">+10</button>
           <span style="font-size:10px;color:#666;">個</span>
         </div>
+        <button onclick="pinCraftItem('${tree.itemId}','${tree.name.replace(/'/g,"\\'")}')" title="ピン留め" style="
+          background: ${craftSelectedItems.find(i => i.id === tree.itemId) ? 'var(--accent)' : '#1a2535'};
+          border: 1px solid ${craftSelectedItems.find(i => i.id === tree.itemId) ? 'var(--accent)' : 'rgba(255,255,255,0.15)'};
+          color: ${craftSelectedItems.find(i => i.id === tree.itemId) ? '#000' : '#aaa'};
+          width:32px;height:32px;border-radius:4px;cursor:pointer;font-size:16px;
+        ">📌</button>
       </div>
     </div>
     ${tree.recipes.length === 0
