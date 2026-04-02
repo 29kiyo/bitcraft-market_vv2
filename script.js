@@ -1715,23 +1715,22 @@ let craftModalState = {
 
 // 素材のアイテム詳細を表示（メインページへ）
 window.viewIngredientDetail = function(itemId, itemName) {
-  console.log('viewIngredientDetail called:', itemId, itemName);
+  const itemIdNum = Number(itemId);
   closeCraftModal();
   // currentItemsにアイテムがあるか確認
-  const item = currentItems.find(i => i.id === itemId);
-  console.log('Found item in currentItems:', item);
+  const item = currentItems.find(i => i.id === itemIdNum);
   if (item) {
-    selectItem(itemId);
+    selectItem(itemIdNum);
   } else {
     // アイテムがない場合は検索して詳細を表示
-    searchAndSelectItem(itemId);
+    searchAndSelectItem(itemIdNum);
   }
 };
 
 // アイテムを検索して詳細を表示
 async function searchAndSelectItem(itemId) {
   const allItems = await fetchAllMarketItems();
-  const item = allItems.find(i => i.id === itemId);
+  const item = allItems.find(i => Number(i.id) === Number(itemId));
   if (item) {
     savedScrollPosition = window.scrollY;
     searchResults.classList.add('hidden');
