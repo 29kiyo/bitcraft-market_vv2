@@ -1773,10 +1773,8 @@ async function fetchItemDataRaw(itemId) {
     const res = await fetch(`${API_BASE}/items/${itemId}`, { headers: HEADERS });
     if (!res.ok) return null;
     const data = await res.json();
-    console.log('Raw API response for', itemId, ':', JSON.stringify(data, null, 2));
     return data;
   } catch (err) {
-    console.error('Error:', err);
     return null;
   }
 }
@@ -1893,17 +1891,10 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
   
   // craftingRecipesがない場合、recipesUsingItemを使用
   if (recipes.length === 0 && recipesUsingItem.length > 0) {
-    console.log('  Looking for recipes that create this item...');
-    
     // targetIdを使って、このアイテムを作るレシピを探す
     const selfCraftRecipes = recipesUsingItem.filter(r => {
-      // targetIdがこのアイテムのIDかチェック
-      const isTarget = String(r.targetId) === String(itemId);
-      console.log('    Recipe:', r.name, 'targetId:', r.targetId, 'matches:', isTarget);
-      return isTarget;
+      return String(r.targetId) === String(itemId);
     });
-    
-    console.log('    Found self-craft recipes:', selfCraftRecipes.length);
     
     // 自分のレシピがあればそれを使用
     if (selfCraftRecipes.length > 0) {
@@ -1923,8 +1914,6 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
       }
     }
   }
-  
-  console.log('buildTreeFromCache:', item.name, 'depth:', depth, 'recipes count:', recipes.length, 'source:', recipeSource);
   
   const marketData = marketDataCache[itemId] || {};
   const sells = (marketData?.sellOrders || []).sort((a, b) =>
