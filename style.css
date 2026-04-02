@@ -1839,6 +1839,7 @@ text-overflow: ellipsis;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
+  margin-left: auto;
 }
 .craft-btn:hover { background: rgba(0,200,150,0.2); }
 .craft-modal-overlay {
