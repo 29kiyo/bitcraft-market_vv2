@@ -1542,6 +1542,7 @@ function updateCraftMultiLabel(type) {
   const label = document.getElementById(`craft${type.charAt(0).toUpperCase()+type.slice(1)}Label`);
   if (!label) return;
   label.textContent = values.length === 0 ? 'すべて' : `${values.length}件選択中`;
+  window.doCraftSearch();
 }
 
 function handleCraftMultiAll(type, cb) {
@@ -1554,11 +1555,17 @@ function handleCraftMultiAll(type, cb) {
 }
 
 window.clearCraftFilters = function() {
-  ['Tier', 'Rarity'].forEach(t => {
+  ['Tier', 'Rarity', 'Category'].forEach(t => {
     const id = `craft${t}Dropdown`;
-    document.querySelectorAll(`#${id} input[type=checkbox]`).forEach(cb => cb.checked = false);
-    document.getElementById(`craft${t}Label`).textContent = 'すべて';
+    const el = document.getElementById(id);
+    if (el) el.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
+    const label = document.getElementById(`craft${t}Label`);
+    if (label) label.textContent = 'すべて';
   });
+  document.getElementById('craftSearchInput').value = '';
+  document.getElementById('craftSearchResults').classList.add('hidden');
+  document.getElementById('craftResult').innerHTML = '';
+  craftItems = [];
 };
 
 window.openCraftModal = function() {
