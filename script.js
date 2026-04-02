@@ -1715,28 +1715,35 @@ let craftModalState = {
 
 // 素材のアイテム詳細を表示（メインページへ）
 window.viewIngredientDetail = function(itemId, itemName) {
+  console.log('viewIngredientDetail:', itemId, typeof itemId);
   const itemIdNum = Number(itemId);
   closeCraftModal();
-  // currentItemsにアイテムがあるか確認
-  const item = currentItems.find(i => i.id === itemIdNum);
-  if (item) {
-    selectItem(itemIdNum);
-  } else {
-    // アイテムがない場合は検索して詳細を表示
-    searchAndSelectItem(itemIdNum);
-  }
+  setTimeout(() => {
+    const item = currentItems.find(i => Number(i.id) === itemIdNum);
+    console.log('currentItems match:', item);
+    if (item) {
+      selectItem(itemIdNum);
+    } else {
+      searchAndSelectItem(itemIdNum);
+    }
+  }, 50);
 };
 
 // アイテムを検索して詳細を表示
 async function searchAndSelectItem(itemId) {
+  console.log('searchAndSelectItem called:', itemId);
   const allItems = await fetchAllMarketItems();
+  console.log('allItems length:', allItems.length);
   const item = allItems.find(i => Number(i.id) === Number(itemId));
+  console.log('found item:', item);
   if (item) {
     savedScrollPosition = window.scrollY;
     searchResults.classList.add('hidden');
     await loadItemDetail(item);
     history.pushState({ page: 'detail', itemId: item.id }, '');
     window.scrollTo(0, 0);
+  } else {
+    console.log('Item not found in allItems');
   }
 }
 
