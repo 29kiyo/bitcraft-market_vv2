@@ -1886,62 +1886,49 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
   const craftingRecipes = data.craftingRecipes || [];
   const recipesUsingItem = data.recipesUsingItem || [];
   
-  // craftingRecipes使用（一から作る）
-  let recipes = craftingRecipes;
-  let recipeSource = 'craftingRecipes';
+  // 全レシピを収集（重複去除）
+  let allRecipes = [];
   
-  // craftingRecipesがない場合、recipesUsingItemを使用
-  if (recipes.length === 0 && recipesUsingItem.length > 0) {
-    // targetIdを使って、このアイテムを作るレシピを探す
-    // さらにレシピ名がアイテム名を含むかもチェック
-    const selfCraftRecipes = recipesUsingItem.filter(r => {
-      const targetMatch = String(r.targetId) === String(itemId);
-      const nameMatch = r.name && item.name && 
-        r.name.toLowerCase().includes(item.name.toLowerCase()) ||
-        item.name.toLowerCase().includes(r.name.toLowerCase());
-      return targetMatch || nameMatch;
+  // craftingRecipesを追加
+  if (craftingRecipes.length > 0) {
+    craftingRecipes.forEach(r => {
+      allRecipes.push({
+        ...r,
+        recipeType: 'crafting'
+      });
     });
-    
-    // 自分のレシピがあればそれを使用
-    if (selfCraftRecipes.length > 0) {
-      // 材料に自分自身が含まれているものは除外（再利用レシピ排除）
-      // ただし、材料の半分以上が自分なら除外
-      const cleanRecipes = selfCraftRecipes.filter(r => {
-        const materials = r.consumedItemStacks || [];
-        if (materials.length === 0) return true;
-        const selfCount = materials.filter(s => String(s.item_id) === String(itemId)).length;
-        const ratio = selfCount / materials.length;
-        // 材料の50%以上が自分自身なら除外
-        return ratio < 0.5;
-      });
-      
-      if (cleanRecipes.length > 0) {
-        recipes = cleanRecipes;
-        recipeSource = 'recipesUsingItem';
-      } else {
-        // 全部除外されたら、元のリストから材料の半分以上が自分じゃないものを表示
-        const fallbackRecipes = selfCraftRecipes.filter(r => {
-          const materials = r.consumedItemStacks || [];
-          if (materials.length === 0) return false;
-          const selfCount = materials.filter(s => String(s.item_id) === String(itemId)).length;
-          const ratio = selfCount / materials.length;
-          return ratio < 1.0; // 全部自分じゃないならOK
+  }
+  
+  // recipesUsingItemを追加（ 材料に自分自身が含まれていないもの）
+  if (recipesUsingItem.length > 0) {
+    recipesUsingItem.forEach(r => {
+      const materials = r.consumedItemStacks || [];
+      const selfCount = materials.filter(s => String(s.item_id) === String(itemId)).length;
+      // 材料の半分以上が自分じゃないなら追加
+      if (materials.length === 0 || selfCount / materials.length < 0.5) {
+        allRecipes.push({
+          ...r,
+          recipeType: 'using'
         });
-        if (fallbackRecipes.length > 0) {
-          recipes = fallbackRecipes;
-          recipeSource = 'recipesUsingItem';
-        }
       }
-    } else {
-      // 自分を作るレシピがない場合は 材料に自分がないレシピを選択
-      const validRecipes = recipesUsingItem.filter(r => {
-        const materials = r.consumedItemStacks || [];
-        if (materials.length === 0) return false;
-        const selfCount = materials.filter(s => String(s.item_id) === String(itemId)).length;
-        const ratio = selfCount / materials.length;
-        // 材料の50%以上が自分なら除外
-        return ratio < 0.5;
-      });
+    });
+  }
+  
+  // 重複去除（同じ材料セットのレシピは除外）
+  const uniqueRecipes = [];
+  const seenMaterials = new Set();
+  allRecipes.forEach(r => {
+    const matKey = (r.consumedItemStacks || [])
+      .map(s => s.item_id)
+      .sort()
+      .join(',');
+    if (!seenMaterials.has(matKey)) {
+      seenMaterials.add(matKey);
+      uniqueRecipes.push(r);
+    }
+  });
+  
+  const recipes = uniqueRecipes;
       if (validRecipes.length > 0) {
         recipes = validRecipes;
         recipeSource = 'recipesUsingItem';
@@ -1975,6 +1962,7 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
       consumedItemStacks: r.consumedItemStacks || [],
       craftedItemStacks: r.craftedItemStacks || [],
       name: r.name || 'Recipe',
+      recipeType: r.recipeType || 'unknown'
     }));
     // 最初のレシピを使用（自分自身を除く）
     const recipe = recipes[0];
@@ -2097,7 +2085,7 @@ function renderCraftTree(tree) {
                    color:${tree.recipes[0] === tree.allRecipes[idx] ? '#000' : '#aaa'};
                    border:1px solid ${tree.recipes[0] === tree.allRecipes[idx] ? 'var(--accent)' : 'rgba(255,255,255,0.15)'};
                    padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">
-            ${r.name || 'レシピ ' + (idx + 1)}
+            ${r.name || 'レシピ ' + (idx + 1)} ${r.recipeType === 'crafting' ? '(一から)' : '(再利用)'}
           </button>
         `).join('')}
       </div>
