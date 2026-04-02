@@ -1790,7 +1790,7 @@ async function fetchItemDataRaw(itemId) {
     const res = await fetch(`${API_BASE}/items/${itemId}`, { headers: HEADERS });
     if (!res.ok) return null;
     const data = await res.json();
-    console.log('Raw API response for', itemId, ':', data);
+    console.log('Raw API response for', itemId, ':', JSON.stringify(data, null, 2));
     return data;
   } catch (err) {
     console.error('Error:', err);
@@ -1799,20 +1799,7 @@ async function fetchItemDataRaw(itemId) {
 }
 
 async function fetchItemData(itemId) {
-  if (recipeCache[itemId]) {
-    // キャッシュされていても、craftingRecipesがあるか確認
-    const cached = recipeCache[itemId];
-    if (!cached.craftingRecipes?.length) {
-      // もう一度APIから取得
-      console.log('No recipes in cache, refetching:', itemId);
-      const fresh = await fetchItemDataRaw(itemId);
-      if (fresh) {
-        recipeCache[itemId] = fresh;
-        return fresh;
-      }
-    }
-    return cached;
-  }
+  if (recipeCache[itemId]) return recipeCache[itemId];
   try {
     const res = await fetch(`${API_BASE}/items/${itemId}`, { headers: HEADERS });
     if (!res.ok) {
@@ -1820,7 +1807,9 @@ async function fetchItemData(itemId) {
       return null;
     }
     const data = await res.json();
-    console.log('Fetched item:', itemId, 'recipes:', data.craftingRecipes?.length);
+    // すべてのキーを出力
+    console.log('Item keys:', Object.keys(data));
+    console.log('Fetched item:', itemId, 'craftingRecipes:', data.craftingRecipes, 'other keys:', Object.keys(data).filter(k => k.toLowerCase().includes('craft') || k.toLowerCase().includes('recipe')));
     recipeCache[itemId] = data;
     return data;
   } catch (err) {
