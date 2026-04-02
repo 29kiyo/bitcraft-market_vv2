@@ -1932,10 +1932,6 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
       }
     }
   }
-        recipeSource = 'recipesUsingItem';
-      }
-    }
-  }
   
   const marketData = marketDataCache[itemId] || {};
   const sells = (marketData?.sellOrders || []).sort((a, b) =>
