@@ -1807,9 +1807,11 @@ async function fetchItemData(itemId) {
       return null;
     }
     const data = await res.json();
-    // すべてのキーを出力
-    console.log('Item keys:', Object.keys(data));
-    console.log('Fetched item:', itemId, 'craftingRecipes:', data.craftingRecipes, 'other keys:', Object.keys(data).filter(k => k.toLowerCase().includes('craft') || k.toLowerCase().includes('recipe')));
+    // recipesUsingItemを確認
+    console.log('recipesUsingItem for', itemId, ':', data.recipesUsingItem?.length);
+    if (data.recipesUsingItem?.length) {
+      console.log('First recipeUsingItem:', data.recipesUsingItem[0]);
+    }
     recipeCache[itemId] = data;
     return data;
   } catch (err) {
