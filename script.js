@@ -1784,8 +1784,35 @@ window.returnToCraftModal = function() {
   }
 };
 
+// APIの生データを取得（デバッグ用）
+async function fetchItemDataRaw(itemId) {
+  try {
+    const res = await fetch(`${API_BASE}/items/${itemId}`, { headers: HEADERS });
+    if (!res.ok) return null;
+    const data = await res.json();
+    console.log('Raw API response for', itemId, ':', data);
+    return data;
+  } catch (err) {
+    console.error('Error:', err);
+    return null;
+  }
+}
+
 async function fetchItemData(itemId) {
-  if (recipeCache[itemId]) return recipeCache[itemId];
+  if (recipeCache[itemId]) {
+    // キャッシュされていても、craftingRecipesがあるか確認
+    const cached = recipeCache[itemId];
+    if (!cached.craftingRecipes?.length) {
+      // もう一度APIから取得
+      console.log('No recipes in cache, refetching:', itemId);
+      const fresh = await fetchItemDataRaw(itemId);
+      if (fresh) {
+        recipeCache[itemId] = fresh;
+        return fresh;
+      }
+    }
+    return cached;
+  }
   try {
     const res = await fetch(`${API_BASE}/items/${itemId}`, { headers: HEADERS });
     if (!res.ok) {
@@ -1793,6 +1820,7 @@ async function fetchItemData(itemId) {
       return null;
     }
     const data = await res.json();
+    console.log('Fetched item:', itemId, 'recipes:', data.craftingRecipes?.length);
     recipeCache[itemId] = data;
     return data;
   } catch (err) {
@@ -1824,6 +1852,7 @@ function collectAllItemIds(itemId, depth = 0) {
   if (depth >= 3) return ids;
   
   const data = recipeCache[itemId];
+  console.log('collectAllItemIds:', itemId, 'depth:', depth, 'has data:', !!data, 'recipes:', data?.craftingRecipes?.length);
   if (!data?.craftingRecipes?.[0]) return ids;
   
   for (const stack of (data.craftingRecipes[0].consumedItemStacks || [])) {
