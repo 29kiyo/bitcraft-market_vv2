@@ -1,5 +1,3 @@
-## テスト用です
-
 # BitCraft Market Search
 
 BitCraftのマーケット情報をリアルタイムで検索・確認できるWebアプリです。
