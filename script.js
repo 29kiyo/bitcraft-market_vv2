@@ -1503,9 +1503,15 @@ window.selectCraftItem = async function(itemId, itemName) {
   craftCurrentPage = 1;
   const quantity = parseInt(document.getElementById('craftQuantity')?.value) || 1;
   document.getElementById('craftResult').innerHTML =
-    '<div class="craft-loading"><div class="spinner" style="margin:0 auto 12px"></div>読み込み中...</div>';
+    '<div class="craft-loading"><div class="spinner" style="margin:0 auto 12px"></div>素材データを取得中...</div>';
   try {
-    const tree = await buildCraftTree(itemId, quantity);
+    // プリフェッチ（並列取得）
+    await prefetchAllItemData(itemId);
+    document.getElementById('craftResult').innerHTML =
+      '<div class="craft-loading"><div class="spinner" style="margin:0 auto 12px"></div>市場データを取得中...</div>';
+    await prefetchAllMarketData(itemId);
+    // キャッシュからツリー構築
+    const tree = buildTreeFromCache(itemId, quantity);
     renderCraftTree(tree);
   } catch(e) {
     document.getElementById('craftResult').innerHTML =
@@ -1517,15 +1523,13 @@ window.updateCraftRegion = function() {
   const regionSelect = document.getElementById('craftRegion');
   if (regionSelect) {
     selectedRegion = regionSelect.value;
-    // クラフトツリーを再描画
+    // キャッシュからツリーを再描画
     if (craftSelectedItem) {
       const craftResultEl = document.getElementById('craftResult');
       if (craftResultEl) {
-        // 現在のツリーを再取得する必要があるが、キャッシュがあるので再計算
         const quantity = parseInt(document.getElementById('craftQuantity')?.value) || 1;
-        buildCraftTree(craftSelectedItem.id, quantity).then(tree => {
-          renderCraftTree(tree);
-        });
+        const tree = buildTreeFromCache(craftSelectedItem.id, quantity);
+        renderCraftTree(tree);
       }
     }
   }
@@ -1547,16 +1551,17 @@ window.updateCraftQuantity = function(delta = 0) {
   quantityInput.value = quantity;
   craftCurrentQuantity = quantity;
   
-  // 現在選択されているアイテムがあれば再計算
+  // 現在選択されているアイテムがあれば再計算（キャッシュから）
   if (craftSelectedItem) {
     document.getElementById('craftResult').innerHTML =
       '<div class="craft-loading"><div class="spinner" style="margin:0 auto 12px"></div>再計算中...</div>';
-    buildCraftTree(craftSelectedItem.id, quantity).then(tree => {
+    try {
+      const tree = buildTreeFromCache(craftSelectedItem.id, quantity);
       renderCraftTree(tree);
-    }).catch(e => {
+    } catch(e) {
       document.getElementById('craftResult').innerHTML =
         `<div class="craft-no-recipe">エラー: ${e.message}</div>`;
-    });
+    }
   }
 };
 
@@ -1636,14 +1641,61 @@ async function fetchMarketData(itemId) {
   }
 }
 
-// クラフトツリー再帰構築
-async function buildCraftTree(itemId, quantity, depth = 0) {
+// 必要なアイテムIDを収集（重複去除）
+function collectAllItemIds(itemId, depth = 0) {
+  const ids = new Set([itemId]);
+  if (depth >= 3) return ids;
+  
+  const data = recipeCache[itemId];
+  if (!data?.craftingRecipes?.[0]) return ids;
+  
+  for (const stack of (data.craftingRecipes[0].consumedItemStacks || [])) {
+    const childIds = collectAllItemIds(stack.item_id, depth + 1);
+    childIds.forEach(id => ids.add(id));
+  }
+  return ids;
+}
+
+// プリフェッチ: 全素材データを並列取得
+async function prefetchAllItemData(itemId) {
   const data = await fetchItemData(itemId);
+  if (!data) return;
+  
+  const allIds = collectAllItemIds(itemId, 0);
+  const promises = [];
+  
+  for (const id of allIds) {
+    if (!recipeCache[id]) {
+      promises.push(fetchItemData(id));
+    }
+  }
+  await Promise.all(promises);
+}
+
+// プリフェッチ: 全市場データを並列取得
+async function prefetchAllMarketData(itemId) {
+  const data = recipeCache[itemId];
+  if (!data) return;
+  
+  const allIds = collectAllItemIds(itemId, 0);
+  const promises = [];
+  
+  for (const id of allIds) {
+    if (!marketDataCache[id]) {
+      promises.push(fetchMarketData(id));
+    }
+  }
+  await Promise.all(promises);
+}
+
+// キャッシュ使用のツリービルド（プリフェッチ後で使用）
+function buildTreeFromCache(itemId, quantity, depth = 0) {
+  const data = recipeCache[itemId];
   if (!data) return null;
 
   const item = data.item;
   const recipes = data.craftingRecipes || [];
-  const marketData = await fetchMarketData(itemId);
+  const marketData = marketDataCache[itemId] || {};
   const sells = (marketData?.sellOrders || []).sort((a, b) =>
     Number(a.priceThreshold) - Number(b.priceThreshold));
   const lowestSell = sells[0] ? {
@@ -1659,7 +1711,7 @@ async function buildCraftTree(itemId, quantity, depth = 0) {
     jaName: getJaName(item.name),
     icon: item.iconAssetName || '',
     lowestSell,
-    sellOrders: sells, // 全リージョンの注文を保持
+    sellOrders: sells,
     recipes: [],
   };
 
@@ -1667,7 +1719,7 @@ async function buildCraftTree(itemId, quantity, depth = 0) {
     const recipe = recipes[0];
     const ingredients = [];
     for (const stack of (recipe.consumedItemStacks || [])) {
-      const child = await buildCraftTree(stack.item_id, stack.quantity * quantity, depth + 1);
+      const child = buildTreeFromCache(stack.item_id, stack.quantity * quantity, depth + 1);
       if (child) ingredients.push(child);
     }
     node.recipes.push({
@@ -1820,7 +1872,7 @@ function renderIngredients(ingredients, depth = 0) {
             <div class="craft-ingredient-price">
               ${lowestSell
                 ? `<div class="craft-ingredient-sell">${(lowestSell.price * ing.quantity).toLocaleString('ja-JP')} 🪙</div>
-                   <div class="craft-ingredient-claim">${lowestSell.claimName} / ${lowestSell.regionName}${lowestSell.regionId ? ` (R${lowestSell.regionId})` : ''} ${regionLabel}</div>
+                   <div class="craft-ingredient-claim">${lowestSell.claimName} / ${lowestSell.regionName}${lowestSell.regionId ? ` (R~${lowestSell.regionId})` : ''} ${regionLabel}</div>
                    <div class="craft-ingredient-claim">${lowestSell.price.toLocaleString('ja-JP')} 🪙 × ${ing.quantity}</div>`
                 : '<div style="font-size:12px;color:var(--text3)">売り注文なし</div>'
               }
