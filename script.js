@@ -1713,15 +1713,33 @@ let craftModalState = {
   currentResult: null
 };
 
-// 素材のクラフトツリーを表示（Craft modal内で表示）
+// 素材のアイテム詳細を表示（メインページへ）
 window.viewIngredientDetail = function(itemId, itemName) {
-  // クラフトモーダルを閉じる
+  console.log('viewIngredientDetail called:', itemId, itemName);
   closeCraftModal();
-  // 少し待ってからメインページの詳細を表示
-  setTimeout(() => {
+  // currentItemsにアイテムがあるか確認
+  const item = currentItems.find(i => i.id === itemId);
+  console.log('Found item in currentItems:', item);
+  if (item) {
     selectItem(itemId);
-  }, 100);
+  } else {
+    // アイテムがない場合は検索して詳細を表示
+    searchAndSelectItem(itemId);
+  }
 };
+
+// アイテムを検索して詳細を表示
+async function searchAndSelectItem(itemId) {
+  const allItems = await fetchAllMarketItems();
+  const item = allItems.find(i => i.id === itemId);
+  if (item) {
+    savedScrollPosition = window.scrollY;
+    searchResults.classList.add('hidden');
+    await loadItemDetail(item);
+    history.pushState({ page: 'detail', itemId: item.id }, '');
+    window.scrollTo(0, 0);
+  }
+}
 
 // クラフト計算に戻る
 window.returnToCraftModal = function() {
