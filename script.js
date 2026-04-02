@@ -1892,6 +1892,9 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
   
   // craftingRecipesがない場合、recipesUsingItemを使用
   if (recipes.length === 0 && recipesUsingItem.length > 0) {
+    console.log('Looking for recipes for:', item.name, 'ID:', itemId);
+    console.log('Available recipes:', recipesUsingItem.map(r => ({name: r.name, target: r.targetId})));
+    
     // targetIdを使って、このアイテムを作るレシピを探す
     // さらにレシピ名がアイテム名を含むかもチェック
     const selfCraftRecipes = recipesUsingItem.filter(r => {
@@ -1899,8 +1902,11 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
       const nameMatch = r.name && item.name && 
         r.name.toLowerCase().includes(item.name.toLowerCase()) ||
         item.name.toLowerCase().includes(r.name.toLowerCase());
+      console.log('Recipe:', r.name, 'targetMatch:', targetMatch, 'nameMatch:', nameMatch);
       return targetMatch || nameMatch;
     });
+    
+    console.log('Self craft recipes found:', selfCraftRecipes.length);
     
     // 自分のレシピがあればそれを使用
     if (selfCraftRecipes.length > 0) {
