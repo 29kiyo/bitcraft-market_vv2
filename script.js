@@ -1729,7 +1729,15 @@ function renderCraftTree(tree) {
     regions.forEach(region => {
       const option = document.createElement('option');
       option.value = region;
-      option.textContent = region || 'すべてのリージョン';
+      // リージョンIDを取得
+      let regionIdText = '';
+      if (region && tree.sellOrders) {
+        const order = tree.sellOrders.find(o => o.regionName === region);
+        if (order && order.regionId) {
+          regionIdText = ` R${order.regionId}`;
+        }
+      }
+      option.textContent = region ? `${region}${regionIdText}` : 'すべてのリージョン';
       if (region === currentRegion) option.selected = true;
       regionSelect.appendChild(option);
     });
@@ -1799,7 +1807,7 @@ function renderIngredients(ingredients, depth = 0) {
         const cheaper = hasCraft && buyCost !== null
           ? (craftCost < buyCost ? 'craft' : 'buy') : null;
         return `
-          <div class="craft-ingredient" onclick="viewIngredientDetail('${ing.id}','${ing.name.replace(/'/g,"\\'")}')">
+          <div class="craft-ingredient" onclick="viewIngredientDetail('${ing.itemId}','${ing.name.replace(/'/g,"\\'")}')">
             <img src="https://bitjita.com/${ing.icon}.webp" class="craft-ingredient-icon"
               onerror="this.style.display='none'">
             <div class="craft-ingredient-info">
