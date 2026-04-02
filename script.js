@@ -1619,6 +1619,24 @@ window.switchCraftItem = function(itemId) {
   }
 };
 
+// レシピ切り替え
+window.switchCraftRecipe = function(itemId, recipeIndex) {
+  const tree = buildTreeFromCache(itemId, craftCurrentQuantity);
+  if (tree && tree.allRecipes && tree.allRecipes[recipeIndex]) {
+    const recipe = tree.allRecipes[recipeIndex];
+    const ingredients = [];
+    for (const stack of (recipe.consumedItemStacks || [])) {
+      const child = buildTreeFromCache(stack.item_id, stack.quantity * craftCurrentQuantity, 1);
+      if (child) ingredients.push(child);
+    }
+    tree.recipes = [{
+      craftedQty: recipe.craftedItemStacks?.[0]?.quantity || 1,
+      ingredients,
+    }];
+    renderCraftTree(tree);
+  }
+};
+
 // アイテム削除
 window.removeCraftItem = function(itemId) {
   craftSelectedItems = craftSelectedItems.filter(i => i.id !== itemId);
@@ -1866,23 +1884,19 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
   if (!data) return null;
 
   const item = data.item;
-  // craftingRecipes と recipesUsingItem の両方を見る
+  // craftingRecipes: このアイテムを材料にして作れるもの
+  // recipesUsingItem: このアイテムを作れるレシピ（材料として何を必要するか）
   const craftingRecipes = data.craftingRecipes || [];
   const recipesUsingItem = data.recipesUsingItem || [];
   
-  // recipesUsingItemから、材料と出力アイテムを抽出
-  // recipesUsingItemは「このアイテムを作れるレシピ」の一覧
-  const usableRecipes = [];
-  if (recipesUsingItem.length > 0) {
-    // 最初のレシピを使用（最も基本的なレシピ）
-    const recipe = recipesUsingItem[0];
-    usableRecipes.push({
-      consumedItemStacks: recipe.consumedItemStacks || [],
-      craftedItemStacks: recipe.craftedItemStacks || [],
-    });
-  }
+  // レシピ选择：craftingRecipes优先、なければrecipesUsingItem
+  let recipes = craftingRecipes;
+  let recipeSource = 'craftingRecipes';
   
-  const recipes = craftingRecipes.length > 0 ? craftingRecipes : usableRecipes;
+  if (recipes.length === 0 && recipesUsingItem.length > 0) {
+    recipes = recipesUsingItem;
+    recipeSource = 'recipesUsingItem';
+  }
   
   const marketData = marketDataCache[itemId] || {};
   const sells = (marketData?.sellOrders || []).sort((a, b) =>
@@ -1905,6 +1919,13 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
   };
 
   if (recipes.length > 0 && depth < 3) {
+    // 複数のレシピがある場合は選択可能
+    node.allRecipes = recipes.map(r => ({
+      consumedItemStacks: r.consumedItemStacks || [],
+      craftedItemStacks: r.craftedItemStacks || [],
+      name: r.name || 'Recipe',
+    }));
+    // 最初のレシピを使用
     const recipe = recipes[0];
     const ingredients = [];
     for (const stack of (recipe.consumedItemStacks || [])) {
@@ -1912,6 +1933,20 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
       if (child) ingredients.push(child);
     }
     node.recipes.push({
+      craftedQty: recipe.craftedItemStacks?.[0]?.quantity || 1,
+      ingredients,
+    });
+  }
+
+  return node;
+}
+      craftedQty: recipe.craftedItemStacks?.[0]?.quantity || 1,
+      ingredients,
+    });
+  }
+
+  return node;
+}
       craftedQty: recipe.craftedItemStacks?.[0]?.quantity || 1,
       ingredients,
     });
@@ -2013,6 +2048,20 @@ function renderCraftTree(tree) {
         ">📌</button>
       </div>
     </div>
+    ${tree.allRecipes && tree.allRecipes.length > 1 ? `
+      <div class="craft-recipe-selector" style="margin: 12px 0; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+        <span style="font-size:12px;color:#888;">レシピ:</span>
+        ${tree.allRecipes.map((r, idx) => `
+          <button onclick="switchCraftRecipe('${tree.itemId}', ${idx})" 
+            style="background:${tree.recipes[0] === tree.allRecipes[idx] ? 'var(--accent)' : '#1a2535'};
+                   color:${tree.recipes[0] === tree.allRecipes[idx] ? '#000' : '#aaa'};
+                   border:1px solid ${tree.recipes[0] === tree.allRecipes[idx] ? 'var(--accent)' : 'rgba(255,255,255,0.15)'};
+                   padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">
+            ${r.name || 'レシピ ' + (idx + 1)}
+          </button>
+        `).join('')}
+      </div>
+    ` : ''}
     ${tree.recipes.length === 0
       ? '<div class="craft-no-recipe">このアイテムのクラフトレシピはありません</div>'
       : renderIngredients(tree.recipes[0].ingredients)
