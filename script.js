@@ -1892,9 +1892,6 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
   
   // craftingRecipesがない場合、recipesUsingItemを使用
   if (recipes.length === 0 && recipesUsingItem.length > 0) {
-    console.log('Looking for recipes for:', item.name, 'ID:', itemId);
-    console.log('Available recipes:', recipesUsingItem.map(r => ({name: r.name, target: r.targetId})));
-    
     // targetIdを使って、このアイテムを作るレシピを探す
     // さらにレシピ名がアイテム名を含むかもチェック
     const selfCraftRecipes = recipesUsingItem.filter(r => {
@@ -1902,22 +1899,18 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
       const nameMatch = r.name && item.name && 
         r.name.toLowerCase().includes(item.name.toLowerCase()) ||
         item.name.toLowerCase().includes(r.name.toLowerCase());
-      console.log('Recipe:', r.name, 'targetMatch:', targetMatch, 'nameMatch:', nameMatch);
       return targetMatch || nameMatch;
     });
     
-    console.log('Self craft recipes found:', selfCraftRecipes.length);
-    
     // 自分のレシピがあればそれを使用
     if (selfCraftRecipes.length > 0) {
-      // 材料の大部分が自分自身のものは除外（再利用レシピ排除）
+      // 材料に自分自身が含まれているものは除外（再利用レシピ排除）
       const cleanRecipes = selfCraftRecipes.filter(r => {
         const materials = r.consumedItemStacks || [];
         if (materials.length === 0) return true;
         const selfCount = materials.filter(s => String(s.item_id) === String(itemId)).length;
-        const ratio = selfCount / materials.length;
-        // 材料の70%以上が自分自身なら除外
-        return ratio < 0.7;
+        // 材料に自分自身が含まれていたら除外（再利用）
+        return selfCount === 0;
       });
       
       if (cleanRecipes.length > 0) {
@@ -1930,12 +1923,15 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
         const materials = r.consumedItemStacks || [];
         if (materials.length === 0) return false;
         const selfCount = materials.filter(s => String(s.item_id) === String(itemId)).length;
-        const ratio = selfCount / materials.length;
-        // 材料の70%以上が自分なら除外
-        return ratio < 0.7;
+        // 材料に自分自身が含まれていたら除外
+        return selfCount === 0;
       });
       if (validRecipes.length > 0) {
         recipes = validRecipes;
+        recipeSource = 'recipesUsingItem';
+      }
+    }
+  }
         recipeSource = 'recipesUsingItem';
       }
     }
