@@ -24,6 +24,7 @@
     <p class="tagline">Powered by Bitjita API</p>
   </div>
 </div>
+<button class="craft-btn" onclick="event.stopPropagation(); openCraftModal()">⚒ クラフト計算</button>
     </div>
   </header>
 
@@ -506,6 +507,109 @@
 
     <!-- エラー -->
     <div id="errorMsg" class="error-msg hidden"></div>
+
+<!-- クラフト計算モーダル -->
+<div id="craftModal" class="craft-modal-overlay hidden">
+  <div class="craft-modal">
+    <div class="craft-modal-header">
+      <h2 class="craft-modal-title">⚒ クラフト計算機</h2>
+      <button class="craft-modal-close" onclick="closeCraftModal()">✕</button>
+    </div>
+    <div class="craft-search-wrap">
+      <input type="text" id="craftSearchInput" class="craft-search-input" placeholder="アイテム名を入力（日本語・英語）...">
+      <button class="craft-search-btn" onclick="doCraftSearch()">検索</button>
+    </div>
+    <!-- 選択アイテムタブ -->
+    <div id="craftItemTabs" class="craft-item-tabs" style="padding: 8px 16px; display: flex; gap: 8px; flex-wrap: wrap;"></div>
+    <!-- クラフト検索フィルター -->
+    <div class="craft-filters">
+      <!-- Tier -->
+      <div class="filter-group">
+        <label>Tier</label>
+        <div class="multi-select-wrap">
+          <div class="multi-select-btn" onclick="toggleDropdown('craftTierDropdown')">
+            <span id="craftTierLabel">すべて</span>
+            <span class="ms-arrow">▼</span>
+          </div>
+          <div class="multi-select-dropdown hidden" id="craftTierDropdown">
+            <label class="ms-item ms-all"><input type="checkbox" value="all" onchange="handleMultiAll('craftTier', this)"> すべて解除</label>
+            <label class="ms-item"><input type="checkbox" value="-1" onchange="updateMultiLabel('craftTier')"> Tier -1</label>
+            <label class="ms-item"><input type="checkbox" value="0" onchange="updateMultiLabel('craftTier')"> Tier 0</label>
+            <label class="ms-item"><input type="checkbox" value="1" onchange="updateMultiLabel('craftTier')"> Tier 1</label>
+            <label class="ms-item"><input type="checkbox" value="2" onchange="updateMultiLabel('craftTier')"> Tier 2</label>
+            <label class="ms-item"><input type="checkbox" value="3" onchange="updateMultiLabel('craftTier')"> Tier 3</label>
+            <label class="ms-item"><input type="checkbox" value="4" onchange="updateMultiLabel('craftTier')"> Tier 4</label>
+            <label class="ms-item"><input type="checkbox" value="5" onchange="updateMultiLabel('craftTier')"> Tier 5</label>
+            <label class="ms-item"><input type="checkbox" value="6" onchange="updateMultiLabel('craftTier')"> Tier 6</label>
+            <label class="ms-item"><input type="checkbox" value="7" onchange="updateMultiLabel('craftTier')"> Tier 7</label>
+            <label class="ms-item"><input type="checkbox" value="8" onchange="updateMultiLabel('craftTier')"> Tier 8</label>
+            <label class="ms-item"><input type="checkbox" value="9" onchange="updateMultiLabel('craftTier')"> Tier 9</label>
+            <label class="ms-item"><input type="checkbox" value="10" onchange="updateMultiLabel('craftTier')"> Tier 10</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- レア度 -->
+      <div class="filter-group">
+        <label>レア度</label>
+        <div class="multi-select-wrap">
+          <div class="multi-select-btn" onclick="toggleDropdown('craftRarityDropdown')">
+            <span id="craftRarityLabel">すべて</span>
+            <span class="ms-arrow">▼</span>
+          </div>
+          <div class="multi-select-dropdown hidden" id="craftRarityDropdown">
+            <label class="ms-item ms-all"><input type="checkbox" value="all" onchange="handleMultiAll('craftRarity', this)"> すべて解除</label>
+            <label class="ms-item"><input type="checkbox" value="Common" onchange="updateMultiLabel('craftRarity')"> Common</label>
+            <label class="ms-item"><input type="checkbox" value="Uncommon" onchange="updateMultiLabel('craftRarity')"> Uncommon</label>
+            <label class="ms-item"><input type="checkbox" value="Rare" onchange="updateMultiLabel('craftRarity')"> Rare</label>
+            <label class="ms-item"><input type="checkbox" value="Epic" onchange="updateMultiLabel('craftRarity')"> Epic</label>
+            <label class="ms-item"><input type="checkbox" value="Legendary" onchange="updateMultiLabel('craftRarity')"> Legendary</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- カテゴリー -->
+      <div class="filter-group">
+        <label>カテゴリー</label>
+        <div class="multi-select-wrap">
+          <div class="multi-select-btn" onclick="toggleDropdown('craftCategoryDropdown')">
+            <span id="craftCategoryLabel">すべて</span>
+            <span class="ms-arrow">▼</span>
+          </div>
+          <div class="multi-select-dropdown hidden" id="craftCategoryDropdown">
+            <label class="ms-item ms-all"><input type="checkbox" value="all" onchange="handleMultiAll('craftCategory', this)"> すべて解除</label>
+            <label class="ms-item"><input type="checkbox" value="Tool" onchange="updateMultiLabel('craftCategory')"> ツール</label>
+            <label class="ms-item"><input type="checkbox" value="Weapon" onchange="updateMultiLabel('craftCategory')"> 武器</label>
+            <label class="ms-item"><input type="checkbox" value="Armor" onchange="updateMultiLabel('craftCategory')"> 防具</label>
+            <label class="ms-item"><input type="checkbox" value="Accessory" onchange="updateMultiLabel('craftCategory')"> 装飾品</label>
+            <label class="ms-item"><input type="checkbox" value="Food" onchange="updateMultiLabel('craftCategory')"> 食べ物</label>
+            <label class="ms-item"><input type="checkbox" value="Resource" onchange="updateMultiLabel('craftCategory')"> 資源</label>
+            <label class="ms-item"><input type="checkbox" value="Material" onchange="updateMultiLabel('craftCategory')"> 材料</label>
+            <label class="ms-item"><input type="checkbox" value="Potion" onchange="updateMultiLabel('craftCategory')"> ポーション</label>
+            <label class="ms-item"><input type="checkbox" value="Container" onchange="updateMultiLabel('craftCategory')"> 容器</label>
+            <label class="ms-item"><input type="checkbox" value="Deployable" onchange="updateMultiLabel('craftCategory')"> 設置物</label>
+            <label class="ms-item"><input type="checkbox" value="Furniture" onchange="updateMultiLabel('craftCategory')"> 家具</label>
+            <label class="ms-item"><input type="checkbox" value="Seed" onchange="updateMultiLabel('craftCategory')"> 種</label>
+            <label class="ms-item"><input type="checkbox" value="Other" onchange="updateMultiLabel('craftCategory')"> その他</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- クリアボタン -->
+      <button class="craft-filter-clear" onclick="clearCraftFilters()">クリア</button>
+    </div>
+    <!-- リージョン選択 -->
+    <div class="craft-region-wrap" style="padding: 8px 16px;">
+      <label style="font-size:12px;color:#888;margin-right:8px;">リージョン:</label>
+      <select id="craftRegion" class="craft-region-select" onchange="updateCraftRegion()">
+        <option value="">すべてのリージョン</option>
+      </select>
+    </div>
+    <div id="craftSuggestions" class="craft-suggestions hidden"></div>
+    <div id="craftResult" class="craft-result"></div>
+  </div>
+</div>
+
   </main>
 
   <footer>
