@@ -2223,9 +2223,6 @@ window.updateCraftQuantity = function(delta = 0) {
   }
 };
 
-// 市場データキャッシュ
-const marketDataCache = {};
-
 // クラフトモーダルの状態を保存
 let craftModalState = {
   query: '',
