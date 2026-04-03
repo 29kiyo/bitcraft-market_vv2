@@ -2071,20 +2071,23 @@ function renderCraftTree(tree) {
       </div>
     </div>
     ${tree.allRecipes && tree.allRecipes.length > 1 ? `
-      <div class="craft-recipe-selector" style="margin: 12px 0; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+      <div class="craft-recipe-selector" style="margin: 12px 0; display: flex; gap: 8px; align-items: center;">
         <span style="font-size:12px;color:#888;">レシピ:</span>
-        ${tree.allRecipes.map((r, idx) => `
-          <button onclick="switchCraftRecipe('${tree.itemId}', ${idx})" 
-            style="background:${tree.recipes[0] === tree.allRecipes[idx] ? 'var(--accent)' : '#1a2535'};
-                   color:${tree.recipes[0] === tree.allRecipes[idx] ? '#000' : '#aaa'};
-                   border:1px solid ${tree.recipes[0] === tree.allRecipes[idx] ? 'var(--accent)' : 'rgba(255,255,255,0.15)'};
-                   padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">
-            ${r.name || 'レシピ ' + (idx + 1)} ${r.recipeType === 'crafting' ? '(一から)' : '(再利用)'}
-          </button>
-        `).join('')}
-      </div>
-      <div style="font-size:11px;color:#666;margin-bottom:8px;">
-        材料: ${tree.recipes[0]?.ingredients?.map(i => i.name).join(', ') || 'なし'}
+        <select onchange="switchCraftRecipe('${tree.itemId}', this.value)" style="
+          background:#1a2535;
+          color:#e0e0e0;
+          border:1px solid rgba(255,255,255,0.15);
+          padding:4px 8px;
+          border-radius:4px;
+          font-size:12px;
+          max-width:200px;
+        ">
+          ${tree.allRecipes.map((r, idx) => `
+            <option value="${idx}" ${tree.recipes[0] === tree.allRecipes[idx] ? 'selected' : ''}>
+              ${r.name || 'レシピ ' + (idx + 1)} ${r.recipeType === 'crafting' ? '(一から)' : '(再利用)'}
+            </option>
+          `).join('')}
+        </select>
       </div>
     ` : ''}
     ${tree.recipes.length === 0
