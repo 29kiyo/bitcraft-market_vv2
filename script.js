@@ -2223,8 +2223,6 @@ window.updateCraftQuantity = function(delta = 0) {
   }
 };
 
-// レシピキャッシュ
-const recipeCache = {};
 // 市場データキャッシュ
 const marketDataCache = {};
 
