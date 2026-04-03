@@ -1831,7 +1831,7 @@ window.openMapModal = function(n, e, claimName) {
 // ============================================
 // ユーティリティ
 // ============================================
-function formatPrice(val) {
+async function formatPrice(val) {
   const q = document.getElementById('craftSearchInput').value.trim();
   clearTimeout(debounceTimer);
   document.getElementById('craftSuggestions').classList.add('hidden');
