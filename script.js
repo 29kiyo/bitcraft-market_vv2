@@ -1832,15 +1832,16 @@ function collectAllItemIds(itemId, depth = 0) {
   
   // recipesUsingItem: このアイテムを作れるレシピの材料のみ（自分自身は除外）
   if (data.recipesUsingItem?.length && depth < 5) {
-    for (const recipe of data.recipesUsingItem) {
-      // 材料に自分自身が含まれていたらその材料を追加しない
-      for (const stack of (recipe.consumedItemStacks || [])) {
-        if (depth + 1 < 5 && String(stack.item_id) !== String(itemId)) {
-          ids.add(String(stack.item_id));
+      for (const recipe of data.recipesUsingItem) {
+        // 成果物のitem_idもプリフェッチ対象に追加（名前照合のため）
+        for (const crafted of (recipe.craftedItemStacks || [])) {
+          ids.add(String(crafted.item_id));
         }
-      }
-    }
-  }
+        // 素材も追加
+        for (const stack of (recipe.consumedItemStacks || [])) {
+          if (depth + 1 < 5 && String(stack.item_id) !== String(itemId)) {
+            ids.add(String(stack.item_id));
+          }
   
   return ids;
 }
@@ -1877,62 +1878,61 @@ async function prefetchAllMarketData(itemId) {
   await Promise.all(promises);
 }
 
-// キャッシュ使用のツリービルド（プリフェッチ後で使用）
 function buildTreeFromCache(itemId, quantity, depth = 0) {
   const data = recipeCache[itemId];
   if (!data) return null;
 
   const item = data.item;
+  const itemName = item.name;
   const craftingRecipes = data.craftingRecipes || [];
   const recipesUsingItem = data.recipesUsingItem || [];
-  
-  // 全レシピを収集（重複去除）
-  let allRecipes = [];
-  
-  // craftingRecipesを追加
-  if (craftingRecipes.length > 0) {
-    craftingRecipes.forEach(r => {
-      allRecipes.push({
-        ...r,
-        recipeType: 'crafting'
-      });
-    });
-  }
-  
-  // recipesUsingItemから「素材に自分自身を含まない」かつ「素材数が2以上」のレシピを追加
-  if (recipesUsingItem.length > 0) {
-    // 素材数が多いもの（クラフトレシピらしいもの）を優先
-    const craftLike = recipesUsingItem
-      .filter(r => {
-        const materials = r.consumedItemStacks || [];
-        // 自分自身を素材に含まないこと
-        const hasSelf = materials.some(s => String(s.item_id) === String(itemId));
-        // 素材が2個以上あること（修理やスクラップレシピを除外）
-        return !hasSelf && materials.length >= 2;
-      })
-      .sort((a, b) => (b.consumedItemStacks?.length || 0) - (a.consumedItemStacks?.length || 0));
 
-    craftLike.forEach(r => {
-      allRecipes.push({ ...r, recipeType: 'using' });
-    });
+  let bestRecipe = null;
+
+  // ① craftingRecipesがあればそれを優先
+  if (craftingRecipes.length > 0) {
+    bestRecipe = { ...craftingRecipes[0], recipeType: 'crafting' };
   }
-  
-  // 重複去除（同じ材料セットのレシピは除外）
-  const uniqueRecipes = [];
-  const seenMaterials = new Set();
-  allRecipes.forEach(r => {
-    const matKey = (r.consumedItemStacks || [])
-      .map(s => s.item_id)
-      .sort()
-      .join(',');
-    if (!seenMaterials.has(matKey)) {
-      seenMaterials.add(matKey);
-      uniqueRecipes.push(r);
+
+  // ② craftingRecipesがない場合はrecipesUsingItemから探す
+  if (!bestRecipe && recipesUsingItem.length > 0) {
+    // 成果物のitem_idを使って、そのアイテムのキャッシュから名前を確認
+    // 成果物名がitemNameと一致するレシピを選ぶ
+    let matched = null;
+
+    for (const r of recipesUsingItem) {
+      const crafted = r.craftedItemStacks || [];
+      if (crafted.length === 0) continue;
+
+      const craftedId = String(crafted[0].item_id);
+      const craftedData = recipeCache[craftedId];
+
+      if (craftedData && craftedData.item?.name === itemName) {
+        // 成果物名が一致 → これが正しいレシピ
+        matched = { ...r, recipeType: 'using' };
+        break;
+      }
     }
-  });
-  
-  const recipes = uniqueRecipes;
-  
+
+    // 名前一致が見つからない場合のフォールバック：
+    // 素材に自分自身を含まない かつ 素材数2以上 のレシピを素材数降順で選ぶ
+    if (!matched) {
+      const candidates = recipesUsingItem
+        .filter(r => {
+          const materials = r.consumedItemStacks || [];
+          const hasSelf = materials.some(s => String(s.item_id) === String(itemId));
+          return !hasSelf && materials.length >= 2;
+        })
+        .sort((a, b) => (b.consumedItemStacks?.length || 0) - (a.consumedItemStacks?.length || 0));
+
+      if (candidates.length > 0) {
+        matched = { ...candidates[0], recipeType: 'using' };
+      }
+    }
+
+    bestRecipe = matched;
+  }
+
   const marketData = marketDataCache[itemId] || {};
   const sells = (marketData?.sellOrders || []).sort((a, b) =>
     Number(a.priceThreshold) - Number(b.priceThreshold));
@@ -1945,35 +1945,25 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
 
   const node = {
     itemId, quantity,
-    name: item.name,
-    jaName: getJaName(item.name),
+    name: itemName,
+    jaName: getJaName(itemName),
     icon: item.iconAssetName || '',
     lowestSell,
     sellOrders: sells,
     recipes: [],
   };
 
-  if (recipes.length > 0 && depth < 5) {
-    // 複数のレシピがある場合は選択可能
-    node.allRecipes = recipes.map(r => ({
-      consumedItemStacks: r.consumedItemStacks || [],
-      craftedItemStacks: r.craftedItemStacks || [],
-      name: r.name || 'Recipe',
-      recipeType: r.recipeType || 'unknown'
-    }));
-    // 最初のレシピを使用（自分自身を除く）
-    const recipe = recipes[0];
+  if (bestRecipe && depth < 5) {
     const ingredients = [];
-    for (const stack of (recipe.consumedItemStacks || [])) {
-      // 材料が自分と同じものは除外（無限ループ防止）
-      if (String(stack.item_id) !== String(itemId)) {
-        const child = buildTreeFromCache(stack.item_id, stack.quantity * quantity, depth + 1);
-        if (child) ingredients.push(child);
-      }
+    for (const stack of (bestRecipe.consumedItemStacks || [])) {
+      if (String(stack.item_id) === String(itemId)) continue; // 自分自身を除外
+      const child = buildTreeFromCache(String(stack.item_id), stack.quantity * quantity, depth + 1);
+      if (child) ingredients.push(child);
     }
     node.recipes.push({
-      craftedQty: recipe.craftedItemStacks?.[0]?.quantity || 1,
+      craftedQty: bestRecipe.craftedItemStacks?.[0]?.quantity || 1,
       ingredients,
+      recipeType: bestRecipe.recipeType,
     });
   }
 
