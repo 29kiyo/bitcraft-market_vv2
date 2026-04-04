@@ -1899,18 +1899,21 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
     });
   }
   
-  // recipesUsingItemを追加（ 材料に自分自身が含まれていないもの）
+  // recipesUsingItemから「素材に自分自身を含まない」かつ「素材数が2以上」のレシピを追加
   if (recipesUsingItem.length > 0) {
-    recipesUsingItem.forEach(r => {
-      const materials = r.consumedItemStacks || [];
-      const selfCount = materials.filter(s => String(s.item_id) === String(itemId)).length;
-      // 材料の半分以上が自分じゃないなら追加
-      if (materials.length === 0 || selfCount / materials.length < 0.5) {
-        allRecipes.push({
-          ...r,
-          recipeType: 'using'
-        });
-      }
+    // 素材数が多いもの（クラフトレシピらしいもの）を優先
+    const craftLike = recipesUsingItem
+      .filter(r => {
+        const materials = r.consumedItemStacks || [];
+        // 自分自身を素材に含まないこと
+        const hasSelf = materials.some(s => String(s.item_id) === String(itemId));
+        // 素材が2個以上あること（修理やスクラップレシピを除外）
+        return !hasSelf && materials.length >= 2;
+      })
+      .sort((a, b) => (b.consumedItemStacks?.length || 0) - (a.consumedItemStacks?.length || 0));
+
+    craftLike.forEach(r => {
+      allRecipes.push({ ...r, recipeType: 'using' });
     });
   }
   
