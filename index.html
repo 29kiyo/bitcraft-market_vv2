@@ -24,9 +24,28 @@
     <p class="tagline">Powered by Bitjita API</p>
   </div>
 </div>
-
+      <button class="craft-open-btn" onclick="openCraftModal()">⚒ クラフト計算</button>
     </div>
   </header>
+
+
+<!-- クラフト計算モーダル -->
+<div id="craftModal" class="craft-overlay hidden">
+  <div class="craft-modal">
+    <div class="craft-header">
+      <h2 class="craft-title">⚒ クラフト計算機</h2>
+      <button class="craft-close" onclick="closeCraftModal()">×</button>
+    </div>
+    <div class="craft-search-row">
+      <div class="craft-search-wrap" style="position:relative">
+        <input id="craftInput" class="craft-input" type="text" placeholder="アイテム名を入力（日本語・英語）...">
+        <div id="craftSuggest" class="craft-suggest hidden"></div>
+      </div>
+    </div>
+    <div id="craftRarityRow" class="craft-rarity-row hidden"></div>
+    <div id="craftResult" class="craft-result"></div>
+  </div>
+</div>
 
   <main>
     <!-- 検索セクション -->
