@@ -1844,196 +1844,114 @@ text-overflow: ellipsis;
   transition: background 0.2s;
 }
 .craft-open-btn:hover { background: rgba(0,200,150,0.2); }
-
 .craft-overlay {
-  position: fixed;
-  inset: 0;
+  position: fixed; inset: 0;
   background: rgba(0,0,0,0.75);
   z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   padding: 20px;
 }
 .craft-modal {
   background: var(--bg2);
   border: 1px solid var(--border2);
   border-radius: var(--radius-lg);
-  width: 100%;
-  max-width: 860px;
-  max-height: 90vh;
-  overflow-y: auto;
+  width: 100%; max-width: 860px;
+  max-height: 90vh; overflow-y: auto;
   padding: 24px;
 }
-.craft-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-.craft-title {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--text);
-}
-.craft-close {
-  background: none;
-  border: none;
-  color: var(--text3);
-  font-size: 1.3rem;
-  cursor: pointer;
-  padding: 2px 8px;
-  transition: color 0.15s;
-}
+.craft-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.craft-title { font-family: 'Rajdhani', sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--text); }
+.craft-close { background: none; border: none; color: var(--text3); font-size: 1.3rem; cursor: pointer; padding: 2px 8px; }
 .craft-close:hover { color: var(--text); }
 .craft-search-row { margin-bottom: 12px; }
 .craft-input {
   width: 100%;
-  background: var(--bg3);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius);
-  padding: 10px 16px;
-  color: var(--text);
-  font-family: 'Noto Sans JP', sans-serif;
-  font-size: 0.95rem;
-  outline: none;
-  transition: border-color 0.2s;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--radius); padding: 10px 16px;
+  color: var(--text); font-family: 'Noto Sans JP', sans-serif;
+  font-size: 0.95rem; outline: none; transition: border-color 0.2s;
 }
 .craft-input:focus { border-color: var(--accent); }
 .craft-suggest {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0; right: 0;
-  background: var(--bg3);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius);
-  z-index: 200;
-  max-height: 240px;
-  overflow-y: auto;
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--radius); z-index: 200;
+  max-height: 240px; overflow-y: auto;
   box-shadow: 0 8px 24px rgba(0,0,0,0.5);
 }
-.craft-suggest-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 14px;
-  cursor: pointer;
+.craft-sug-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; cursor: pointer;
   border-bottom: 1px solid var(--border);
-  transition: background 0.15s;
-  font-size: 0.88rem;
+  transition: background 0.15s; font-size: 0.88rem;
 }
-.craft-suggest-item:hover { background: rgba(0,200,150,0.08); }
-.craft-suggest-item:last-child { border-bottom: none; }
+.craft-sug-item:hover { background: rgba(0,200,150,0.08); }
+.craft-sug-item:last-child { border-bottom: none; }
 .craft-rarity-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-  padding: 12px;
-  background: var(--bg3);
-  border-radius: var(--radius);
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 16px; padding: 12px;
+  background: var(--bg3); border-radius: var(--radius);
   border: 1px solid var(--border);
 }
-.craft-rarity-label {
-  font-size: 0.8rem;
-  color: var(--text3);
-  font-family: 'Rajdhani', sans-serif;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  width: 100%;
-  margin-bottom: 4px;
+.cr-label {
+  font-size: 0.8rem; color: var(--text3);
+  font-family: 'Rajdhani', sans-serif; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  width: 100%; margin-bottom: 4px;
 }
-.craft-rarity-btn {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  color: var(--text2);
-  border-radius: var(--radius);
-  padding: 5px 14px;
-  font-size: 0.82rem;
-  font-family: 'Rajdhani', sans-serif;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
+.cr-btn {
+  background: var(--bg2); border: 1px solid var(--border);
+  color: var(--text2); border-radius: var(--radius);
+  padding: 5px 14px; font-size: 0.82rem;
+  font-family: 'Rajdhani', sans-serif; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
 }
-.craft-rarity-btn:hover { border-color: var(--accent); color: var(--accent); }
-.craft-rarity-btn.active { background: rgba(0,200,150,0.15); border-color: var(--accent); color: var(--accent); }
-.rarity-btn-Common    { border-color: #555; }
-.rarity-btn-Uncommon  { border-color: rgba(0,200,150,0.5); }
-.rarity-btn-Rare      { border-color: rgba(91,156,246,0.5); }
-.rarity-btn-Epic      { border-color: rgba(198,115,224,0.5); }
-.rarity-btn-Legendary { border-color: rgba(240,165,0,0.5); }
-.rarity-btn-Mythic    { border-color: rgba(255,77,109,0.5); }
-.craft-item-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: var(--bg3);
-  border-radius: var(--radius);
-  margin-bottom: 16px;
+.cr-btn:hover { border-color: var(--accent); color: var(--accent); }
+.cr-btn.active { background: rgba(0,200,150,0.15); border-color: var(--accent); color: var(--accent); }
+.rb-Common    { border-color: #555; }
+.rb-Uncommon  { border-color: rgba(0,200,150,0.5); }
+.rb-Rare      { border-color: rgba(91,156,246,0.5); }
+.rb-Epic      { border-color: rgba(198,115,224,0.5); }
+.rb-Legendary { border-color: rgba(240,165,0,0.5); }
+.rb-Mythic    { border-color: rgba(255,77,109,0.5); }
+.craft-result { }
+.cr-item-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px; background: var(--bg3);
+  border-radius: var(--radius); margin-bottom: 16px;
   border: 1px solid var(--border);
 }
-.craft-item-icon {
-  width: 52px; height: 52px;
-  object-fit: contain;
-  border-radius: 6px;
-  background: var(--bg2);
-  flex-shrink: 0;
+.cr-item-icon { width: 52px; height: 52px; object-fit: contain; border-radius: 6px; background: var(--bg2); flex-shrink: 0; }
+.cr-item-name { font-family: 'Rajdhani', sans-serif; font-size: 1.2rem; font-weight: 700; color: var(--text); }
+.cr-sec-title {
+  font-family: 'Rajdhani', sans-serif; font-size: 0.82rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--text3); margin-bottom: 10px;
 }
-.craft-item-name { font-family: 'Rajdhani', sans-serif; font-size: 1.2rem; font-weight: 700; color: var(--text); }
-.craft-item-sub { font-size: 0.8rem; color: var(--text3); }
-.craft-section-title {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 0.82rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--text3);
-  margin-bottom: 10px;
-}
-.craft-ing-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background: var(--bg3);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
+.ci-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; background: var(--bg3);
+  border-radius: var(--radius); border: 1px solid var(--border);
   margin-bottom: 6px;
 }
-.craft-ing-icon {
-  width: 32px; height: 32px;
-  object-fit: contain;
-  border-radius: 4px;
-  background: var(--bg2);
-  flex-shrink: 0;
+.ci-icon { width: 32px; height: 32px; object-fit: contain; border-radius: 4px; background: var(--bg2); flex-shrink: 0; }
+.ci-info { flex: 1; min-width: 0; }
+.ci-name { font-size: 0.88rem; font-weight: 500; color: var(--text); }
+.ci-en   { font-size: 0.75rem; color: var(--text3); }
+.ci-qty  { font-size: 0.8rem; color: var(--text2); font-family: 'Rajdhani', sans-serif; }
+.ci-hint { font-size: 0.75rem; margin-top: 2px; }
+.ci-hint.craft { color: #f0a500; }
+.ci-hint.buy   { color: var(--accent); }
+.ci-price { text-align: right; flex-shrink: 0; }
+.ci-sell { font-family: 'Rajdhani', sans-serif; font-size: 0.95rem; font-weight: 700; color: var(--accent); }
+.ci-sub  { font-size: 0.72rem; color: var(--text3); }
+.ci-sub-tree { margin-left: 20px; border-left: 2px solid var(--border); padding-left: 10px; margin-bottom: 6px; }
+.cr-total {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 16px; background: rgba(0,200,150,0.08);
+  border: 1px solid rgba(0,200,150,0.25); border-radius: var(--radius); margin-top: 16px;
 }
-.craft-ing-info { flex: 1; min-width: 0; }
-.craft-ing-name { font-size: 0.88rem; font-weight: 500; color: var(--text); }
-.craft-ing-en   { font-size: 0.75rem; color: var(--text3); }
-.craft-ing-qty  { font-size: 0.8rem; color: var(--text2); font-family: 'Rajdhani', sans-serif; }
-.craft-ing-price { text-align: right; flex-shrink: 0; }
-.craft-ing-sell { font-family: 'Rajdhani', sans-serif; font-size: 0.95rem; font-weight: 700; color: var(--accent); }
-.craft-ing-claim { font-size: 0.72rem; color: var(--text3); }
-.craft-sub {
-  margin-left: 20px;
-  border-left: 2px solid var(--border);
-  padding-left: 10px;
-  margin-bottom: 6px;
-}
-.craft-total {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 16px;
-  background: rgba(0,200,150,0.08);
-  border: 1px solid rgba(0,200,150,0.25);
-  border-radius: var(--radius);
-  margin-top: 16px;
-}
-.craft-total-label { font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 600; color: var(--text2); }
-.craft-total-value { font-family: 'Rajdhani', sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--accent); }
-.craft-no-recipe { text-align: center; padding: 32px; color: var(--text3); font-size: 0.9rem; }
-.craft-loading   { text-align: center; padding: 40px; color: var(--text3); }
+.cr-total-lbl { font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 600; color: var(--text2); }
+.cr-total-val { font-family: 'Rajdhani', sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+.cr-empty   { text-align: center; padding: 32px; color: var(--text3); font-size: 0.9rem; }
+.cr-loading { text-align: center; padding: 40px; color: var(--text3); }

@@ -1040,7 +1040,7 @@ function updateCalcListCount() {
 }
 
 window.addToCalcList = function(order, itemName) {
-  const existing = window._calcList.find(i => i.itemName === itemName && i.claimName === order.claimName && i.priceThreshold === order.priceThreshold);
+  const existing = window._calcList.find(i => i.itemName === itemName && i.claimName === order.claimName);
   if (existing) {
     const toast = document.createElement('div');
     toast.textContent = `「${itemName}」はすでに同じ領地でリストに追加されています`;
@@ -1174,64 +1174,174 @@ window.openMapModal = function(n, e, claimName) {
   document.body.appendChild(modal);
 };
 
-
 // ============================================
 // クラフト計算機
 // ============================================
 
 const RARITY_ORDER = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Mythic'];
-const craftCache = {};
-const craftMarketCache = {};
-let craftDebounce = null;
-let craftItemMap = null;
+const _craftCache = {};
+const _craftMktCache = {};
+let _craftItemMap = null;
+let _craftDebounce = null;
 
-async function getCraftItemMap() {
-  if (craftItemMap) return craftItemMap;
+async function _getCraftMap() {
+  if (_craftItemMap) return _craftItemMap;
   const allItems = await fetchAllMarketItems();
-  craftItemMap = {};
-  for (const item of allItems) {
-    if (!craftItemMap[item.name]) craftItemMap[item.name] = [];
-    craftItemMap[item.name].push({
-      id: item.id,
-      rarityStr: item.rarityStr,
-      tier: item.tier,
-      iconAssetName: item.iconAssetName
-    });
+  _craftItemMap = {};
+  for (const it of allItems) {
+    if (!_craftItemMap[it.name]) _craftItemMap[it.name] = [];
+    _craftItemMap[it.name].push({ id: it.id, rarityStr: it.rarityStr, tier: it.tier, icon: it.iconAssetName });
   }
-  for (const name of Object.keys(craftItemMap)) {
-    craftItemMap[name].sort((a, b) =>
+  for (const name of Object.keys(_craftItemMap)) {
+    _craftItemMap[name].sort((a, b) =>
       (RARITY_ORDER.indexOf(a.rarityStr) ?? 99) - (RARITY_ORDER.indexOf(b.rarityStr) ?? 99)
     );
   }
-  return craftItemMap;
+  return _craftItemMap;
+}
+
+async function _fetchItem(id) {
+  if (_craftCache[id]) return _craftCache[id];
+  const res = await fetch(`${API_BASE}/items/${id}`, { headers: HEADERS });
+  if (!res.ok) return null;
+  const data = await res.json();
+  _craftCache[id] = data;
+  return data;
+}
+
+async function _fetchMkt(id) {
+  if (_craftMktCache[id]) return _craftMktCache[id];
+  const res = await fetch(`${API_BASE}/market/item/${id}`, { headers: HEADERS });
+  if (!res.ok) return null;
+  const data = await res.json();
+  _craftMktCache[id] = data;
+  return data;
+}
+
+function _lowestSell(mkt) {
+  if (!mkt) return null;
+  const s = (mkt.sellOrders || []).sort((a, b) => Number(a.priceThreshold) - Number(b.priceThreshold));
+  if (!s[0]) return null;
+  return {
+    price: Math.floor(Number(s[0].priceThreshold)),
+    claimName: s[0].claimName || '—',
+    regionName: s[0].regionName || '—',
+    regionId: s[0].regionId || '',
+  };
+}
+
+function _bestRecipe(data, itemId, itemName) {
+  const cr = data.craftingRecipes || [];
+  const ru = data.recipesUsingItem || [];
+  if (cr.length > 0) return cr[0];
+  // 成果物名が一致するものを探す
+  for (const r of ru) {
+    const mats = r.consumedItemStacks || [];
+    const hasSelf = mats.some(s => String(s.item_id) === String(itemId));
+    if (hasSelf && mats.length <= 2) continue; // スクラップ系除外
+    const cid = String(r.craftedItemStacks?.[0]?.item_id);
+    if (_craftCache[cid]?.item?.name === itemName) return r;
+  }
+  // フォールバック：自分自身を含まない素材2個以上
+  return ru
+    .filter(r => {
+      const m = r.consumedItemStacks || [];
+      return !m.some(s => String(s.item_id) === String(itemId)) && m.length >= 2;
+    })
+    .sort((a, b) => (b.consumedItemStacks?.length || 0) - (a.consumedItemStacks?.length || 0))[0] || null;
+}
+
+async function _buildTree(item, recipe, qty, visited) {
+  const node = { item, recipe, qty, children: [], mkt: await _fetchMkt(String(item.id || '')) };
+  if (!recipe) return node;
+  for (const stack of (recipe.consumedItemStacks || [])) {
+    const cid = String(stack.item_id);
+    if (visited.has(cid)) continue;
+    const cdata = await _fetchItem(cid);
+    if (!cdata) continue;
+    // 成果物を先にキャッシュ（名前照合のため）
+    for (const r of (cdata.recipesUsingItem || [])) {
+      const rid = r.craftedItemStacks?.[0]?.item_id;
+      if (rid && !_craftCache[String(rid)]) await _fetchItem(String(rid));
+    }
+    const crec = _bestRecipe(cdata, cid, cdata.item.name);
+    const vis2 = new Set(visited); vis2.add(cid);
+    const child = await _buildTree(cdata.item, crec, stack.quantity * qty, vis2);
+    node.children.push(child);
+  }
+  return node;
+}
+
+function _calcCost(node) {
+  if (!node) return 0;
+  if (!node.recipe || node.children.length === 0) {
+    const s = _lowestSell(node.mkt);
+    return s ? s.price * node.qty : 0;
+  }
+  return node.children.reduce((sum, c) => sum + _calcCost(c), 0);
+}
+
+function _renderTree(node, depth = 0) {
+  if (!node) return '';
+  const it = node.item;
+  const ja = getJaName(it.name);
+  const icon = it.iconAssetName
+    ? `<img src="https://bitjita.com/${it.iconAssetName}.webp" class="ci-icon" onerror="this.style.display='none'">`
+    : `<div class="ci-icon"></div>`;
+  const sell = _lowestSell(node.mkt);
+  const buyTotal = sell ? sell.price * node.qty : null;
+  const craftCost = node.recipe && node.children.length > 0 ? _calcCost(node) : null;
+  const cheaper = craftCost !== null && buyTotal !== null
+    ? (craftCost < buyTotal ? 'craft' : 'buy') : null;
+  const priceHtml = sell
+    ? `<div class="ci-sell">${buyTotal.toLocaleString('ja-JP')} 🪙</div>
+       <div class="ci-sub">${sell.price.toLocaleString('ja-JP')} × ${node.qty}</div>
+       <div class="ci-sub">${sell.claimName} / ${sell.regionName}${sell.regionId ? ` (R${sell.regionId})` : ''}</div>`
+    : `<div class="ci-sub">売り注文なし</div>`;
+  const hint = cheaper === 'craft'
+    ? `<div class="ci-hint craft">⚒ クラフト ${craftCost.toLocaleString('ja-JP')} 🪙の方が安い</div>`
+    : cheaper === 'buy'
+    ? `<div class="ci-hint buy">🛒 購入の方が安い</div>` : '';
+  const sub = node.recipe && node.children.length > 0
+    ? `<div class="ci-sub-tree">${node.children.map(c => _renderTree(c, depth + 1)).join('')}</div>` : '';
+  return `
+    <div class="ci-row">
+      ${icon}
+      <div class="ci-info">
+        <div class="ci-name">${ja || it.name}</div>
+        ${ja ? `<div class="ci-en">${it.name}</div>` : ''}
+        <div class="ci-qty">× ${node.qty}</div>
+        ${hint}
+      </div>
+      <div class="ci-price">${priceHtml}</div>
+    </div>${sub}`;
 }
 
 window.openCraftModal = function() {
   document.getElementById('craftModal').classList.remove('hidden');
-  setTimeout(() => document.getElementById('craftInput').focus(), 100);
+  setTimeout(() => document.getElementById('craftInput')?.focus(), 50);
 };
 window.closeCraftModal = function() {
   document.getElementById('craftModal').classList.add('hidden');
-  document.getElementById('craftSuggest').classList.add('hidden');
+  const sg = document.getElementById('craftSuggest');
+  if (sg) sg.classList.add('hidden');
 };
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') window.closeCraftModal();
-});
-document.getElementById('craftModal').addEventListener('click', e => {
+
+// ESC・オーバーレイクリックで閉じる
+document.addEventListener('keydown', e => { if (e.key === 'Escape') window.closeCraftModal(); });
+document.getElementById('craftModal')?.addEventListener('click', e => {
   if (e.target.id === 'craftModal') window.closeCraftModal();
 });
 
-document.getElementById('craftInput').addEventListener('input', function() {
-  clearTimeout(craftDebounce);
+// サジェスト
+document.getElementById('craftInput')?.addEventListener('input', function() {
+  clearTimeout(_craftDebounce);
   const q = this.value.trim();
-  if (q.length < 2) { document.getElementById('craftSuggest').classList.add('hidden'); return; }
-  craftDebounce = setTimeout(() => showCraftSuggestions(q), 300);
+  if (q.length < 2) { document.getElementById('craftSuggest')?.classList.add('hidden'); return; }
+  _craftDebounce = setTimeout(() => _showSuggest(q), 300);
 });
-document.getElementById('craftInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-    clearTimeout(craftDebounce);
-    showCraftSuggestions(document.getElementById('craftInput').value.trim(), true);
-  }
+document.getElementById('craftInput')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { clearTimeout(_craftDebounce); _showSuggest(document.getElementById('craftInput').value.trim(), true); }
 });
 document.addEventListener('click', e => {
   if (!e.target.closest('#craftModal .craft-search-row') && !e.target.closest('#craftSuggest')) {
@@ -1239,269 +1349,110 @@ document.addEventListener('click', e => {
   }
 });
 
-async function showCraftSuggestions(q, autoSelect = false) {
+async function _showSuggest(q, auto = false) {
   if (!q || q.length < 2) return;
-  const map = await getCraftItemMap();
-  const hasJa = /[\u3040-\u30ff\u4e00-\u9faf]/.test(q);
-  let matches = [];
-  for (const [name, variants] of Object.entries(map)) {
+  const map = await _getCraftMap();
+  const isJa = /[\u3040-\u30ff\u4e00-\u9faf]/.test(q);
+  let hits = [];
+  for (const [name, vs] of Object.entries(map)) {
     const ja = getJaName(name);
-    if (hasJa) {
-      if (ja && (ja.includes(q) || q.includes(ja))) matches.push({ name, variants, ja });
-    } else {
-      if (name.toLowerCase().includes(q.toLowerCase())) matches.push({ name, variants, ja });
-    }
+    if (isJa) { if (ja && (ja.includes(q) || q.includes(ja))) hits.push({ name, vs, ja }); }
+    else { if (name.toLowerCase().includes(q.toLowerCase())) hits.push({ name, vs, ja }); }
   }
-  matches = matches.slice(0, 10);
-  if (autoSelect && matches.length === 1) {
-    document.getElementById('craftSuggest').classList.add('hidden');
-    selectCraftItemByName(matches[0].name);
-    return;
-  }
-  const sugg = document.getElementById('craftSuggest');
-  if (matches.length === 0) { sugg.classList.add('hidden'); return; }
-  sugg.innerHTML = matches.map(({ name, variants, ja }) => {
-    const icon = variants[0]?.iconAssetName
-      ? `<img src="https://bitjita.com/${variants[0].iconAssetName}.webp" width="28" height="28" style="border-radius:3px;background:var(--bg2);flex-shrink:0" onerror="this.style.display='none'">`
-      : '';
-    const rarities = variants.map(v =>
-      `<span class="s-rarity rarity-${v.rarityStr?.toLowerCase()}" style="font-size:10px">${v.rarityStr}</span>`
-    ).join(' ');
-    return `<div class="craft-suggest-item" onclick="selectCraftItemByName('${name.replace(/'/g,"\\'")}')">
-      ${icon}
-      <div style="flex:1;min-width:0">
+  hits = hits.slice(0, 10);
+  if (auto && hits.length === 1) { document.getElementById('craftSuggest')?.classList.add('hidden'); _pickItem(hits[0].name); return; }
+  const el = document.getElementById('craftSuggest');
+  if (!el) return;
+  if (hits.length === 0) { el.classList.add('hidden'); return; }
+  el.innerHTML = hits.map(({ name, vs, ja }) => {
+    const ico = vs[0]?.icon ? `<img src="https://bitjita.com/${vs[0].icon}.webp" width="26" height="26" style="border-radius:3px;background:var(--bg2);flex-shrink:0" onerror="this.style.display='none'">` : '';
+    const rar = vs.map(v => `<span class="s-rarity rarity-${v.rarityStr?.toLowerCase()}" style="font-size:10px">${v.rarityStr}</span>`).join(' ');
+    return `<div class="craft-sug-item" onclick="_pickItem('${name.replace(/'/g,"\\'")}')">
+      ${ico}<div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:500">${ja || name}</div>
         ${ja ? `<div style="font-size:11px;color:var(--text3)">${name}</div>` : ''}
-        <div style="margin-top:2px">${rarities}</div>
-      </div>
-    </div>`;
+        <div style="margin-top:2px">${rar}</div>
+      </div></div>`;
   }).join('');
-  sugg.classList.remove('hidden');
+  el.classList.remove('hidden');
 }
 
-window.selectCraftItemByName = async function(name) {
-  document.getElementById('craftSuggest').classList.add('hidden');
+window._pickItem = async function(name) {
+  document.getElementById('craftSuggest')?.classList.add('hidden');
   const ja = getJaName(name);
-  document.getElementById('craftInput').value = ja || name;
-  const map = await getCraftItemMap();
-  const variants = map[name] || [];
-  showRaritySelect(name, variants);
+  const inp = document.getElementById('craftInput');
+  if (inp) inp.value = ja || name;
+  const map = await _getCraftMap();
+  const vs = map[name] || [];
+  _showRarity(name, vs);
 };
 
-function showRaritySelect(name, variants) {
+function _showRarity(name, vs) {
   const row = document.getElementById('craftRarityRow');
-  if (variants.length <= 1) {
+  if (!row) return;
+  if (vs.length <= 1) {
     row.classList.add('hidden');
-    if (variants[0]) loadCraftRecipe(variants[0].id, name, variants[0].rarityStr);
+    if (vs[0]) _loadRecipe(vs[0].id, name, vs[0].rarityStr);
     return;
   }
   row.classList.remove('hidden');
-  row.innerHTML = `
-    <div class="craft-rarity-label">レアリティを選択</div>
-    ${variants.map(v => `
-      <button class="craft-rarity-btn rarity-btn-${v.rarityStr}"
-        onclick="loadCraftRecipe('${v.id}','${name.replace(/'/g,"\\'")}','${v.rarityStr}',this)">
-        ${v.rarityStr} T${v.tier}
-      </button>`).join('')}
-  `;
-  // 最初を自動選択
-  const firstBtn = row.querySelector('.craft-rarity-btn');
-  loadCraftRecipe(variants[0].id, name, variants[0].rarityStr, firstBtn);
+  row.innerHTML = `<div class="cr-label">レアリティを選択</div>
+    ${vs.map(v => `<button class="cr-btn rb-${v.rarityStr}" onclick="_loadRecipe('${v.id}','${name.replace(/'/g,"\\'")}','${v.rarityStr}',this)">${v.rarityStr} T${v.tier}</button>`).join('')}`;
+  const first = row.querySelector('.cr-btn');
+  _loadRecipe(vs[0].id, name, vs[0].rarityStr, first);
 }
 
-window.loadCraftRecipe = async function(itemId, itemName, rarityStr, btnEl) {
-  if (btnEl) {
-    document.querySelectorAll('.craft-rarity-btn').forEach(b => b.classList.remove('active'));
-    btnEl.classList.add('active');
-  }
-  document.getElementById('craftResult').innerHTML =
-    '<div class="craft-loading"><div class="spinner" style="margin:0 auto 10px"></div>レシピ取得中...</div>';
+window._loadRecipe = async function(itemId, itemName, rarityStr, btn) {
+  if (btn) { document.querySelectorAll('.cr-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+  const res = document.getElementById('craftResult');
+  if (!res) return;
+  res.innerHTML = '<div class="cr-loading"><div class="spinner" style="margin:0 auto 10px"></div>レシピ取得中...</div>';
   try {
-    // 対象アイテムのデータ取得
-    const data = await fetchCraftData(itemId);
+    const data = await _fetchItem(itemId);
     if (!data) throw new Error('データ取得失敗');
-    const marketData = await fetchCraftMarket(itemId);
-
-    // recipesUsingItemの成果物を先にキャッシュ（名前照合のため）
+    const mkt = await _fetchMkt(itemId);
+    // 成果物を先にキャッシュ
     for (const r of (data.recipesUsingItem || [])) {
-      const cId = r.craftedItemStacks?.[0]?.item_id;
-      if (cId && !craftCache[cId]) await fetchCraftData(cId);
+      const cid = r.craftedItemStacks?.[0]?.item_id;
+      if (cid && !_craftCache[String(cid)]) await _fetchItem(String(cid));
     }
-
-    const recipe = selectBestRecipe(data, itemId, itemName);
-    const tree = await buildCraftTree(data.item, recipe, 1, new Set([String(itemId)]));
-    renderCraftResult(data.item, tree, marketData);
+    const recipe = _bestRecipe(data, itemId, itemName);
+    const tree = await _buildTree(data.item, recipe, 1, new Set([String(itemId)]));
+    _renderResult(data.item, tree, mkt);
   } catch(e) {
-    document.getElementById('craftResult').innerHTML =
-      `<div class="craft-no-recipe">エラー: ${e.message}</div>`;
+    res.innerHTML = `<div class="cr-empty">エラー: ${e.message}</div>`;
     console.error(e);
   }
 };
 
-async function fetchCraftData(itemId) {
-  if (craftCache[itemId]) return craftCache[itemId];
-  const res = await fetch(`${API_BASE}/items/${itemId}`, { headers: HEADERS });
-  if (!res.ok) return null;
-  const data = await res.json();
-  craftCache[itemId] = data;
-  return data;
-}
-
-async function fetchCraftMarket(itemId) {
-  if (craftMarketCache[itemId]) return craftMarketCache[itemId];
-  const res = await fetch(`${API_BASE}/market/item/${itemId}`, { headers: HEADERS });
-  if (!res.ok) return null;
-  const data = await res.json();
-  craftMarketCache[itemId] = data;
-  return data;
-}
-
-function selectBestRecipe(data, itemId, itemName) {
-  const craftingRecipes = data.craftingRecipes || [];
-  const recipesUsingItem = data.recipesUsingItem || [];
-
-  // ① craftingRecipesを優先
-  if (craftingRecipes.length > 0) return craftingRecipes[0];
-
-  // ② 成果物名がitemNameと一致するrecipesUsingItemを選ぶ
-  for (const r of recipesUsingItem) {
-    const mats = r.consumedItemStacks || [];
-    // スクラップ系除外（自分自身を含む素材1〜2個）
-    const hasSelf = mats.some(s => String(s.item_id) === String(itemId));
-    if (hasSelf && mats.length <= 2) continue;
-    const craftedId = String(r.craftedItemStacks?.[0]?.item_id);
-    const craftedData = craftCache[craftedId];
-    if (craftedData?.item?.name === itemName) return r;
-  }
-
-  // ③ 自分自身を含まない・素材数2以上を素材数降順で
-  const candidates = recipesUsingItem
-    .filter(r => {
-      const mats = r.consumedItemStacks || [];
-      return !mats.some(s => String(s.item_id) === String(itemId)) && mats.length >= 2;
-    })
-    .sort((a, b) => (b.consumedItemStacks?.length || 0) - (a.consumedItemStacks?.length || 0));
-  return candidates[0] || null;
-}
-
-async function buildCraftTree(item, recipe, quantity, visited) {
-  const node = { item, recipe, quantity, ingredients: [], market: null };
-  node.market = await fetchCraftMarket(item.id || '');
-  if (!recipe) return node;
-
-  for (const stack of (recipe.consumedItemStacks || [])) {
-    const childId = String(stack.item_id);
-    if (visited.has(childId)) continue;
-    const childData = await fetchCraftData(childId);
-    if (!childData) continue;
-
-    // 成果物を事前キャッシュ
-    for (const r of (childData.recipesUsingItem || [])) {
-      const cId = r.craftedItemStacks?.[0]?.item_id;
-      if (cId && !craftCache[cId]) await fetchCraftData(String(cId));
-    }
-
-    const childRecipe = selectBestRecipe(childData, childId, childData.item.name);
-    const childVisited = new Set(visited); childVisited.add(childId);
-    const childNode = await buildCraftTree(childData.item, childRecipe, stack.quantity * quantity, childVisited);
-    childNode.market = await fetchCraftMarket(childId);
-    node.ingredients.push(childNode);
-  }
-  return node;
-}
-
-function getLowestSell(marketData) {
-  if (!marketData) return null;
-  const sells = (marketData.sellOrders || []).sort((a, b) =>
-    Number(a.priceThreshold) - Number(b.priceThreshold));
-  if (!sells[0]) return null;
-  return {
-    price: Math.floor(Number(sells[0].priceThreshold)),
-    claimName: sells[0].claimName || '—',
-    regionName: sells[0].regionName || '—',
-    regionId: sells[0].regionId || '',
-  };
-}
-
-function calcCost(node) {
-  if (!node) return 0;
-  if (!node.recipe || node.ingredients.length === 0) {
-    const sell = getLowestSell(node.market);
-    return sell ? sell.price * node.quantity : 0;
-  }
-  return node.ingredients.reduce((s, c) => s + calcCost(c), 0);
-}
-
-function renderIngTree(node, depth = 0) {
-  if (!node) return '';
-  const item = node.item;
+function _renderResult(item, tree, mkt) {
+  const res = document.getElementById('craftResult');
+  if (!res) return;
   const ja = getJaName(item.name);
-  const icon = item.iconAssetName
-    ? `<img src="https://bitjita.com/${item.iconAssetName}.webp" class="craft-ing-icon" onerror="this.style.display='none'">`
-    : `<div class="craft-ing-icon"></div>`;
-  const sell = getLowestSell(node.market);
-  const totalBuy = sell ? sell.price * node.quantity : null;
-  const craftCost = node.recipe && node.ingredients.length > 0 ? calcCost(node) : null;
-  const cheaper = craftCost !== null && totalBuy !== null
-    ? (craftCost < totalBuy ? 'craft' : 'buy') : null;
-
-  const priceHtml = sell
-    ? `<div class="craft-ing-sell">${totalBuy.toLocaleString('ja-JP')} 🪙</div>
-       <div class="craft-ing-claim">${sell.price.toLocaleString('ja-JP')} × ${node.quantity}</div>
-       <div class="craft-ing-claim">${sell.claimName} / ${sell.regionName}${sell.regionId ? ` (R${sell.regionId})` : ''}</div>`
-    : `<div style="font-size:12px;color:var(--text3)">売り注文なし</div>`;
-
-  const hintHtml = cheaper === 'craft'
-    ? `<div style="font-size:11px;color:#f0a500;margin-top:2px">⚒ クラフト ${craftCost.toLocaleString('ja-JP')} 🪙の方が安い</div>`
-    : cheaper === 'buy'
-    ? `<div style="font-size:11px;color:var(--accent);margin-top:2px">🛒 購入の方が安い</div>` : '';
-
-  const subHtml = node.recipe && node.ingredients.length > 0
-    ? `<div class="craft-sub">${node.ingredients.map(c => renderIngTree(c, depth + 1)).join('')}</div>` : '';
-
-  return `
-    <div class="craft-ing-row">
-      ${icon}
-      <div class="craft-ing-info">
-        <div class="craft-ing-name">${ja || item.name}</div>
-        ${ja ? `<div class="craft-ing-en">${item.name}</div>` : ''}
-        <div class="craft-ing-qty">× ${node.quantity}</div>
-        ${hintHtml}
-      </div>
-      <div class="craft-ing-price">${priceHtml}</div>
-    </div>
-    ${subHtml}`;
-}
-
-function renderCraftResult(item, tree, marketData) {
-  const ja = getJaName(item.name);
-  const icon = item.iconAssetName
-    ? `<img src="https://bitjita.com/${item.iconAssetName}.webp" class="craft-item-icon" onerror="this.style.display='none'">`
-    : `<div class="craft-item-icon"></div>`;
-  const totalCost = calcCost(tree);
-  const sell = getLowestSell(marketData);
-  const hasRecipe = tree.recipe && tree.ingredients.length > 0;
-
-  document.getElementById('craftResult').innerHTML = `
-    <div class="craft-item-card">
-      ${icon}
+  const ico = item.iconAssetName
+    ? `<img src="https://bitjita.com/${item.iconAssetName}.webp" class="cr-item-icon" onerror="this.style.display='none'">`
+    : `<div class="cr-item-icon"></div>`;
+  const total = _calcCost(tree);
+  const sell = _lowestSell(mkt);
+  const has = tree.recipe && tree.children.length > 0;
+  res.innerHTML = `
+    <div class="cr-item-card">
+      ${ico}
       <div>
-        <div class="craft-item-name">${ja || item.name}</div>
-        ${ja ? `<div class="craft-item-sub">${item.name}</div>` : ''}
+        <div class="cr-item-name">${ja || item.name}</div>
+        ${ja ? `<div style="font-size:0.8rem;color:var(--text3)">${item.name}</div>` : ''}
         <div style="margin-top:4px;display:flex;gap:6px;align-items:center">
           ${item.tier > 0 ? `<span class="badge tier">T${item.tier}</span>` : ''}
           <span class="s-rarity rarity-${item.rarityStr?.toLowerCase()}">${item.rarityStr || ''}</span>
         </div>
       </div>
     </div>
-    ${!hasRecipe
-      ? `<div class="craft-no-recipe">このアイテムのクラフトレシピはAPIに含まれていません<br><span style="font-size:11px">※ T2以上の新規クラフトレシピは現在APIで未対応です</span></div>`
-      : `<div class="craft-section-title">必要素材</div>
-         ${tree.ingredients.map(c => renderIngTree(c)).join('')}
-         <div class="craft-total">
-           <span class="craft-total-label">素材合計コスト（推定）</span>
-           <span class="craft-total-value">${totalCost.toLocaleString('ja-JP')} 🪙</span>
-         </div>
-         ${sell ? `<div style="font-size:12px;color:var(--text3);margin-top:8px;text-align:right">現在の最安売値: ${sell.price.toLocaleString('ja-JP')} 🪙（${sell.claimName}）</div>` : ''}`
-    }`;
+    ${!has ? `<div class="cr-empty">このアイテムのクラフトレシピはAPIに含まれていません<br><small>※ T2以上の新規クラフトレシピは現在APIで未対応です</small></div>`
+    : `<div class="cr-sec-title">必要素材</div>
+       ${tree.children.map(c => _renderTree(c)).join('')}
+       <div class="cr-total">
+         <span class="cr-total-lbl">素材合計コスト（推定）</span>
+         <span class="cr-total-val">${total.toLocaleString('ja-JP')} 🪙</span>
+       </div>
+       ${sell ? `<div style="font-size:12px;color:var(--text3);margin-top:8px;text-align:right">現在の最安売値: ${sell.price.toLocaleString('ja-JP')} 🪙（${sell.claimName}）</div>` : ''}`}`;
 }
