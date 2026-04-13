@@ -1830,10 +1830,14 @@ function collectAllItemIds(itemId, depth = 0) {
     }
   }
   
-  // recipesUsingItem: このアイテムを作れるレシピの材料のみ（自分自身は除外）
+  // recipesUsingItem: 成果物IDと素材IDを両方追加（名前照合のため成果物も必要）
   if (data.recipesUsingItem?.length && depth < 5) {
     for (const recipe of data.recipesUsingItem) {
-      // 材料に自分自身が含まれていたらその材料を追加しない
+      // 成果物のitem_idを追加（名前照合のためキャッシュが必要）
+      for (const crafted of (recipe.craftedItemStacks || [])) {
+        ids.add(String(crafted.item_id));
+      }
+      // 素材のitem_idを追加（自分自身は除外）
       for (const stack of (recipe.consumedItemStacks || [])) {
         if (depth + 1 < 5 && String(stack.item_id) !== String(itemId)) {
           ids.add(String(stack.item_id));
@@ -1899,18 +1903,34 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
     });
   }
   
-  // recipesUsingItemを追加（ 材料に自分自身が含まれていないもの）
+  // recipesUsingItemを追加
+  // 成果物名がitemNameと一致するものを優先、それ以外は素材数2以上のものを追加
   if (recipesUsingItem.length > 0) {
-    recipesUsingItem.forEach(r => {
-      const materials = r.consumedItemStacks || [];
-      const selfCount = materials.filter(s => String(s.item_id) === String(itemId)).length;
-      // 材料の半分以上が自分じゃないなら追加
-      if (materials.length === 0 || selfCount / materials.length < 0.5) {
-        allRecipes.push({
-          ...r,
-          recipeType: 'using'
-        });
-      }
+    const itemName = item.name;
+    // ① 成果物名が一致するレシピ（正しいクラフトレシピ）
+    const nameMatched = recipesUsingItem.filter(r => {
+      const craftedId = String(r.craftedItemStacks?.[0]?.item_id);
+      const craftedData = recipeCache[craftedId];
+      return craftedData?.item?.name === itemName;
+    });
+    // ② 自分自身を素材に含まない かつ 素材数2以上（その他クラフト系）
+    const otherCraft = recipesUsingItem.filter(r => {
+      const mats = r.consumedItemStacks || [];
+      const hasSelf = mats.some(s => String(s.item_id) === String(itemId));
+      const craftedId = String(r.craftedItemStacks?.[0]?.item_id);
+      const craftedData = recipeCache[craftedId];
+      const alreadyMatched = craftedData?.item?.name === itemName;
+      return !hasSelf && mats.length >= 2 && !alreadyMatched;
+    });
+    // ③ スクラップ系・再利用系（自分自身を含む）
+    const scrapRecipes = recipesUsingItem.filter(r => {
+      const mats = r.consumedItemStacks || [];
+      return mats.some(s => String(s.item_id) === String(itemId));
+    });
+
+    // 優先順: 名前一致 → その他クラフト → スクラップ系
+    [...nameMatched, ...otherCraft, ...scrapRecipes].forEach(r => {
+      allRecipes.push({ ...r, recipeType: 'using' });
     });
   }
   
