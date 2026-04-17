@@ -1830,17 +1830,28 @@ function collectAllItemIds(itemId, depth = 0) {
     }
   }
   
-  // recipesUsingItem: 成果物IDと素材IDを両方追加（名前照合のため成果物も必要）
+  // recipesUsingItem: 成果物IDと素材IDを両方追加
   if (data.recipesUsingItem?.length && depth < 5) {
+    const itemName = data.item?.name;
+    const allMarketItems = cachedMarketItems || [];
+    const sameNameIds = new Set(
+      allMarketItems.filter(it => it.name === itemName).map(it => String(it.id))
+    );
     for (const recipe of data.recipesUsingItem) {
       // 成果物のitem_idを追加（名前照合のためキャッシュが必要）
       for (const crafted of (recipe.craftedItemStacks || [])) {
         ids.add(String(crafted.item_id));
       }
-      // 素材のitem_idを追加（自分自身は除外）
+      // 成果物名/IDが一致するレシピの素材のみ深掘り
+      const craftedId = String(recipe.craftedItemStacks?.[0]?.item_id);
+      const craftedData = recipeCache[craftedId];
+      const isTargetRecipe = craftedData?.item?.name === itemName || sameNameIds.has(craftedId);
       for (const stack of (recipe.consumedItemStacks || [])) {
-        if (depth + 1 < 5 && String(stack.item_id) !== String(itemId)) {
-          ids.add(String(stack.item_id));
+        const stackId = String(stack.item_id);
+        if (stackId === String(itemId)) continue;
+        // 対象レシピの素材は深掘り、それ以外は1階層のみ追加
+        if (isTargetRecipe || depth === 0) {
+          ids.add(stackId);
         }
       }
     }
@@ -1853,16 +1864,36 @@ function collectAllItemIds(itemId, depth = 0) {
 async function prefetchAllItemData(itemId) {
   const data = await fetchItemData(itemId);
   if (!data) return;
-  
-  const allIds = collectAllItemIds(itemId, 0);
-  const promises = [];
-  
-  for (const id of allIds) {
-    if (!recipeCache[id]) {
-      promises.push(fetchItemData(id));
-    }
+
+  // ① recipesUsingItemの成果物IDを先にキャッシュ（名前照合のため）
+  const craftedIds = (data.recipesUsingItem || [])
+    .flatMap(r => r.craftedItemStacks || [])
+    .map(s => String(s.item_id));
+  await Promise.all(craftedIds.filter(id => !recipeCache[id]).map(id => fetchItemData(id)));
+
+  // ② 同名アイテムの全IDを取得してrecipesUsingItemの成果物もキャッシュ
+  const itemName = data.item?.name;
+  const allMarketItems = cachedMarketItems || [];
+  const sameNameIds = allMarketItems
+    .filter(it => it.name === itemName && String(it.id) !== String(itemId))
+    .map(it => String(it.id));
+
+  await Promise.all(sameNameIds.filter(id => !recipeCache[id]).map(id => fetchItemData(id)));
+  for (const sid of sameNameIds) {
+    const sd = recipeCache[sid];
+    if (!sd) continue;
+    const subCraftedIds = (sd.recipesUsingItem || [])
+      .flatMap(r => r.craftedItemStacks || [])
+      .map(s => String(s.item_id));
+    await Promise.all(subCraftedIds.filter(id => !recipeCache[id]).map(id => fetchItemData(id)));
   }
-  await Promise.all(promises);
+
+  // ③ 素材ツリー全体を収集（同名IDも含む）
+  const allIds = collectAllItemIds(itemId, 0);
+  for (const sid of sameNameIds) {
+    collectAllItemIds(sid, 0).forEach(id => allIds.add(id));
+  }
+  await Promise.all([...allIds].filter(id => !recipeCache[id]).map(id => fetchItemData(id)));
 }
 
 // プリフェッチ: 全市場データを並列取得
@@ -1908,10 +1939,16 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
   if (recipesUsingItem.length > 0) {
     const itemName = item.name;
     // ① 成果物名が一致するレシピ（正しいクラフトレシピ）
+    // 同名の別IDも含めて照合（APIでは同じアイテムが複数IDで登録されている場合がある）
+    const allMarketItems = cachedMarketItems || [];
+    const sameNameIds = new Set(
+      allMarketItems.filter(it => it.name === itemName).map(it => String(it.id))
+    );
     const nameMatched = recipesUsingItem.filter(r => {
       const craftedId = String(r.craftedItemStacks?.[0]?.item_id);
       const craftedData = recipeCache[craftedId];
-      return craftedData?.item?.name === itemName;
+      // 成果物名が一致 OR 成果物IDが同名アイテムのIDと一致
+      return craftedData?.item?.name === itemName || sameNameIds.has(craftedId);
     });
     // ② 自分自身を素材に含まない かつ 素材数2以上（その他クラフト系）
     const otherCraft = recipesUsingItem.filter(r => {
