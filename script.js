@@ -1189,6 +1189,199 @@ window.openMapModal = function(n, e, claimName) {
 // クラフト計算機
 // ============================================
 
+// ============================================
+// 手動レシピDB（APIに存在しないT2以上のクラフトレシピ）
+// 法則: 前TierのCommonツール x1 + Tier素材(Ingot x4, Rope x2, Plank x2, Leather x2)
+// ============================================
+
+const TIER_MATERIALS = {
+  1: { ingot: 1050001, rope: 1090004, plank: 1020003, leather: 1070004 }, // Ferralith
+  2: { ingot: 2050001, rope: 2090004, plank: 2020003, leather: 2070004 }, // Pyrelite
+  3: { ingot: 3050001, rope: 3090004, plank: 3020003, leather: 3070004 }, // Emarium(Sturdy)
+  4: { ingot: 4050001, rope: 4090004, plank: 4020003, leather: 4070004 }, // Elenvar(Fine)
+  5: { ingot: 5050001, rope: 5090004, plank: 5020003, leather: 5070004 }, // Luminite(Exquisite)
+  6: { ingot: 6050001, rope: 6090004, plank: 6020003, leather: 6070004 }, // Rathium(Peerless)
+};
+
+// ツール種別ごとのT1 Common IDと素材パターン
+// 素材パターン: ingot/rope/plank/leather の数量
+const TOOL_PATTERNS = {
+  // ツール（Ingot x4, Rope x2, Plank x2, Leather x2）
+  'Axe':              { mats: { ingot: 4, rope: 2, plank: 2, leather: 2 } },
+  'Pickaxe':          { mats: { ingot: 4, rope: 2, plank: 2, leather: 2 } },
+  'Saw':              { mats: { ingot: 4, rope: 2, plank: 2, leather: 2 } },
+  'Knife':            { mats: { ingot: 4, rope: 2, plank: 2, leather: 2 } },
+  'Machete':          { mats: { ingot: 4, rope: 2, plank: 2, leather: 2 } },
+  'Hoe':              { mats: { ingot: 4, rope: 2, plank: 2, leather: 2 } },
+  'Hammer':           { mats: { ingot: 4, rope: 2, plank: 2, leather: 2 } },
+  'Chisel':           { mats: { ingot: 4, rope: 2, plank: 2, leather: 2 } },
+  'Rod':              { mats: { ingot: 4, rope: 2, plank: 2, leather: 2 } },
+  'Quill':            { mats: { ingot: 4, rope: 2, plank: 2, leather: 2 } },
+  'Scissors':         { mats: { ingot: 4, rope: 2, plank: 2, leather: 2 } },
+  // 武器
+  'Shortsword':       { mats: { ingot: 4, rope: 2, plank: 2, leather: 2 } },
+  'Claymore':         { mats: { ingot: 4, rope: 2, plank: 2, leather: 2 } },
+  'Spear & Shield':   { mats: { ingot: 4, rope: 2, plank: 2, leather: 2 } },
+  'Daggers':          { mats: { ingot: 4, rope: 2, plank: 2, leather: 2 } },
+  'Bow':              { mats: { ingot: 4, rope: 2, plank: 2, leather: 2 } },
+  'Crossbow':         { mats: { ingot: 4, rope: 2, plank: 2, leather: 2 } },
+  'Mace':             { mats: { ingot: 4, rope: 2, plank: 2, leather: 2 } },
+};
+
+// Tier別・ツール種別のCommon IDマッピング
+const TOOL_IDS = {
+  'Ferralith Axe':            { tier: 1, id: 1201067083 },
+  'Ferralith Bow':            { tier: 1, id: 2054875237 },
+  'Ferralith Chisel':         { tier: 1, id: 1831352039 },
+  'Ferralith Claymore':       { tier: 1, id: 252729537 },
+  'Ferralith Crossbow':       { tier: 1, id: 1471860856 },
+  'Ferralith Daggers':        { tier: 1, id: 747689943 },
+  'Ferralith Hammer':         { tier: 1, id: 1669114499 },
+  'Ferralith Hoe':            { tier: 1, id: 273473901 },
+  'Ferralith Knife':          { tier: 1, id: 1503159114 },
+  'Ferralith Mace':           { tier: 1, id: 1823909616 },
+  'Ferralith Machete':        { tier: 1, id: 571682698 },
+  'Ferralith Pickaxe':        { tier: 1, id: 1704711141 },
+  'Ferralith Quill':          { tier: 1, id: 530006562 },
+  'Ferralith Rod':            { tier: 1, id: 544541723 },
+  'Ferralith Saw':            { tier: 1, id: 1355330989 },
+  'Ferralith Scissors':       { tier: 1, id: 1125962328 },
+  'Ferralith Shortsword':     { tier: 1, id: 194332661 },
+  'Ferralith Spear & Shield': { tier: 1, id: 1826240904 },
+  'Pyrelite Axe':             { tier: 2, id: 1605904571 },
+  'Pyrelite Bow':             { tier: 2, id: 1034184552 },
+  'Pyrelite Chisel':          { tier: 2, id: 1413938165 },
+  'Pyrelite Claymore':        { tier: 2, id: 620508449 },
+  'Pyrelite Crossbow':        { tier: 2, id: 1512593047 },
+  'Pyrelite Daggers':         { tier: 2, id: 465856554 },
+  'Pyrelite Hammer':          { tier: 2, id: 482196569 },
+  'Pyrelite Hoe':             { tier: 2, id: 1644135836 },
+  'Pyrelite Knife':           { tier: 2, id: 1316428000 },
+  'Pyrelite Mace':            { tier: 2, id: 1598024081 },
+  'Pyrelite Machete':         { tier: 2, id: 223757569 },
+  'Pyrelite Pickaxe':         { tier: 2, id: 513104323 },
+  'Pyrelite Quill':           { tier: 2, id: 414853205 },
+  'Pyrelite Rod':             { tier: 2, id: 843645212 },
+  'Pyrelite Saw':             { tier: 2, id: 412214433 },
+  'Pyrelite Scissors':        { tier: 2, id: 343569714 },
+  'Pyrelite Shortsword':      { tier: 2, id: 333188935 },
+  'Pyrelite Spear & Shield':  { tier: 2, id: 2098377887 },
+  'Emarium Axe':              { tier: 3, id: 1486054968 },
+  'Emarium Bow':              { tier: 3, id: 1219038577 },
+  'Emarium Chisel':           { tier: 3, id: 438003010 },
+  'Emarium Claymore':         { tier: 3, id: 480170023 },
+  'Emarium Crossbow':         { tier: 3, id: 1176798477 },
+  'Emarium Daggers':          { tier: 3, id: 412987444 },
+  'Emarium Hammer':           { tier: 3, id: 398791964 },
+  'Emarium Hoe':              { tier: 3, id: 1043267104 },
+  'Emarium Knife':            { tier: 3, id: 971385983 },
+  'Emarium Mace':             { tier: 3, id: 1145327846 },
+  'Emarium Machete':          { tier: 3, id: 1229547048 },
+  'Emarium Pickaxe':          { tier: 3, id: 2124079079 },
+  'Emarium Quill':            { tier: 3, id: 1221634026 },
+  'Emarium Rod':              { tier: 3, id: 1094163061 },
+  'Emarium Saw':              { tier: 3, id: 1930789220 },
+  'Emarium Scissors':         { tier: 3, id: 803429716 },
+  'Emarium Shortsword':       { tier: 3, id: 0 },
+  'Emarium Spear & Shield':   { tier: 3, id: 1888091519 },
+  'Elenvar Axe':              { tier: 4, id: 489724302 },
+  'Elenvar Bow':              { tier: 4, id: 735626470 },
+  'Elenvar Chisel':           { tier: 4, id: 2122350182 },
+  'Elenvar Claymore':         { tier: 4, id: 1800349844 },
+  'Elenvar Crossbow':         { tier: 4, id: 1184634453 },
+  'Elenvar Daggers':          { tier: 4, id: 1800053684 },
+  'Elenvar Hammer':           { tier: 4, id: 382339978 },
+  'Elenvar Hoe':              { tier: 4, id: 1891681591 },
+  'Elenvar Knife':            { tier: 4, id: 268156651 },
+  'Elenvar Machete':          { tier: 4, id: 1342482833 },
+  'Elenvar Pickaxe':          { tier: 4, id: 2015514055 },
+  'Elenvar Quill':            { tier: 4, id: 139776334 },
+  'Elenvar Rod':              { tier: 4, id: 1858500155 },
+  'Elenvar Saw':              { tier: 4, id: 1115966209 },
+  'Elenvar Scissors':         { tier: 4, id: 582320225 },
+  'Elenvar Shortsword':       { tier: 4, id: 0 },
+  'Elenvar Spear & Shield':   { tier: 4, id: 1800572877 },
+  'Luminite Axe':             { tier: 5, id: 0 },
+  'Luminite Bow':             { tier: 5, id: 0 },
+  'Luminite Chisel':          { tier: 5, id: 1771114282 },
+  'Luminite Claymore':        { tier: 5, id: 0 },
+  'Luminite Crossbow':        { tier: 5, id: 0 },
+  'Luminite Daggers':         { tier: 5, id: 0 },
+  'Luminite Hammer':          { tier: 5, id: 0 },
+  'Luminite Hoe':             { tier: 5, id: 0 },
+  'Luminite Knife':           { tier: 5, id: 0 },
+  'Luminite Machete':         { tier: 5, id: 0 },
+  'Luminite Pickaxe':         { tier: 5, id: 0 },
+  'Luminite Quill':           { tier: 5, id: 0 },
+  'Luminite Rod':             { tier: 5, id: 0 },
+  'Luminite Saw':             { tier: 5, id: 0 },
+  'Luminite Scissors':        { tier: 5, id: 783907612 },
+  'Luminite Shortsword':      { tier: 5, id: 0 },
+  'Luminite Spear & Shield':  { tier: 5, id: 0 },
+  'Rathium Axe':              { tier: 6, id: 0 },
+  'Rathium Bow':              { tier: 6, id: 0 },
+  'Rathium Chisel':           { tier: 6, id: 0 },
+  'Rathium Claymore':         { tier: 6, id: 0 },
+  'Rathium Crossbow':         { tier: 6, id: 0 },
+  'Rathium Hammer':           { tier: 6, id: 0 },
+  'Rathium Hoe':              { tier: 6, id: 0 },
+  'Rathium Knife':            { tier: 6, id: 0 },
+  'Rathium Machete':          { tier: 6, id: 0 },
+  'Rathium Pickaxe':          { tier: 6, id: 0 },
+  'Rathium Quill':            { tier: 6, id: 0 },
+  'Rathium Rod':              { tier: 6, id: 0 },
+  'Rathium Saw':              { tier: 6, id: 0 },
+  'Rathium Scissors':         { tier: 6, id: 0 },
+  'Rathium Spear & Shield':   { tier: 6, id: 0 },
+};
+
+// ツール名からツール種別を取得
+const TOOL_TYPE_NAMES = Object.keys(TOOL_PATTERNS);
+
+function getToolType(name) {
+  return TOOL_TYPE_NAMES.find(t => name.endsWith(t));
+}
+
+// 前TierのCommon IDを取得
+function getPrevTierCommonId(name, tier) {
+  const toolType = getToolType(name);
+  if (!toolType) return null;
+  const tierNames = ['Ferralith','Pyrelite','Emarium','Elenvar','Luminite','Rathium','Aurumite'];
+  const prevTierName = tierNames[tier - 2]; // tier=2なら index=0 → Ferralith
+  if (!prevTierName) return null;
+  const prevName = `${prevTierName} ${toolType}`;
+  return TOOL_IDS[prevName]?.id || null;
+}
+
+// 手動レシピを生成（T2以上のCommonアイテム用）
+function getManualRecipe(itemId, itemName, tier) {
+  if (!tier || tier < 2) return null;
+  const toolType = getToolType(itemName);
+  if (!toolType) return null;
+  const mats = TOOL_PATTERNS[toolType]?.mats;
+  if (!mats) return null;
+  const tierMat = TIER_MATERIALS[tier];
+  if (!tierMat) return null;
+  const prevId = getPrevTierCommonId(itemName, tier);
+  if (!prevId) return null;
+
+  // レシピを組み立て
+  const consumedItemStacks = [
+    { item_id: prevId, quantity: 1, item_type: 'item' },
+    { item_id: tierMat.ingot, quantity: mats.ingot, item_type: 'item' },
+    { item_id: tierMat.rope, quantity: mats.rope, item_type: 'item' },
+    { item_id: tierMat.plank, quantity: mats.plank, item_type: 'item' },
+    { item_id: tierMat.leather, quantity: mats.leather, item_type: 'item' },
+  ];
+  return {
+    consumedItemStacks,
+    craftedItemStacks: [{ item_id: itemId, quantity: 1 }],
+    recipeType: 'manual',
+    name: `手動レシピ (T${tier} Common)`,
+  };
+}
+
+
 window.openCraftModal = function() {
   const craftModal = document.getElementById('craftModal');
   if (craftModal) craftModal.classList.remove('hidden');
@@ -1830,28 +2023,13 @@ function collectAllItemIds(itemId, depth = 0) {
     }
   }
   
-  // recipesUsingItem: 成果物IDと素材IDを両方追加
+  // recipesUsingItem: このアイテムを作れるレシピの材料のみ（自分自身は除外）
   if (data.recipesUsingItem?.length && depth < 5) {
-    const itemName = data.item?.name;
-    const allMarketItems = cachedMarketItems || [];
-    const sameNameIds = new Set(
-      allMarketItems.filter(it => it.name === itemName).map(it => String(it.id))
-    );
     for (const recipe of data.recipesUsingItem) {
-      // 成果物のitem_idを追加（名前照合のためキャッシュが必要）
-      for (const crafted of (recipe.craftedItemStacks || [])) {
-        ids.add(String(crafted.item_id));
-      }
-      // 成果物名/IDが一致するレシピの素材のみ深掘り
-      const craftedId = String(recipe.craftedItemStacks?.[0]?.item_id);
-      const craftedData = recipeCache[craftedId];
-      const isTargetRecipe = craftedData?.item?.name === itemName || sameNameIds.has(craftedId);
+      // 材料に自分自身が含まれていたらその材料を追加しない
       for (const stack of (recipe.consumedItemStacks || [])) {
-        const stackId = String(stack.item_id);
-        if (stackId === String(itemId)) continue;
-        // 対象レシピの素材は深掘り、それ以外は1階層のみ追加
-        if (isTargetRecipe || depth === 0) {
-          ids.add(stackId);
+        if (depth + 1 < 5 && String(stack.item_id) !== String(itemId)) {
+          ids.add(String(stack.item_id));
         }
       }
     }
@@ -1865,35 +2043,31 @@ async function prefetchAllItemData(itemId) {
   const data = await fetchItemData(itemId);
   if (!data) return;
 
-  // ① recipesUsingItemの成果物IDを先にキャッシュ（名前照合のため）
-  const craftedIds = (data.recipesUsingItem || [])
-    .flatMap(r => r.craftedItemStacks || [])
-    .map(s => String(s.item_id));
-  await Promise.all(craftedIds.filter(id => !recipeCache[id]).map(id => fetchItemData(id)));
-
-  // ② 同名アイテムの全IDを取得してrecipesUsingItemの成果物もキャッシュ
-  const itemName = data.item?.name;
-  const allMarketItems = cachedMarketItems || [];
-  const sameNameIds = allMarketItems
-    .filter(it => it.name === itemName && String(it.id) !== String(itemId))
-    .map(it => String(it.id));
-
-  await Promise.all(sameNameIds.filter(id => !recipeCache[id]).map(id => fetchItemData(id)));
-  for (const sid of sameNameIds) {
-    const sd = recipeCache[sid];
-    if (!sd) continue;
-    const subCraftedIds = (sd.recipesUsingItem || [])
-      .flatMap(r => r.craftedItemStacks || [])
-      .map(s => String(s.item_id));
-    await Promise.all(subCraftedIds.filter(id => !recipeCache[id]).map(id => fetchItemData(id)));
+  // 手動レシピの素材IDを先にプリフェッチ
+  if (data.item) {
+    const manualRecipe = getManualRecipe(itemId, data.item.name, data.item.tier);
+    if (manualRecipe) {
+      const manualIds = (manualRecipe.consumedItemStacks || []).map(s => String(s.item_id));
+      await Promise.all(manualIds.filter(id => !recipeCache[id]).map(id => fetchItemData(id)));
+      // 手動レシピ素材の子レシピも収集
+      for (const mid of manualIds) {
+        const mdata = recipeCache[mid];
+        if (!mdata) continue;
+        const subManual = getManualRecipe(mid, mdata.item?.name, mdata.item?.tier);
+        if (subManual) {
+          const subIds = (subManual.consumedItemStacks || []).map(s => String(s.item_id));
+          await Promise.all(subIds.filter(id => !recipeCache[id]).map(id => fetchItemData(id)));
+        }
+      }
+    }
   }
 
-  // ③ 素材ツリー全体を収集（同名IDも含む）
   const allIds = collectAllItemIds(itemId, 0);
-  for (const sid of sameNameIds) {
-    collectAllItemIds(sid, 0).forEach(id => allIds.add(id));
+  const promises = [];
+  for (const id of allIds) {
+    if (!recipeCache[id]) promises.push(fetchItemData(id));
   }
-  await Promise.all([...allIds].filter(id => !recipeCache[id]).map(id => fetchItemData(id)));
+  await Promise.all(promises);
 }
 
 // プリフェッチ: 全市場データを並列取得
@@ -1933,41 +2107,32 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
       });
     });
   }
-  
-  // recipesUsingItemを追加
-  // 成果物名がitemNameと一致するものを優先、それ以外は素材数2以上のものを追加
-  if (recipesUsingItem.length > 0) {
-    const itemName = item.name;
-    // ① 成果物名が一致するレシピ（正しいクラフトレシピ）
-    // 同名の別IDも含めて照合（APIでは同じアイテムが複数IDで登録されている場合がある）
-    const allMarketItems = cachedMarketItems || [];
-    const sameNameIds = new Set(
-      allMarketItems.filter(it => it.name === itemName).map(it => String(it.id))
-    );
-    const nameMatched = recipesUsingItem.filter(r => {
-      const craftedId = String(r.craftedItemStacks?.[0]?.item_id);
-      const craftedData = recipeCache[craftedId];
-      // 成果物名が一致 OR 成果物IDが同名アイテムのIDと一致
-      return craftedData?.item?.name === itemName || sameNameIds.has(craftedId);
-    });
-    // ② 自分自身を素材に含まない かつ 素材数2以上（その他クラフト系）
-    const otherCraft = recipesUsingItem.filter(r => {
-      const mats = r.consumedItemStacks || [];
-      const hasSelf = mats.some(s => String(s.item_id) === String(itemId));
-      const craftedId = String(r.craftedItemStacks?.[0]?.item_id);
-      const craftedData = recipeCache[craftedId];
-      const alreadyMatched = craftedData?.item?.name === itemName;
-      return !hasSelf && mats.length >= 2 && !alreadyMatched;
-    });
-    // ③ スクラップ系・再利用系（自分自身を含む）
-    const scrapRecipes = recipesUsingItem.filter(r => {
-      const mats = r.consumedItemStacks || [];
-      return mats.some(s => String(s.item_id) === String(itemId));
-    });
 
-    // 優先順: 名前一致 → その他クラフト → スクラップ系
-    [...nameMatched, ...otherCraft, ...scrapRecipes].forEach(r => {
-      allRecipes.push({ ...r, recipeType: 'using' });
+  // 手動レシピを追加（APIに存在しないT2以上クラフトレシピ）
+  const itemData = data.item;
+  if (itemData) {
+    const manualRecipe = getManualRecipe(itemId, itemData.name, itemData.tier);
+    if (manualRecipe) {
+      // 既存レシピと重複しない場合のみ追加
+      const alreadyHasCraft = allRecipes.some(r => r.recipeType === 'crafting' || r.recipeType === 'manual');
+      if (!alreadyHasCraft) {
+        allRecipes.unshift(manualRecipe); // 先頭に追加（優先表示）
+      }
+    }
+  }
+  
+  // recipesUsingItemを追加（ 材料に自分自身が含まれていないもの）
+  if (recipesUsingItem.length > 0) {
+    recipesUsingItem.forEach(r => {
+      const materials = r.consumedItemStacks || [];
+      const selfCount = materials.filter(s => String(s.item_id) === String(itemId)).length;
+      // 材料の半分以上が自分じゃないなら追加
+      if (materials.length === 0 || selfCount / materials.length < 0.5) {
+        allRecipes.push({
+          ...r,
+          recipeType: 'using'
+        });
+      }
     });
   }
   
