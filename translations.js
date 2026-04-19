@@ -1223,6 +1223,7 @@ const EN_EXACT = {
   "Venomous Araknir Fangs": "毒アラクニル牙",
   "Ancient Draught": "古代の飲み物",
   "Ancient Masonry Knowledge": "古代石工知識",
+  "Ancient Leatherworking Knowledge":"古代皮革加工知識",
   "Ancient Mining Knowledge": "古代採掘知識",
   "Ancient Skitch Chiten": "古代スキッチ甲殻",
   "Ancient Skitch Shell": "古代スキッチの殻",
