@@ -2028,7 +2028,7 @@ function getManualRecipe(itemId, itemName, tier) {
     consumedItemStacks,
     craftedItemStacks: [{ item_id: itemId, quantity: 1 }],
     recipeType: 'manual',
-    name: `手動レシピ (T${def.tier} 新規クラフト)`,
+    name: `(T${def.tier} 新規クラフト)`,
   };
 }
 
