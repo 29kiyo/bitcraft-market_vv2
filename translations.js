@@ -303,6 +303,7 @@ const ITEM_TRANSLATIONS = {
 
 // ===== 未登録タグ追加 =====
   "研究":"research",
+  "女王バチ":"Queen Bee",
   "シンプル革のバッグ":"Simple Leather Bag",
   "洗練":"Refined",
   "手袋":"Gloves",
@@ -1201,6 +1202,7 @@ const EN_EQUIPMENT_BASES = new Set([
 
 const EN_EXACT = {
   "Simple Leather Bag": "シンプルな革のバッグ",
+  "Queen Bee":"女王バチ",
   "Energized Sentinel's Shortsword": "エナジャイズドセンチネルのショートソード",
   "Package":"パッケージ",
   "Energized Sentinel's Spear & Shield": "エナジャイズドセンチネルの槍と盾",
