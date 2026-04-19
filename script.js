@@ -108,6 +108,7 @@ let craftCurrentQuantity = 1;
 let craftSelectedItem = null;
 let craftSelectedItems = []; // 複数選択用
 let craftMultiSelectMode = false; // 複数選択モードフラグ
+const craftRecipeIndex = {}; // itemId → 選択中レシピインデックス
 let selectedRegion = '';
 let currentOrderRegion = '';
 let currentOrderClaim = '';
@@ -1621,17 +1622,20 @@ window.switchCraftItem = function(itemId) {
 
 // レシピ切り替え
 window.switchCraftRecipe = function(itemId, recipeIndex) {
+  craftRecipeIndex[itemId] = parseInt(recipeIndex);
   const tree = buildTreeFromCache(itemId, craftCurrentQuantity);
   if (tree && tree.allRecipes && tree.allRecipes[recipeIndex]) {
     const recipe = tree.allRecipes[recipeIndex];
     const ingredients = [];
     for (const stack of (recipe.consumedItemStacks || [])) {
+      if (String(stack.item_id) === '0') continue;
       const child = buildTreeFromCache(stack.item_id, stack.quantity * craftCurrentQuantity, 1);
       if (child) ingredients.push(child);
     }
     tree.recipes = [{
       craftedQty: recipe.craftedItemStacks?.[0]?.quantity || 1,
       ingredients,
+      recipeType: recipe.recipeType,
     }];
     renderCraftTree(tree);
   }
@@ -1848,65 +1852,183 @@ function collectAllItemIds(itemId, depth = 0) {
 // プリフェッチ: 全素材データを並列取得
 
 // ============================================
-// 手動レシピDB（T2以上: 前TierCommon x1 + Tier素材4種）
+// 手動レシピDB（T2以上: 前TierCommon + Tier素材）
 // ============================================
 const TIER_MATERIALS = {
-  1: { ingot: 1050001, rope: 1090004, plank: 1020003, leather: 1070004 },
-  2: { ingot: 2050001, rope: 2090004, plank: 2020003, leather: 2070004 },
-  3: { ingot: 3050001, rope: 3090004, plank: 3020003, leather: 3070004 },
-  4: { ingot: 4050001, rope: 4090004, plank: 4020003, leather: 4070004 },
-  5: { ingot: 5050001, rope: 5090004, plank: 5020003, leather: 5070004 },
-  6: { ingot: 6050001, rope: 6090004, plank: 6020003, leather: 6070004 },
+  1: { ingot:1050001, rope:1090004, plank:1020003, leather:1070004, cloth:1090002 },
+  2: { ingot:2050001, rope:2090004, plank:2020003, leather:2070004, cloth:2090002 },
+  3: { ingot:3050001, rope:3090004, plank:3020003, leather:3070004, cloth:3090002 },
+  4: { ingot:4050001, rope:4090004, plank:4020003, leather:4070004, cloth:4090002 },
+  5: { ingot:5050001, rope:5090004, plank:5020003, leather:5070004, cloth:5090002 },
+  6: { ingot:6050001, rope:6090004, plank:6020003, leather:6070004, cloth:6090002 },
 };
-const TOOL_PREV_ID = {
-  'Pyrelite Axe':1201067083,'Pyrelite Bow':2054875237,'Pyrelite Chisel':1831352039,
-  'Pyrelite Claymore':252729537,'Pyrelite Crossbow':1471860856,'Pyrelite Daggers':747689943,
-  'Pyrelite Hammer':1669114499,'Pyrelite Hoe':273473901,'Pyrelite Knife':1503159114,
-  'Pyrelite Mace':1823909616,'Pyrelite Machete':571682698,'Pyrelite Pickaxe':1704711141,
-  'Pyrelite Quill':530006562,'Pyrelite Rod':544541723,'Pyrelite Saw':1355330989,
-  'Pyrelite Scissors':1125962328,'Pyrelite Shortsword':194332661,'Pyrelite Spear & Shield':1826240904,
-  'Emarium Axe':1605904571,'Emarium Bow':1034184552,'Emarium Chisel':1413938165,
-  'Emarium Claymore':620508449,'Emarium Crossbow':1512593047,'Emarium Daggers':465856554,
-  'Emarium Hammer':482196569,'Emarium Hoe':1644135836,'Emarium Knife':1316428000,
-  'Emarium Mace':1598024081,'Emarium Machete':223757569,'Emarium Pickaxe':513104323,
-  'Emarium Quill':414853205,'Emarium Rod':843645212,'Emarium Saw':412214433,
-  'Emarium Scissors':343569714,'Emarium Shortsword':333188935,'Emarium Spear & Shield':2098377887,
-  'Elenvar Axe':1486054968,'Elenvar Bow':1219038577,'Elenvar Chisel':438003010,
-  'Elenvar Claymore':480170023,'Elenvar Crossbow':1176798477,'Elenvar Daggers':412987444,
-  'Elenvar Hammer':398791964,'Elenvar Hoe':1043267104,'Elenvar Knife':971385983,
-  'Elenvar Mace':1145327846,'Elenvar Machete':1229547048,'Elenvar Pickaxe':2124079079,
-  'Elenvar Quill':1221634026,'Elenvar Rod':1094163061,'Elenvar Saw':1930789220,
-  'Elenvar Scissors':803429716,'Elenvar Spear & Shield':1888091519,
-  'Luminite Axe':489724302,'Luminite Bow':735626470,'Luminite Chisel':2122350182,
-  'Luminite Claymore':1800349844,'Luminite Crossbow':1184634453,'Luminite Daggers':1800053684,
-  'Luminite Hammer':382339978,'Luminite Hoe':1891681591,'Luminite Knife':268156651,
-  'Luminite Machete':1342482833,'Luminite Pickaxe':2015514055,'Luminite Quill':139776334,
-  'Luminite Rod':1858500155,'Luminite Saw':1115966209,'Luminite Scissors':582320225,
-  'Luminite Spear & Shield':1800572877,
-  'Rathium Axe':0,'Rathium Bow':0,'Rathium Chisel':1771114282,
-  'Rathium Claymore':0,'Rathium Crossbow':0,'Rathium Daggers':0,
-  'Rathium Hammer':0,'Rathium Hoe':0,'Rathium Knife':0,
-  'Rathium Machete':0,'Rathium Pickaxe':0,'Rathium Quill':0,
-  'Rathium Rod':0,'Rathium Saw':0,'Rathium Scissors':783907612,
-  'Rathium Spear & Shield':0,
+const ANCIENT_METAL = 1718148009;
+
+// アイテム名 → 前TierCommon ID
+// ツール・武器系（素材: 前Tier x1 + Ingot x4 + Rope x2 + Plank x2 + Leather x2）
+// 装備系Plated（素材: 前Tier x1 + Ingot x5 + Cloth x2）
+// 装備系Duelist（素材: 前Tier x1 + Ingot x4 + Leather x2 + Cloth x1 + AncientMetal x15）
+const MANUAL_RECIPE_DEF = {
+  // === ツール・武器 ===
+  'Pyrelite Axe':            { prevId:1201067083, tier:2, type:'tool' },
+  'Pyrelite Bow':            { prevId:2054875237, tier:2, type:'tool' },
+  'Pyrelite Chisel':         { prevId:1831352039, tier:2, type:'tool' },
+  'Pyrelite Claymore':       { prevId:252729537,  tier:2, type:'tool' },
+  'Pyrelite Crossbow':       { prevId:1471860856, tier:2, type:'tool' },
+  'Pyrelite Daggers':        { prevId:747689943,  tier:2, type:'tool' },
+  'Pyrelite Hammer':         { prevId:1669114499, tier:2, type:'tool' },
+  'Pyrelite Hoe':            { prevId:273473901,  tier:2, type:'tool' },
+  'Pyrelite Knife':          { prevId:1503159114, tier:2, type:'tool' },
+  'Pyrelite Mace':           { prevId:1823909616, tier:2, type:'tool' },
+  'Pyrelite Machete':        { prevId:571682698,  tier:2, type:'tool' },
+  'Pyrelite Pickaxe':        { prevId:1704711141, tier:2, type:'tool' },
+  'Pyrelite Quill':          { prevId:530006562,  tier:2, type:'tool' },
+  'Pyrelite Rod':            { prevId:544541723,  tier:2, type:'tool' },
+  'Pyrelite Saw':            { prevId:1355330989, tier:2, type:'tool' },
+  'Pyrelite Scissors':       { prevId:1125962328, tier:2, type:'tool' },
+  'Pyrelite Shortsword':     { prevId:194332661,  tier:2, type:'tool' },
+  'Pyrelite Spear & Shield': { prevId:1826240904, tier:2, type:'tool' },
+  'Emarium Axe':             { prevId:1605904571, tier:3, type:'tool' },
+  'Emarium Bow':             { prevId:1034184552, tier:3, type:'tool' },
+  'Emarium Chisel':          { prevId:1413938165, tier:3, type:'tool' },
+  'Emarium Claymore':        { prevId:620508449,  tier:3, type:'tool' },
+  'Emarium Crossbow':        { prevId:1512593047, tier:3, type:'tool' },
+  'Emarium Daggers':         { prevId:465856554,  tier:3, type:'tool' },
+  'Emarium Hammer':          { prevId:482196569,  tier:3, type:'tool' },
+  'Emarium Hoe':             { prevId:1644135836, tier:3, type:'tool' },
+  'Emarium Knife':           { prevId:1316428000, tier:3, type:'tool' },
+  'Emarium Mace':            { prevId:1598024081, tier:3, type:'tool' },
+  'Emarium Machete':         { prevId:223757569,  tier:3, type:'tool' },
+  'Emarium Pickaxe':         { prevId:513104323,  tier:3, type:'tool' },
+  'Emarium Quill':           { prevId:414853205,  tier:3, type:'tool' },
+  'Emarium Rod':             { prevId:843645212,  tier:3, type:'tool' },
+  'Emarium Saw':             { prevId:412214433,  tier:3, type:'tool' },
+  'Emarium Scissors':        { prevId:343569714,  tier:3, type:'tool' },
+  'Emarium Shortsword':      { prevId:333188935,  tier:3, type:'tool' },
+  'Emarium Spear & Shield':  { prevId:2098377887, tier:3, type:'tool' },
+  'Elenvar Axe':             { prevId:1486054968, tier:4, type:'tool' },
+  'Elenvar Bow':             { prevId:1219038577, tier:4, type:'tool' },
+  'Elenvar Chisel':          { prevId:438003010,  tier:4, type:'tool' },
+  'Elenvar Claymore':        { prevId:480170023,  tier:4, type:'tool' },
+  'Elenvar Crossbow':        { prevId:1176798477, tier:4, type:'tool' },
+  'Elenvar Daggers':         { prevId:412987444,  tier:4, type:'tool' },
+  'Elenvar Hammer':          { prevId:398791964,  tier:4, type:'tool' },
+  'Elenvar Hoe':             { prevId:1043267104, tier:4, type:'tool' },
+  'Elenvar Knife':           { prevId:971385983,  tier:4, type:'tool' },
+  'Elenvar Mace':            { prevId:1145327846, tier:4, type:'tool' },
+  'Elenvar Machete':         { prevId:1229547048, tier:4, type:'tool' },
+  'Elenvar Pickaxe':         { prevId:2124079079, tier:4, type:'tool' },
+  'Elenvar Quill':           { prevId:1221634026, tier:4, type:'tool' },
+  'Elenvar Rod':             { prevId:1094163061, tier:4, type:'tool' },
+  'Elenvar Saw':             { prevId:1930789220, tier:4, type:'tool' },
+  'Elenvar Scissors':        { prevId:803429716,  tier:4, type:'tool' },
+  'Elenvar Spear & Shield':  { prevId:1888091519, tier:4, type:'tool' },
+  'Luminite Axe':            { prevId:489724302,  tier:5, type:'tool' },
+  'Luminite Bow':            { prevId:735626470,  tier:5, type:'tool' },
+  'Luminite Chisel':         { prevId:2122350182, tier:5, type:'tool' },
+  'Luminite Claymore':       { prevId:1800349844, tier:5, type:'tool' },
+  'Luminite Crossbow':       { prevId:1184634453, tier:5, type:'tool' },
+  'Luminite Daggers':        { prevId:1800053684, tier:5, type:'tool' },
+  'Luminite Hammer':         { prevId:382339978,  tier:5, type:'tool' },
+  'Luminite Hoe':            { prevId:1891681591, tier:5, type:'tool' },
+  'Luminite Knife':          { prevId:268156651,  tier:5, type:'tool' },
+  'Luminite Machete':        { prevId:1342482833, tier:5, type:'tool' },
+  'Luminite Pickaxe':        { prevId:2015514055, tier:5, type:'tool' },
+  'Luminite Quill':          { prevId:139776334,  tier:5, type:'tool' },
+  'Luminite Rod':            { prevId:1858500155, tier:5, type:'tool' },
+  'Luminite Saw':            { prevId:1115966209, tier:5, type:'tool' },
+  'Luminite Scissors':       { prevId:582320225,  tier:5, type:'tool' },
+  'Luminite Spear & Shield': { prevId:1800572877, tier:5, type:'tool' },
+  'Rathium Axe':             { prevId:0,          tier:6, type:'tool' },
+  'Rathium Bow':             { prevId:0,          tier:6, type:'tool' },
+  'Rathium Chisel':          { prevId:1771114282, tier:6, type:'tool' },
+  'Rathium Claymore':        { prevId:0,          tier:6, type:'tool' },
+  'Rathium Crossbow':        { prevId:0,          tier:6, type:'tool' },
+  'Rathium Daggers':         { prevId:0,          tier:6, type:'tool' },
+  'Rathium Hammer':          { prevId:0,          tier:6, type:'tool' },
+  'Rathium Hoe':             { prevId:0,          tier:6, type:'tool' },
+  'Rathium Knife':           { prevId:0,          tier:6, type:'tool' },
+  'Rathium Machete':         { prevId:0,          tier:6, type:'tool' },
+  'Rathium Pickaxe':         { prevId:0,          tier:6, type:'tool' },
+  'Rathium Quill':           { prevId:0,          tier:6, type:'tool' },
+  'Rathium Rod':             { prevId:0,          tier:6, type:'tool' },
+  'Rathium Saw':             { prevId:0,          tier:6, type:'tool' },
+  'Rathium Scissors':        { prevId:783907612,  tier:6, type:'tool' },
+  'Rathium Spear & Shield':  { prevId:0,          tier:6, type:'tool' },
+  // === Plated装備（Ingot x5 + Cloth x2）===
+  'Pyrelite Plated Armor':  { prevId:422440070,   tier:2, type:'plated' },
+  'Pyrelite Plated Belt':   { prevId:922569705,   tier:2, type:'plated' },
+  'Pyrelite Plated Boots':  { prevId:155776141,   tier:2, type:'plated' },
+  'Pyrelite Plated Helm':   { prevId:1919532147,  tier:2, type:'plated' },
+  'Emarium Plated Armor':   { prevId:1268204743,  tier:3, type:'plated' },
+  'Emarium Plated Belt':    { prevId:1682637898,  tier:3, type:'plated' },
+  'Emarium Plated Boots':   { prevId:763048785,   tier:3, type:'plated' },
+  'Emarium Plated Helm':    { prevId:2077008468,  tier:3, type:'plated' },
+  'Elenvar Plated Armor':   { prevId:543757315,   tier:4, type:'plated' },
+  'Elenvar Plated Belt':    { prevId:2093870307,  tier:4, type:'plated' },
+  'Elenvar Plated Boots':   { prevId:1871358332,  tier:4, type:'plated' },
+  'Elenvar Plated Helm':    { prevId:0,           tier:4, type:'plated' },
+  'Luminite Plated Armor':  { prevId:1614334993,  tier:5, type:'plated' },
+  'Luminite Plated Belt':   { prevId:803904452,   tier:5, type:'plated' },
+  'Luminite Plated Boots':  { prevId:1205236443,  tier:5, type:'plated' },
+  'Luminite Plated Helm':   { prevId:0,           tier:5, type:'plated' },
+  'Rathium Plated Armor':   { prevId:0,           tier:6, type:'plated' },
+  'Rathium Plated Boots':   { prevId:0,           tier:6, type:'plated' },
+  'Rathium Plated Helm':    { prevId:0,           tier:6, type:'plated' },
+  // === Duelist装備（Ingot x4 + Leather x2 + Cloth x1 + AncientMetal x15）===
+  'Pyrelite Duelist Armor': { prevId:1554355057,  tier:2, type:'duelist' },
+  'Pyrelite Duelist Belt':  { prevId:288183013,   tier:2, type:'duelist' },
+  'Pyrelite Duelist Boots': { prevId:664595734,   tier:2, type:'duelist' },
+  'Pyrelite Duelist Helm':  { prevId:152653749,   tier:2, type:'duelist' },
+  'Emarium Duelist Armor':  { prevId:712055376,   tier:3, type:'duelist' },
+  'Emarium Duelist Belt':   { prevId:1654952717,  tier:3, type:'duelist' },
+  'Emarium Duelist Helm':   { prevId:1779898711,  tier:3, type:'duelist' },
+  'Elenvar Duelist Armor':  { prevId:1808783387,  tier:4, type:'duelist' },
+  'Elenvar Duelist Helm':   { prevId:1754497634,  tier:4, type:'duelist' },
+  'Luminite Duelist Armor': { prevId:0,           tier:5, type:'duelist' },
+  'Luminite Duelist Belt':  { prevId:0,           tier:5, type:'duelist' },
+  'Rathium Duelist Armor':  { prevId:0,           tier:6, type:'duelist' },
+  'Rathium Duelist Belt':   { prevId:0,           tier:6, type:'duelist' },
+  'Rathium Duelist Boots':  { prevId:0,           tier:6, type:'duelist' },
 };
+
 function getManualRecipe(itemId, itemName, tier) {
-  if (!tier || tier < 2 || !itemName) return null;
-  const mats = TIER_MATERIALS[tier];
+  if (!itemName) return null;
+  const def = MANUAL_RECIPE_DEF[itemName];
+  if (!def || !def.prevId) return null;
+  const mats = TIER_MATERIALS[def.tier];
   if (!mats) return null;
-  const prevId = TOOL_PREV_ID[itemName];
-  if (!prevId) return null;
-  return {
-    consumedItemStacks: [
-      { item_id: prevId,      quantity: 1, item_type: 'item' },
+
+  let consumedItemStacks;
+  if (def.type === 'tool') {
+    consumedItemStacks = [
+      { item_id: def.prevId,  quantity: 1, item_type: 'item' },
       { item_id: mats.ingot,  quantity: 4, item_type: 'item' },
       { item_id: mats.rope,   quantity: 2, item_type: 'item' },
       { item_id: mats.plank,  quantity: 2, item_type: 'item' },
       { item_id: mats.leather,quantity: 2, item_type: 'item' },
-    ],
+    ];
+  } else if (def.type === 'plated') {
+    consumedItemStacks = [
+      { item_id: def.prevId,  quantity: 1, item_type: 'item' },
+      { item_id: mats.ingot,  quantity: 5, item_type: 'item' },
+      { item_id: mats.cloth,  quantity: 2, item_type: 'item' },
+    ];
+  } else if (def.type === 'duelist') {
+    consumedItemStacks = [
+      { item_id: def.prevId,   quantity: 1,  item_type: 'item' },
+      { item_id: mats.ingot,   quantity: 4,  item_type: 'item' },
+      { item_id: mats.leather, quantity: 2,  item_type: 'item' },
+      { item_id: mats.cloth,   quantity: 1,  item_type: 'item' },
+      { item_id: ANCIENT_METAL,quantity: 15, item_type: 'item' },
+    ];
+  } else return null;
+
+  return {
+    consumedItemStacks,
     craftedItemStacks: [{ item_id: itemId, quantity: 1 }],
     recipeType: 'manual',
-    name: `手動レシピ (T${tier} 新規クラフト)`,
+    name: `手動レシピ (T${def.tier} 新規クラフト)`,
   };
 }
 
@@ -1914,7 +2036,7 @@ async function prefetchAllItemData(itemId) {
   const data = await fetchItemData(itemId);
   if (!data) return;
 
-  // 手動レシピの素材IDを収集（再帰的に最大3階層）
+  // 手動レシピの素材を収集（再帰3階層）
   const manualIds = new Set();
   const collectManual = (id, depth = 0) => {
     if (depth > 3) return;
@@ -1922,21 +2044,18 @@ async function prefetchAllItemData(itemId) {
     if (!d?.item) return;
     const mr = getManualRecipe(id, d.item.name, d.item.tier);
     if (mr) {
-      for (const s of mr.consumedItemStacks) {
+      mr.consumedItemStacks.forEach(s => {
         const sid = String(s.item_id);
         if (sid !== '0') { manualIds.add(sid); collectManual(sid, depth + 1); }
-      }
+      });
     }
   };
   collectManual(String(itemId));
 
-  // APIレシピの素材IDを収集
   const allIds = collectAllItemIds(itemId, 0);
   manualIds.forEach(id => allIds.add(id));
-
   await Promise.all([...allIds].filter(id => !recipeCache[id]).map(id => fetchItemData(id)));
-
-  // 取得後さらに手動レシピの素材も展開
+  // 取得後に再展開
   collectManual(String(itemId));
   manualIds.forEach(id => allIds.add(id));
   await Promise.all([...allIds].filter(id => !recipeCache[id]).map(id => fetchItemData(id)));
@@ -1948,22 +2067,19 @@ async function prefetchAllMarketData(itemId) {
   if (!data) return;
 
   const allIds = collectAllItemIds(itemId, 0);
-
-  // 手動レシピの素材IDも追加
-  const addManualIds = (id, depth = 0) => {
+  const addManual = (id, depth = 0) => {
     if (depth > 3) return;
     const d = recipeCache[id];
     if (!d?.item) return;
     const mr = getManualRecipe(id, d.item.name, d.item.tier);
     if (mr) {
-      for (const s of mr.consumedItemStacks) {
+      mr.consumedItemStacks.forEach(s => {
         const sid = String(s.item_id);
-        if (sid !== '0') { allIds.add(sid); addManualIds(sid, depth + 1); }
-      }
+        if (sid !== '0') { allIds.add(sid); addManual(sid, depth + 1); }
+      });
     }
   };
-  addManualIds(String(itemId));
-
+  addManual(String(itemId));
   await Promise.all([...allIds].filter(id => !marketDataCache[id]).map(id => fetchMarketData(id)));
 }
 
@@ -1982,21 +2098,17 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
   // craftingRecipesを追加
   if (craftingRecipes.length > 0) {
     craftingRecipes.forEach(r => {
-      allRecipes.push({
-        ...r,
-        recipeType: 'crafting'
-      });
+      allRecipes.push({ ...r, recipeType: 'crafting' });
     });
   }
 
-  // 手動レシピを追加（craftingRecipesがない場合に先頭へ）
-  const manualRecipe = getManualRecipe(itemId, item.name, item.tier);
-  if (manualRecipe && craftingRecipes.length === 0) {
-    allRecipes.unshift(manualRecipe);
-  } else if (manualRecipe) {
-    allRecipes.push(manualRecipe);
+  // 手動レシピを追加（craftingRecipesがない場合に先頭、ある場合は末尾）
+  const manualRec = getManualRecipe(itemId, item.name, item.tier);
+  if (manualRec) {
+    if (craftingRecipes.length === 0) allRecipes.unshift(manualRec);
+    else allRecipes.push(manualRec);
   }
-  
+
   // recipesUsingItemを追加（ 材料に自分自身が含まれていないもの）
   if (recipesUsingItem.length > 0) {
     recipesUsingItem.forEach(r => {
@@ -2181,7 +2293,7 @@ function renderCraftTree(tree) {
           max-width:200px;
         ">
           ${tree.allRecipes.map((r, idx) => `
-            <option value="${idx}" ${tree.recipes[0] === tree.allRecipes[idx] ? 'selected' : ''}>
+            <option value="${idx}" ${idx === (craftRecipeIndex[tree.itemId] || 0) ? 'selected' : ''}>
               ${r.name || 'レシピ ' + (idx + 1)} ${r.recipeType === 'crafting' || r.recipeType === 'manual' ? '(新規クラフト)' : '(再利用・改造)'}
             </option>
           `).join('')}
