@@ -1200,7 +1200,7 @@ const EN_EQUIPMENT_BASES = new Set([
 ]);
 
 const EN_EXACT = {
-  "Simple Leather Bag": "シンプルな革のバッグ"
+  "Simple Leather Bag": "シンプルな革のバッグ",
   "Energized Sentinel's Shortsword": "エナジャイズドセンチネルのショートソード",
   "Package":"パッケージ",
   "Energized Sentinel's Spear & Shield": "エナジャイズドセンチネルの槍と盾",
