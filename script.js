@@ -1846,19 +1846,100 @@ function collectAllItemIds(itemId, depth = 0) {
 }
 
 // プリフェッチ: 全素材データを並列取得
+
+// ============================================
+// 手動レシピDB（T2以上: 前TierCommon x1 + Tier素材4種）
+// ============================================
+const TIER_MATERIALS = {
+  1: { ingot: 1050001, rope: 1090004, plank: 1020003, leather: 1070004 },
+  2: { ingot: 2050001, rope: 2090004, plank: 2020003, leather: 2070004 },
+  3: { ingot: 3050001, rope: 3090004, plank: 3020003, leather: 3070004 },
+  4: { ingot: 4050001, rope: 4090004, plank: 4020003, leather: 4070004 },
+  5: { ingot: 5050001, rope: 5090004, plank: 5020003, leather: 5070004 },
+  6: { ingot: 6050001, rope: 6090004, plank: 6020003, leather: 6070004 },
+};
+const TOOL_PREV_ID = {
+  'Pyrelite Axe':1201067083,'Pyrelite Bow':2054875237,'Pyrelite Chisel':1831352039,
+  'Pyrelite Claymore':252729537,'Pyrelite Crossbow':1471860856,'Pyrelite Daggers':747689943,
+  'Pyrelite Hammer':1669114499,'Pyrelite Hoe':273473901,'Pyrelite Knife':1503159114,
+  'Pyrelite Mace':1823909616,'Pyrelite Machete':571682698,'Pyrelite Pickaxe':1704711141,
+  'Pyrelite Quill':530006562,'Pyrelite Rod':544541723,'Pyrelite Saw':1355330989,
+  'Pyrelite Scissors':1125962328,'Pyrelite Shortsword':194332661,'Pyrelite Spear & Shield':1826240904,
+  'Emarium Axe':1605904571,'Emarium Bow':1034184552,'Emarium Chisel':1413938165,
+  'Emarium Claymore':620508449,'Emarium Crossbow':1512593047,'Emarium Daggers':465856554,
+  'Emarium Hammer':482196569,'Emarium Hoe':1644135836,'Emarium Knife':1316428000,
+  'Emarium Mace':1598024081,'Emarium Machete':223757569,'Emarium Pickaxe':513104323,
+  'Emarium Quill':414853205,'Emarium Rod':843645212,'Emarium Saw':412214433,
+  'Emarium Scissors':343569714,'Emarium Shortsword':333188935,'Emarium Spear & Shield':2098377887,
+  'Elenvar Axe':1486054968,'Elenvar Bow':1219038577,'Elenvar Chisel':438003010,
+  'Elenvar Claymore':480170023,'Elenvar Crossbow':1176798477,'Elenvar Daggers':412987444,
+  'Elenvar Hammer':398791964,'Elenvar Hoe':1043267104,'Elenvar Knife':971385983,
+  'Elenvar Mace':1145327846,'Elenvar Machete':1229547048,'Elenvar Pickaxe':2124079079,
+  'Elenvar Quill':1221634026,'Elenvar Rod':1094163061,'Elenvar Saw':1930789220,
+  'Elenvar Scissors':803429716,'Elenvar Spear & Shield':1888091519,
+  'Luminite Axe':489724302,'Luminite Bow':735626470,'Luminite Chisel':2122350182,
+  'Luminite Claymore':1800349844,'Luminite Crossbow':1184634453,'Luminite Daggers':1800053684,
+  'Luminite Hammer':382339978,'Luminite Hoe':1891681591,'Luminite Knife':268156651,
+  'Luminite Machete':1342482833,'Luminite Pickaxe':2015514055,'Luminite Quill':139776334,
+  'Luminite Rod':1858500155,'Luminite Saw':1115966209,'Luminite Scissors':582320225,
+  'Luminite Spear & Shield':1800572877,
+  'Rathium Axe':0,'Rathium Bow':0,'Rathium Chisel':1771114282,
+  'Rathium Claymore':0,'Rathium Crossbow':0,'Rathium Daggers':0,
+  'Rathium Hammer':0,'Rathium Hoe':0,'Rathium Knife':0,
+  'Rathium Machete':0,'Rathium Pickaxe':0,'Rathium Quill':0,
+  'Rathium Rod':0,'Rathium Saw':0,'Rathium Scissors':783907612,
+  'Rathium Spear & Shield':0,
+};
+function getManualRecipe(itemId, itemName, tier) {
+  if (!tier || tier < 2 || !itemName) return null;
+  const mats = TIER_MATERIALS[tier];
+  if (!mats) return null;
+  const prevId = TOOL_PREV_ID[itemName];
+  if (!prevId) return null;
+  return {
+    consumedItemStacks: [
+      { item_id: prevId,      quantity: 1, item_type: 'item' },
+      { item_id: mats.ingot,  quantity: 4, item_type: 'item' },
+      { item_id: mats.rope,   quantity: 2, item_type: 'item' },
+      { item_id: mats.plank,  quantity: 2, item_type: 'item' },
+      { item_id: mats.leather,quantity: 2, item_type: 'item' },
+    ],
+    craftedItemStacks: [{ item_id: itemId, quantity: 1 }],
+    recipeType: 'manual',
+    name: `手動レシピ (T${tier} 新規クラフト)`,
+  };
+}
+
 async function prefetchAllItemData(itemId) {
   const data = await fetchItemData(itemId);
   if (!data) return;
-  
-  const allIds = collectAllItemIds(itemId, 0);
-  const promises = [];
-  
-  for (const id of allIds) {
-    if (!recipeCache[id]) {
-      promises.push(fetchItemData(id));
+
+  // 手動レシピの素材IDを収集（再帰的に最大3階層）
+  const manualIds = new Set();
+  const collectManual = (id, depth = 0) => {
+    if (depth > 3) return;
+    const d = recipeCache[id];
+    if (!d?.item) return;
+    const mr = getManualRecipe(id, d.item.name, d.item.tier);
+    if (mr) {
+      for (const s of mr.consumedItemStacks) {
+        const sid = String(s.item_id);
+        if (sid !== '0') { manualIds.add(sid); collectManual(sid, depth + 1); }
+      }
     }
-  }
-  await Promise.all(promises);
+  };
+  collectManual(String(itemId));
+
+  // APIレシピの素材IDを収集
+  const allIds = collectAllItemIds(itemId, 0);
+  manualIds.forEach(id => allIds.add(id));
+
+  await Promise.all([...allIds].filter(id => !recipeCache[id]).map(id => fetchItemData(id)));
+
+  // 取得後さらに手動レシピの素材も展開
+  collectManual(String(itemId));
+  manualIds.forEach(id => allIds.add(id));
+  await Promise.all([...allIds].filter(id => !recipeCache[id]).map(id => fetchItemData(id)));
 }
 
 // プリフェッチ: 全市場データを並列取得
@@ -1868,21 +1949,20 @@ async function prefetchAllMarketData(itemId) {
 
   const allIds = collectAllItemIds(itemId, 0);
 
-  // 手動レシピの素材IDも追加（複数階層分）
+  // 手動レシピの素材IDも追加
   const addManualIds = (id, depth = 0) => {
-    if (depth > 5) return;
+    if (depth > 3) return;
     const d = recipeCache[id];
     if (!d?.item) return;
     const mr = getManualRecipe(id, d.item.name, d.item.tier);
     if (mr) {
-      for (const s of (mr.consumedItemStacks || [])) {
+      for (const s of mr.consumedItemStacks) {
         const sid = String(s.item_id);
-        allIds.add(sid);
-        addManualIds(sid, depth + 1);
+        if (sid !== '0') { allIds.add(sid); addManualIds(sid, depth + 1); }
       }
     }
   };
-  addManualIds(itemId);
+  addManualIds(String(itemId));
 
   await Promise.all([...allIds].filter(id => !marketDataCache[id]).map(id => fetchMarketData(id)));
 }
@@ -1907,6 +1987,14 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
         recipeType: 'crafting'
       });
     });
+  }
+
+  // 手動レシピを追加（craftingRecipesがない場合に先頭へ）
+  const manualRecipe = getManualRecipe(itemId, item.name, item.tier);
+  if (manualRecipe && craftingRecipes.length === 0) {
+    allRecipes.unshift(manualRecipe);
+  } else if (manualRecipe) {
+    allRecipes.push(manualRecipe);
   }
   
   // recipesUsingItemを追加（ 材料に自分自身が含まれていないもの）
@@ -2094,7 +2182,7 @@ function renderCraftTree(tree) {
         ">
           ${tree.allRecipes.map((r, idx) => `
             <option value="${idx}" ${tree.recipes[0] === tree.allRecipes[idx] ? 'selected' : ''}>
-              ${r.name || 'レシピ ' + (idx + 1)} ${(r.recipeType === 'crafting' || r.recipeType === 'manual') ? '(一から作る)' : '(再利用・改造)'}
+              ${r.name || 'レシピ ' + (idx + 1)} ${r.recipeType === 'crafting' || r.recipeType === 'manual' ? '(新規クラフト)' : '(再利用・改造)'}
             </option>
           `).join('')}
         </select>
