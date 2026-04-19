@@ -108,7 +108,6 @@ let craftCurrentQuantity = 1;
 let craftSelectedItem = null;
 let craftSelectedItems = []; // 複数選択用
 let craftMultiSelectMode = false; // 複数選択モードフラグ
-const craftRecipeIndex = {}; // itemId → 選択中レシピインデックス
 let selectedRegion = '';
 let currentOrderRegion = '';
 let currentOrderClaim = '';
@@ -885,26 +884,27 @@ function renderLogTable(trades, page) {
       <button class="page-btn" onclick="changeLogPage(${page + 1})" ${page >= totalPages ? 'disabled' : ''}>次へ →</button>
     </div>` : '';
 
-  const regions = [...new Set(trades.map(t => t.regionName).filter(Boolean))].sort();
-  const currentRegion = document.getElementById('logRegionFilter')?.value || '';
-  const regionOptions = regions.map(r => {
-    const rid = trades.find(t => t.regionName === r)?.regionId || '';
-    return `<option value="${r}" ${currentRegion === r ? 'selected' : ''}>${r} (R${rid})</option>`;
+  const claims = [...new Set(trades.map(t => t.claimName).filter(Boolean))].sort();
+  const currentClaim = document.getElementById('logClaimFilter')?.value || '';
+  const claimOptions = claims.map(c => {
+    const t = trades.find(tr => tr.claimName === c);
+    const rid = t?.regionId || '';
+    return `<option value="${c}" ${currentClaim === c ? 'selected' : ''}>${c}${rid ? ` (R${rid})` : ''}</option>`;
   }).join('');
 
   document.getElementById('tradeLog').innerHTML = `
     <h3 class="section-title">📜 取引ログ <span class="order-count">${limited.length}件</span></h3>
     <button class="refresh-btn" onclick="refreshTradeLog()">🔄 ログ更新</button>
     <div class="log-filter">
-      <select id="logRegionFilter" onchange="filterTradeLog()">
-        <option value="">全リージョン</option>${regionOptions}
+      <select id="logClaimFilter" onchange="filterTradeLog()">
+        <option value="">全取引領地</option>${claimOptions}
       </select>
     </div>
     ${pagination}
     <div class="log-table-wrap">
       <table class="log-table">
         <thead><tr>
-          <th>日時</th><th>買い手</th><th>売り手</th><th>リージョン</th><th>単価</th><th>数量</th><th>合計</th>
+          <th>日時</th><th>買い手</th><th>売り手</th><th>取引領地</th><th>単価</th><th>数量</th><th>合計</th>
         </tr></thead>
         <tbody>${renderLogRows(pageItems)}</tbody>
       </table>
@@ -921,7 +921,7 @@ function renderLogRows(trades) {
       <td>${dateStr}</td>
       <td>${t.buyerUsername || '—'}</td>
       <td>${t.sellerUsername || '—'}</td>
-      <td>${t.regionName || '—'} (R${t.regionId || ''})</td>
+      <td>${t.claimName || t.regionName || '—'}${t.regionId ? ` (R${t.regionId})` : ''}</td>
       <td class="price-cell">${formatPrice(t.unitPrice)}</td>
       <td>${formatNum(t.quantity)}</td>
       <td class="price-cell">${formatPrice(t.price)}</td>
@@ -931,9 +931,9 @@ function renderLogRows(trades) {
 
 window.changeLogPage = function(page) {
   currentLogPage = page;
-  const region = document.getElementById('logRegionFilter')?.value || '';
+  const claim = document.getElementById('logClaimFilter')?.value || '';
   const trades = window._tradeLogs || [];
-  renderLogTable(region ? trades.filter(t => t.regionName === region) : trades, page);
+  renderLogTable(claim ? trades.filter(t => t.claimName === claim) : trades, page);
 };
 
 window.refreshTradeLog = async function() {
@@ -944,9 +944,9 @@ window.refreshTradeLog = async function() {
 };
 
 window.filterTradeLog = function() {
-  const region = document.getElementById('logRegionFilter')?.value || '';
+  const claim = document.getElementById('logClaimFilter')?.value || '';
   const trades = window._tradeLogs || [];
-  const filtered = region ? trades.filter(t => t.regionName === region) : trades;
+  const filtered = claim ? trades.filter(t => t.claimName === claim) : trades;
   currentLogPage = 1;
   renderLogTable(filtered, 1);
 };
@@ -1622,20 +1622,17 @@ window.switchCraftItem = function(itemId) {
 
 // レシピ切り替え
 window.switchCraftRecipe = function(itemId, recipeIndex) {
-  craftRecipeIndex[itemId] = parseInt(recipeIndex);
   const tree = buildTreeFromCache(itemId, craftCurrentQuantity);
   if (tree && tree.allRecipes && tree.allRecipes[recipeIndex]) {
     const recipe = tree.allRecipes[recipeIndex];
     const ingredients = [];
     for (const stack of (recipe.consumedItemStacks || [])) {
-      if (String(stack.item_id) === '0') continue;
       const child = buildTreeFromCache(stack.item_id, stack.quantity * craftCurrentQuantity, 1);
       if (child) ingredients.push(child);
     }
     tree.recipes = [{
       craftedQty: recipe.craftedItemStacks?.[0]?.quantity || 1,
       ingredients,
-      recipeType: recipe.recipeType,
     }];
     renderCraftTree(tree);
   }
@@ -1853,6 +1850,7 @@ function collectAllItemIds(itemId, depth = 0) {
 
 // ============================================
 // 手動レシピDB（T2以上: 前TierCommon + Tier素材）
+// T6以上は対応済み（prevId=0の場合はスキップ）
 // ============================================
 const TIER_MATERIALS = {
   1: { ingot:1050001, rope:1090004, plank:1020003, leather:1070004, cloth:1090002 },
@@ -1861,15 +1859,13 @@ const TIER_MATERIALS = {
   4: { ingot:4050001, rope:4090004, plank:4020003, leather:4070004, cloth:4090002 },
   5: { ingot:5050001, rope:5090004, plank:5020003, leather:5070004, cloth:5090002 },
   6: { ingot:6050001, rope:6090004, plank:6020003, leather:6070004, cloth:6090002 },
+  7: { ingot:1899017490, rope:0, plank:0, leather:0, cloth:1610800379 },
+  8: { ingot:1464752960, rope:0, plank:0, leather:0, cloth:136406464 },
 };
 const ANCIENT_METAL = 1718148009;
 
-// アイテム名 → 前TierCommon ID
-// ツール・武器系（素材: 前Tier x1 + Ingot x4 + Rope x2 + Plank x2 + Leather x2）
-// 装備系Plated（素材: 前Tier x1 + Ingot x5 + Cloth x2）
-// 装備系Duelist（素材: 前Tier x1 + Ingot x4 + Leather x2 + Cloth x1 + AncientMetal x15）
 const MANUAL_RECIPE_DEF = {
-  // === ツール・武器 ===
+  // ツール・武器（Ingot x4 + Rope x2 + Plank x2 + Leather x2）
   'Pyrelite Axe':            { prevId:1201067083, tier:2, type:'tool' },
   'Pyrelite Bow':            { prevId:2054875237, tier:2, type:'tool' },
   'Pyrelite Chisel':         { prevId:1831352039, tier:2, type:'tool' },
@@ -1955,41 +1951,41 @@ const MANUAL_RECIPE_DEF = {
   'Rathium Saw':             { prevId:0,          tier:6, type:'tool' },
   'Rathium Scissors':        { prevId:783907612,  tier:6, type:'tool' },
   'Rathium Spear & Shield':  { prevId:0,          tier:6, type:'tool' },
-  // === Plated装備（Ingot x5 + Cloth x2）===
-  'Pyrelite Plated Armor':  { prevId:422440070,   tier:2, type:'plated' },
-  'Pyrelite Plated Belt':   { prevId:922569705,   tier:2, type:'plated' },
-  'Pyrelite Plated Boots':  { prevId:155776141,   tier:2, type:'plated' },
-  'Pyrelite Plated Helm':   { prevId:1919532147,  tier:2, type:'plated' },
-  'Emarium Plated Armor':   { prevId:1268204743,  tier:3, type:'plated' },
-  'Emarium Plated Belt':    { prevId:1682637898,  tier:3, type:'plated' },
-  'Emarium Plated Boots':   { prevId:763048785,   tier:3, type:'plated' },
-  'Emarium Plated Helm':    { prevId:2077008468,  tier:3, type:'plated' },
-  'Elenvar Plated Armor':   { prevId:543757315,   tier:4, type:'plated' },
-  'Elenvar Plated Belt':    { prevId:2093870307,  tier:4, type:'plated' },
-  'Elenvar Plated Boots':   { prevId:1871358332,  tier:4, type:'plated' },
-  'Elenvar Plated Helm':    { prevId:0,           tier:4, type:'plated' },
-  'Luminite Plated Armor':  { prevId:1614334993,  tier:5, type:'plated' },
-  'Luminite Plated Belt':   { prevId:803904452,   tier:5, type:'plated' },
-  'Luminite Plated Boots':  { prevId:1205236443,  tier:5, type:'plated' },
-  'Luminite Plated Helm':   { prevId:0,           tier:5, type:'plated' },
-  'Rathium Plated Armor':   { prevId:0,           tier:6, type:'plated' },
-  'Rathium Plated Boots':   { prevId:0,           tier:6, type:'plated' },
-  'Rathium Plated Helm':    { prevId:0,           tier:6, type:'plated' },
-  // === Duelist装備（Ingot x4 + Leather x2 + Cloth x1 + AncientMetal x15）===
-  'Pyrelite Duelist Armor': { prevId:1554355057,  tier:2, type:'duelist' },
-  'Pyrelite Duelist Belt':  { prevId:288183013,   tier:2, type:'duelist' },
-  'Pyrelite Duelist Boots': { prevId:664595734,   tier:2, type:'duelist' },
-  'Pyrelite Duelist Helm':  { prevId:152653749,   tier:2, type:'duelist' },
-  'Emarium Duelist Armor':  { prevId:712055376,   tier:3, type:'duelist' },
-  'Emarium Duelist Belt':   { prevId:1654952717,  tier:3, type:'duelist' },
-  'Emarium Duelist Helm':   { prevId:1779898711,  tier:3, type:'duelist' },
-  'Elenvar Duelist Armor':  { prevId:1808783387,  tier:4, type:'duelist' },
-  'Elenvar Duelist Helm':   { prevId:1754497634,  tier:4, type:'duelist' },
-  'Luminite Duelist Armor': { prevId:0,           tier:5, type:'duelist' },
-  'Luminite Duelist Belt':  { prevId:0,           tier:5, type:'duelist' },
-  'Rathium Duelist Armor':  { prevId:0,           tier:6, type:'duelist' },
-  'Rathium Duelist Belt':   { prevId:0,           tier:6, type:'duelist' },
-  'Rathium Duelist Boots':  { prevId:0,           tier:6, type:'duelist' },
+  // Plated装備（Ingot x5 + Cloth x2）
+  'Pyrelite Plated Armor':   { prevId:422440070,  tier:2, type:'plated' },
+  'Pyrelite Plated Belt':    { prevId:922569705,  tier:2, type:'plated' },
+  'Pyrelite Plated Boots':   { prevId:155776141,  tier:2, type:'plated' },
+  'Pyrelite Plated Helm':    { prevId:1919532147, tier:2, type:'plated' },
+  'Emarium Plated Armor':    { prevId:1268204743, tier:3, type:'plated' },
+  'Emarium Plated Belt':     { prevId:1682637898, tier:3, type:'plated' },
+  'Emarium Plated Boots':    { prevId:763048785,  tier:3, type:'plated' },
+  'Emarium Plated Helm':     { prevId:2077008468, tier:3, type:'plated' },
+  'Elenvar Plated Armor':    { prevId:543757315,  tier:4, type:'plated' },
+  'Elenvar Plated Belt':     { prevId:2093870307, tier:4, type:'plated' },
+  'Elenvar Plated Boots':    { prevId:1871358332, tier:4, type:'plated' },
+  'Elenvar Plated Helm':     { prevId:0,          tier:4, type:'plated' },
+  'Luminite Plated Armor':   { prevId:1614334993, tier:5, type:'plated' },
+  'Luminite Plated Belt':    { prevId:803904452,  tier:5, type:'plated' },
+  'Luminite Plated Boots':   { prevId:1205236443, tier:5, type:'plated' },
+  'Luminite Plated Helm':    { prevId:0,          tier:5, type:'plated' },
+  'Rathium Plated Armor':    { prevId:0,          tier:6, type:'plated' },
+  'Rathium Plated Boots':    { prevId:0,          tier:6, type:'plated' },
+  'Rathium Plated Helm':     { prevId:0,          tier:6, type:'plated' },
+  // Duelist装備（Ingot x4 + Leather x2 + Cloth x1 + AncientMetal x15）
+  'Pyrelite Duelist Armor':  { prevId:1554355057, tier:2, type:'duelist' },
+  'Pyrelite Duelist Belt':   { prevId:288183013,  tier:2, type:'duelist' },
+  'Pyrelite Duelist Boots':  { prevId:664595734,  tier:2, type:'duelist' },
+  'Pyrelite Duelist Helm':   { prevId:152653749,  tier:2, type:'duelist' },
+  'Emarium Duelist Armor':   { prevId:712055376,  tier:3, type:'duelist' },
+  'Emarium Duelist Belt':    { prevId:1654952717, tier:3, type:'duelist' },
+  'Emarium Duelist Helm':    { prevId:1779898711, tier:3, type:'duelist' },
+  'Elenvar Duelist Armor':   { prevId:1808783387, tier:4, type:'duelist' },
+  'Elenvar Duelist Helm':    { prevId:1754497634, tier:4, type:'duelist' },
+  'Luminite Duelist Armor':  { prevId:0,          tier:5, type:'duelist' },
+  'Luminite Duelist Belt':   { prevId:0,          tier:5, type:'duelist' },
+  'Rathium Duelist Armor':   { prevId:0,          tier:6, type:'duelist' },
+  'Rathium Duelist Belt':    { prevId:0,          tier:6, type:'duelist' },
+  'Rathium Duelist Boots':   { prevId:0,          tier:6, type:'duelist' },
 };
 
 function getManualRecipe(itemId, itemName, tier) {
@@ -1998,37 +1994,36 @@ function getManualRecipe(itemId, itemName, tier) {
   if (!def || !def.prevId) return null;
   const mats = TIER_MATERIALS[def.tier];
   if (!mats) return null;
-
   let consumedItemStacks;
   if (def.type === 'tool') {
+    if (!mats.rope || !mats.plank) return null;
     consumedItemStacks = [
-      { item_id: def.prevId,  quantity: 1, item_type: 'item' },
-      { item_id: mats.ingot,  quantity: 4, item_type: 'item' },
-      { item_id: mats.rope,   quantity: 2, item_type: 'item' },
-      { item_id: mats.plank,  quantity: 2, item_type: 'item' },
-      { item_id: mats.leather,quantity: 2, item_type: 'item' },
+      { item_id: def.prevId,   quantity:1,  item_type:'item' },
+      { item_id: mats.ingot,   quantity:4,  item_type:'item' },
+      { item_id: mats.rope,    quantity:2,  item_type:'item' },
+      { item_id: mats.plank,   quantity:2,  item_type:'item' },
+      { item_id: mats.leather, quantity:2,  item_type:'item' },
     ];
   } else if (def.type === 'plated') {
     consumedItemStacks = [
-      { item_id: def.prevId,  quantity: 1, item_type: 'item' },
-      { item_id: mats.ingot,  quantity: 5, item_type: 'item' },
-      { item_id: mats.cloth,  quantity: 2, item_type: 'item' },
+      { item_id: def.prevId,  quantity:1, item_type:'item' },
+      { item_id: mats.ingot,  quantity:5, item_type:'item' },
+      { item_id: mats.cloth,  quantity:2, item_type:'item' },
     ];
   } else if (def.type === 'duelist') {
     consumedItemStacks = [
-      { item_id: def.prevId,   quantity: 1,  item_type: 'item' },
-      { item_id: mats.ingot,   quantity: 4,  item_type: 'item' },
-      { item_id: mats.leather, quantity: 2,  item_type: 'item' },
-      { item_id: mats.cloth,   quantity: 1,  item_type: 'item' },
-      { item_id: ANCIENT_METAL,quantity: 15, item_type: 'item' },
+      { item_id: def.prevId,   quantity:1,  item_type:'item' },
+      { item_id: mats.ingot,   quantity:4,  item_type:'item' },
+      { item_id: mats.leather, quantity:2,  item_type:'item' },
+      { item_id: mats.cloth,   quantity:1,  item_type:'item' },
+      { item_id: ANCIENT_METAL,quantity:15, item_type:'item' },
     ];
   } else return null;
-
   return {
-    consumedItemStacks,
-    craftedItemStacks: [{ item_id: itemId, quantity: 1 }],
+    consumedItemStacks: consumedItemStacks.filter(s => s.item_id),
+    craftedItemStacks: [{ item_id: itemId, quantity:1 }],
     recipeType: 'manual',
-    name: `(T${def.tier} 新規クラフト)`,
+    name: `手動レシピ (T${def.tier} 新規クラフト)`,
   };
 }
 
@@ -2043,19 +2038,16 @@ async function prefetchAllItemData(itemId) {
     const d = recipeCache[id];
     if (!d?.item) return;
     const mr = getManualRecipe(id, d.item.name, d.item.tier);
-    if (mr) {
-      mr.consumedItemStacks.forEach(s => {
-        const sid = String(s.item_id);
-        if (sid !== '0') { manualIds.add(sid); collectManual(sid, depth + 1); }
-      });
-    }
+    if (mr) mr.consumedItemStacks.forEach(s => {
+      const sid = String(s.item_id);
+      if (sid && sid !== '0') { manualIds.add(sid); collectManual(sid, depth+1); }
+    });
   };
   collectManual(String(itemId));
 
   const allIds = collectAllItemIds(itemId, 0);
   manualIds.forEach(id => allIds.add(id));
   await Promise.all([...allIds].filter(id => !recipeCache[id]).map(id => fetchItemData(id)));
-  // 取得後に再展開
   collectManual(String(itemId));
   manualIds.forEach(id => allIds.add(id));
   await Promise.all([...allIds].filter(id => !recipeCache[id]).map(id => fetchItemData(id)));
@@ -2072,12 +2064,10 @@ async function prefetchAllMarketData(itemId) {
     const d = recipeCache[id];
     if (!d?.item) return;
     const mr = getManualRecipe(id, d.item.name, d.item.tier);
-    if (mr) {
-      mr.consumedItemStacks.forEach(s => {
-        const sid = String(s.item_id);
-        if (sid !== '0') { allIds.add(sid); addManual(sid, depth + 1); }
-      });
-    }
+    if (mr) mr.consumedItemStacks.forEach(s => {
+      const sid = String(s.item_id);
+      if (sid && sid !== '0') { allIds.add(sid); addManual(sid, depth+1); }
+    });
   };
   addManual(String(itemId));
   await Promise.all([...allIds].filter(id => !marketDataCache[id]).map(id => fetchMarketData(id)));
@@ -2102,7 +2092,7 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
     });
   }
 
-  // 手動レシピを追加（craftingRecipesがない場合に先頭、ある場合は末尾）
+  // 手動レシピを追加
   const manualRec = getManualRecipe(itemId, item.name, item.tier);
   if (manualRec) {
     if (craftingRecipes.length === 0) allRecipes.unshift(manualRec);
