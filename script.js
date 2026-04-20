@@ -904,7 +904,7 @@ function renderLogTable(trades, page) {
     <div class="log-table-wrap">
       <table class="log-table">
         <thead><tr>
-          <th>日時</th><th>買い手</th><th>売り手</th><th>リージョン</th><th>領地</th><th>単価</th><th>数量</th><th>合計</th>
+          <th>日時</th><th>買い手</th><th>売り手</th><th>リージョン</th><th>単価</th><th>数量</th><th>合計</th>
         </tr></thead>
         <tbody>${renderLogRows(pageItems)}</tbody>
       </table>
@@ -918,13 +918,11 @@ function renderLogRows(trades) {
     const date = new Date(t.timestamp);
     const dateStr = `${date.getMonth()+1}/${date.getDate()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
     const regionStr = t.regionName ? `${t.regionName}${t.regionId ? ` (R${t.regionId})` : ''}` : '—';
-    const claimStr = t.claimName || '—';
     return `<tr>
       <td>${dateStr}</td>
       <td>${t.buyerUsername || '—'}</td>
       <td>${t.sellerUsername || '—'}</td>
       <td>${regionStr}</td>
-      <td>${claimStr}</td>
       <td class="price-cell">${formatPrice(t.unitPrice)}</td>
       <td>${formatNum(t.quantity)}</td>
       <td class="price-cell">${formatPrice(t.price)}</td>
@@ -1855,20 +1853,22 @@ function collectAllItemIds(itemId, depth = 0) {
 // プリフェッチ: 全素材データを並列取得
 
 // ============================================
-// 手動レシピDB（T2以上: 前TierCommon + Tier素材）
+// 手動レシピDB（T2以上クラフトレシピ）
 // ============================================
 const TIER_MATERIALS = {
-  1: { ingot:1050001, rope:1090004, plank:1020003, leather:1070004, cloth:1090002 },
-  2: { ingot:2050001, rope:2090004, plank:2020003, leather:2070004, cloth:2090002 },
-  3: { ingot:3050001, rope:3090004, plank:3020003, leather:3070004, cloth:3090002 },
-  4: { ingot:4050001, rope:4090004, plank:4020003, leather:4070004, cloth:4090002 },
-  5: { ingot:5050001, rope:5090004, plank:5020003, leather:5070004, cloth:5090002 },
-  6: { ingot:6050001, rope:6090004, plank:6020003, leather:6070004, cloth:6090002 },
+  1: {ingot:1050001,rope:1090004,plank:1020003,leather:1070004,cloth:1090002},
+  2: {ingot:2050001,rope:2090004,plank:2020003,leather:2070004,cloth:2090002},
+  3: {ingot:3050001,rope:3090004,plank:3020003,leather:3070004,cloth:3090002},
+  4: {ingot:4050001,rope:4090004,plank:4020003,leather:4070004,cloth:4090002},
+  5: {ingot:5050001,rope:5090004,plank:5020003,leather:5070004,cloth:5090002},
+  6: {ingot:6050001,rope:6090004,plank:6020003,leather:6070004,cloth:6090002},
 };
 const ANCIENT_METAL = 1718148009;
 
+// 衣類・ジュエリー系は素材IDが個別なので直接定義
+// type:'direct' → consumedItemStacksをそのまま使用
 const MANUAL_RECIPE_DEF = {
-  // ツール・武器（Ingot x4 + Rope x2 + Plank x2 + Leather x2）
+  // ===ツール・武器（Ingot x4 + Rope x2 + Plank x2 + Leather x2）===
   'Pyrelite Axe':            {prevId:1201067083,tier:2,type:'tool'},
   'Pyrelite Bow':            {prevId:2054875237,tier:2,type:'tool'},
   'Pyrelite Chisel':         {prevId:1831352039,tier:2,type:'tool'},
@@ -1940,7 +1940,7 @@ const MANUAL_RECIPE_DEF = {
   'Luminite Spear & Shield': {prevId:1800572877,tier:5,type:'tool'},
   'Rathium Chisel':          {prevId:1771114282,tier:6,type:'tool'},
   'Rathium Scissors':        {prevId:783907612, tier:6,type:'tool'},
-  // Plated装備（Ingot x5 + Cloth x2）
+  // ===Plated装備（Ingot x5 + Cloth x2）===
   'Pyrelite Plated Armor':   {prevId:422440070, tier:2,type:'plated'},
   'Pyrelite Plated Belt':    {prevId:922569705, tier:2,type:'plated'},
   'Pyrelite Plated Boots':   {prevId:155776141, tier:2,type:'plated'},
@@ -1955,7 +1955,7 @@ const MANUAL_RECIPE_DEF = {
   'Luminite Plated Armor':   {prevId:1614334993,tier:5,type:'plated'},
   'Luminite Plated Belt':    {prevId:803904452, tier:5,type:'plated'},
   'Luminite Plated Boots':   {prevId:1205236443,tier:5,type:'plated'},
-  // Duelist装備（Ingot x4 + Leather x2 + Cloth x1 + AncientMetal x15）
+  // ===Duelist装備（Ingot x4 + Leather x2 + Cloth x1 + AncientMetal x15）===
   'Pyrelite Duelist Armor':  {prevId:1554355057,tier:2,type:'duelist'},
   'Pyrelite Duelist Belt':   {prevId:288183013, tier:2,type:'duelist'},
   'Pyrelite Duelist Boots':  {prevId:664595734, tier:2,type:'duelist'},
@@ -1965,43 +1965,95 @@ const MANUAL_RECIPE_DEF = {
   'Emarium Duelist Helm':    {prevId:1779898711,tier:3,type:'duelist'},
   'Elenvar Duelist Armor':   {prevId:1808783387,tier:4,type:'duelist'},
   'Elenvar Duelist Helm':    {prevId:1754497634,tier:4,type:'duelist'},
+  // ===衣類・布装備（素材IDを直接指定）===
+  'Simple Leather Belt':     {type:'direct',stacks:[{id:1548924604,q:1},{id:2070004,q:2}]},
+  'Simple Leather Cap':      {type:'direct',stacks:[{id:1437965200,q:1},{id:2070004,q:4},{id:2050001,q:1}]},
+  'Simple Leather Leggings': {type:'direct',stacks:[{id:1475691769,q:1},{id:1314601698,q:9},{id:782755200,q:1}]},
+  'Simple Leather Shirt':    {type:'direct',stacks:[{id:745343940, q:1},{id:1314601698,q:15},{id:782755200,q:1}]},
+  'Simple Woven Belt':       {type:'direct',stacks:[{id:922569704, q:1},{id:2090002,q:2}]},
+  'Sturdy Leather Belt':     {type:'direct',stacks:[{id:1911943829,q:1},{id:3070004,q:2}]},
+  'Sturdy Leather Cap':      {type:'direct',stacks:[{id:2092519490,q:1},{id:296645870,q:9},{id:1014472344,q:1}]},
+  'Sturdy Leather Leggings': {type:'direct',stacks:[{id:1764915050,q:1},{id:296645870,q:9},{id:1014472344,q:1}]},
+  'Sturdy Leather Shirt':    {type:'direct',stacks:[{id:745343940, q:1},{id:3070004,q:5},{id:3050001,q:2}]},
+  'Sturdy Woven Belt':       {type:'direct',stacks:[{id:83640847,  q:1},{id:296645870,q:3},{id:1014472344,q:1}]},
+  'Fine Leather Belt':       {type:'direct',stacks:[{id:1884263400,q:1},{id:1069959598,q:3},{id:1866006436,q:1}]},
+  'Fine Leather Cap':        {type:'direct',stacks:[{id:1144193560,q:1},{id:1069959598,q:9},{id:1866006436,q:1}]},
+  'Fine Leather Leggings':   {type:'direct',stacks:[{id:1242370395,q:1},{id:1069959598,q:9},{id:1866006436,q:1}]},
+  'Fine Leather Shirt':      {type:'direct',stacks:[{id:975181088, q:1},{id:1069959598,q:15},{id:1866006436,q:1}]},
+  'Fine Woven Belt':         {type:'direct',stacks:[{id:420318150, q:1},{id:1069959598,q:3},{id:1866006436,q:1}]},
+  'Exquisite Leather Belt':  {type:'direct',stacks:[{id:1738310260,q:1},{id:534852613,q:3},{id:1336640512,q:1}]},
+  'Exquisite Leather Cap':   {type:'direct',stacks:[{id:1144193560,q:1},{id:5070004,q:4},{id:5050001,q:1}]},
+  'Exquisite Leather Leggings':{type:'direct',stacks:[{id:1242370395,q:1},{id:5070004,q:4},{id:5050001,q:1}]},
+  'Exquisite Leather Shirt': {type:'direct',stacks:[{id:327065735, q:1},{id:534852613,q:15},{id:1336640512,q:1}]},
+  'Exquisite Woven Belt':    {type:'direct',stacks:[{id:420318150, q:1},{id:5090002,q:2}]},
+  'Peerless Leather Belt':   {type:'direct',stacks:[{id:1738310260,q:1},{id:6070004,q:2}]},
+  'Peerless Leather Cap':    {type:'direct',stacks:[{id:1734073016,q:1},{id:447596001,q:9},{id:479733233,q:1}]},
+  'Peerless Leather Leggings':{type:'direct',stacks:[{id:1757060372,q:1},{id:447596001,q:9},{id:479733233,q:1}]},
+  'Peerless Leather Shirt':  {type:'direct',stacks:[{id:327065735, q:1},{id:6070004,q:5},{id:6050001,q:2}]},
+  'Peerless Woven Belt':     {type:'direct',stacks:[{id:1495228276,q:1},{id:6090002,q:2}]},
+  'Ornate Leather Belt':     {type:'direct',stacks:[{id:1639525324,q:1},{id:1720157429,q:3},{id:1639666736,q:1}]},
+  'Ornate Leather Cap':      {type:'direct',stacks:[{id:1734073016,q:1},{id:806992520,q:4},{id:1899017490,q:1}]},
+  'Ornate Leather Leggings': {type:'direct',stacks:[{id:1757060372,q:1},{id:806992520,q:4},{id:1899017490,q:1}]},
+  'Ornate Leather Shirt':    {type:'direct',stacks:[{id:1466357367,q:1},{id:806992520,q:5},{id:1899017490,q:2}]},
+  'Ornate Woven Belt':       {type:'direct',stacks:[{id:901367887, q:1},{id:1720157429,q:3},{id:1639666736,q:1}]},
+  'Pristine Leather Belt':   {type:'direct',stacks:[{id:1639525324,q:1},{id:1743778001,q:2}]},
+  'Pristine Leather Cap':    {type:'direct',stacks:[{id:1259363783,q:1},{id:1743778001,q:4},{id:1464752960,q:1}]},
+  'Pristine Leather Leggings':{type:'direct',stacks:[{id:172806342, q:1},{id:1407207381,q:9},{id:2081179538,q:1}]},
+  'Pristine Leather Shirt':  {type:'direct',stacks:[{id:60984074,  q:1},{id:1407207381,q:15},{id:2081179538,q:1}]},
+  'Pristine Woven Belt':     {type:'direct',stacks:[{id:2108103317,q:1},{id:1407207381,q:3},{id:2081179538,q:1}]},
+  'Magnificent Leather Belt': {type:'direct',stacks:[{id:148416223, q:1},{id:585466639,q:3},{id:1047477197,q:1}]},
+  'Magnificent Leather Cap':  {type:'direct',stacks:[{id:371225209, q:1},{id:585466639,q:9},{id:1047477197,q:1}]},
+  'Magnificent Leather Leggings':{type:'direct',stacks:[{id:172806342,q:1},{id:1580025475,q:4},{id:445742898,q:1}]},
+  'Magnificent Leather Shirt':{type:'direct',stacks:[{id:60984074,  q:1},{id:1580025475,q:5},{id:445742898,q:2}]},
+  'Magnificent Woven Belt':   {type:'direct',stacks:[{id:2108103317,q:1},{id:282660928,q:2}]},
+  'Flawless Leather Belt':    {type:'direct',stacks:[{id:148416223, q:1},{id:711364475,q:2}]},
+  'Flawless Leather Cap':     {type:'direct',stacks:[{id:371225209, q:1},{id:711364475,q:4},{id:2069757207,q:1}]},
+  'Flawless Leather Leggings':{type:'direct',stacks:[{id:1246471378,q:1},{id:144400630,q:9},{id:214980690,q:1}]},
+  'Flawless Leather Shirt':   {type:'direct',stacks:[{id:465467902, q:1},{id:711364475,q:5},{id:2069757207,q:2}]},
+  'Flawless Woven Belt':      {type:'direct',stacks:[{id:2052070652,q:1},{id:35270576,q:2}]},
 };
 
 function getManualRecipe(itemId, itemName, tier) {
   if (!itemName) return null;
   const def = MANUAL_RECIPE_DEF[itemName];
-  if (!def || !def.prevId) return null;
-  const mats = TIER_MATERIALS[def.tier];
-  if (!mats) return null;
+  if (!def) return null;
+
   let stacks;
-  if (def.type === 'tool') {
-    stacks = [
-      {item_id:def.prevId,  quantity:1, item_type:'item'},
-      {item_id:mats.ingot,  quantity:4, item_type:'item'},
-      {item_id:mats.rope,   quantity:2, item_type:'item'},
-      {item_id:mats.plank,  quantity:2, item_type:'item'},
-      {item_id:mats.leather,quantity:2, item_type:'item'},
-    ];
-  } else if (def.type === 'plated') {
-    stacks = [
-      {item_id:def.prevId, quantity:1, item_type:'item'},
-      {item_id:mats.ingot, quantity:5, item_type:'item'},
-      {item_id:mats.cloth, quantity:2, item_type:'item'},
-    ];
-  } else if (def.type === 'duelist') {
-    stacks = [
-      {item_id:def.prevId,   quantity:1,  item_type:'item'},
-      {item_id:mats.ingot,   quantity:4,  item_type:'item'},
-      {item_id:mats.leather, quantity:2,  item_type:'item'},
-      {item_id:mats.cloth,   quantity:1,  item_type:'item'},
-      {item_id:ANCIENT_METAL,quantity:15, item_type:'item'},
-    ];
-  } else return null;
+  if (def.type === 'direct') {
+    stacks = def.stacks.map(s => ({item_id:s.id, quantity:s.q, item_type:'item'}));
+  } else {
+    if (!def.prevId) return null;
+    const mats = TIER_MATERIALS[def.tier];
+    if (!mats) return null;
+    if (def.type === 'tool') {
+      stacks = [
+        {item_id:def.prevId,   quantity:1, item_type:'item'},
+        {item_id:mats.ingot,   quantity:4, item_type:'item'},
+        {item_id:mats.rope,    quantity:2, item_type:'item'},
+        {item_id:mats.plank,   quantity:2, item_type:'item'},
+        {item_id:mats.leather, quantity:2, item_type:'item'},
+      ];
+    } else if (def.type === 'plated') {
+      stacks = [
+        {item_id:def.prevId, quantity:1, item_type:'item'},
+        {item_id:mats.ingot, quantity:5, item_type:'item'},
+        {item_id:mats.cloth, quantity:2, item_type:'item'},
+      ];
+    } else if (def.type === 'duelist') {
+      stacks = [
+        {item_id:def.prevId,   quantity:1,  item_type:'item'},
+        {item_id:mats.ingot,   quantity:4,  item_type:'item'},
+        {item_id:mats.leather, quantity:2,  item_type:'item'},
+        {item_id:mats.cloth,   quantity:1,  item_type:'item'},
+        {item_id:ANCIENT_METAL,quantity:15, item_type:'item'},
+      ];
+    } else return null;
+  }
   return {
     consumedItemStacks: stacks.filter(s => s.item_id),
     craftedItemStacks: [{item_id:itemId, quantity:1}],
     recipeType: 'manual',
-    name: `手動レシピ (T${def.tier} 新規クラフト)`,
+    name: `手動レシピ (新規クラフト)`,
   };
 }
 
