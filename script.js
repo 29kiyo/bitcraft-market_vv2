@@ -917,12 +917,11 @@ function renderLogRows(trades) {
   return trades.map(t => {
     const date = new Date(t.timestamp);
     const dateStr = `${date.getMonth()+1}/${date.getDate()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
-    const regionStr = t.regionName ? `${t.regionName}${t.regionId ? ` (R${t.regionId})` : ''}` : '—';
     return `<tr>
       <td>${dateStr}</td>
       <td>${t.buyerUsername || '—'}</td>
       <td>${t.sellerUsername || '—'}</td>
-      <td>${regionStr}</td>
+      <td>${t.regionName || '—'} (R${t.regionId || ''})</td>
       <td class="price-cell">${formatPrice(t.unitPrice)}</td>
       <td>${formatNum(t.quantity)}</td>
       <td class="price-cell">${formatPrice(t.price)}</td>
@@ -1865,10 +1864,8 @@ const TIER_MATERIALS = {
 };
 const ANCIENT_METAL = 1718148009;
 
-// 衣類・ジュエリー系は素材IDが個別なので直接定義
-// type:'direct' → consumedItemStacksをそのまま使用
 const MANUAL_RECIPE_DEF = {
-  // ===ツール・武器（Ingot x4 + Rope x2 + Plank x2 + Leather x2）===
+  // ===ツール・武器（Ingot x4 + Rope x2 + Plank x2 + Leather x2）T2-T6===
   'Pyrelite Axe':            {prevId:1201067083,tier:2,type:'tool'},
   'Pyrelite Bow':            {prevId:2054875237,tier:2,type:'tool'},
   'Pyrelite Chisel':         {prevId:1831352039,tier:2,type:'tool'},
@@ -1940,7 +1937,83 @@ const MANUAL_RECIPE_DEF = {
   'Luminite Spear & Shield': {prevId:1800572877,tier:5,type:'tool'},
   'Rathium Chisel':          {prevId:1771114282,tier:6,type:'tool'},
   'Rathium Scissors':        {prevId:783907612, tier:6,type:'tool'},
-  // ===Plated装備（Ingot x5 + Cloth x2）===
+  // T7 Aurumite（prevIdはAPIから取得）
+  'Aurumite Axe':            {prevId:1337511485,tier:7,type:'tool_nomat'},
+  'Aurumite Bow':            {prevId:1491113278,tier:7,type:'tool_nomat'},
+  'Aurumite Chisel':         {prevId:1428413909,tier:7,type:'tool_nomat'},
+  'Aurumite Claymore':       {prevId:576104158, tier:7,type:'tool_nomat'},
+  'Aurumite Crossbow':       {prevId:533184370, tier:7,type:'tool_nomat'},
+  'Aurumite Daggers':        {prevId:1002395423,tier:7,type:'tool_nomat'},
+  'Aurumite Hammer':         {prevId:500003016, tier:7,type:'tool_nomat'},
+  'Aurumite Hoe':            {prevId:433291223, tier:7,type:'tool_nomat'},
+  'Aurumite Knife':          {prevId:270820549, tier:7,type:'tool_nomat'},
+  'Aurumite Mace':           {prevId:1134539652,tier:7,type:'tool_nomat'},
+  'Aurumite Machete':        {prevId:728445804, tier:7,type:'tool_nomat'},
+  'Aurumite Pickaxe':        {prevId:1606324183,tier:7,type:'tool_nomat'},
+  'Aurumite Quill':          {prevId:2024640963,tier:7,type:'tool_nomat'},
+  'Aurumite Rod':            {prevId:1677637105,tier:7,type:'tool_nomat'},
+  'Aurumite Saw':            {prevId:413702311, tier:7,type:'tool_nomat'},
+  'Aurumite Scissors':       {prevId:1700689396,tier:7,type:'tool_nomat'},
+  'Aurumite Shortsword':     {prevId:502541107, tier:7,type:'tool_nomat'},
+  'Aurumite Spear & Shield': {prevId:1641524052,tier:7,type:'tool_nomat'},
+  // T8 Celestium
+  'Celestium Axe':           {prevId:1337511485,tier:8,type:'tool_nomat'},
+  'Celestium Bow':           {prevId:1255416131,tier:8,type:'tool_nomat'},
+  'Celestium Chisel':        {prevId:247800929, tier:8,type:'tool_nomat'},
+  'Celestium Claymore':      {prevId:576104158, tier:8,type:'tool_nomat'},
+  'Celestium Crossbow':      {prevId:533184370, tier:8,type:'tool_nomat'},
+  'Celestium Daggers':       {prevId:1002395423,tier:8,type:'tool_nomat'},
+  'Celestium Hammer':        {prevId:1047843413,tier:8,type:'tool_nomat'},
+  'Celestium Hoe':           {prevId:110205879, tier:8,type:'tool_nomat'},
+  'Celestium Knife':         {prevId:240995661, tier:8,type:'tool_nomat'},
+  'Celestium Mace':          {prevId:69932165,  tier:8,type:'tool_nomat'},
+  'Celestium Machete':       {prevId:728445804, tier:8,type:'tool_nomat'},
+  'Celestium Pickaxe':       {prevId:991451810, tier:8,type:'tool_nomat'},
+  'Celestium Quill':         {prevId:268540371, tier:8,type:'tool_nomat'},
+  'Celestium Rod':           {prevId:2041164201,tier:8,type:'tool_nomat'},
+  'Celestium Saw':           {prevId:1176061468,tier:8,type:'tool_nomat'},
+  'Celestium Scissors':      {prevId:1700689396,tier:8,type:'tool_nomat'},
+  'Celestium Shortsword':    {prevId:502541107, tier:8,type:'tool_nomat'},
+  'Celestium Spear & Shield':{prevId:1641524052,tier:8,type:'tool_nomat'},
+  // T9 Umbracite
+  'Umbracite Axe':           {prevId:1967177382,tier:9,type:'tool_nomat'},
+  'Umbracite Bow':           {prevId:1255416131,tier:9,type:'tool_nomat'},
+  'Umbracite Chisel':        {prevId:247800929, tier:9,type:'tool_nomat'},
+  'Umbracite Claymore':      {prevId:450178430, tier:9,type:'tool_nomat'},
+  'Umbracite Crossbow':      {prevId:29052855,  tier:9,type:'tool_nomat'},
+  'Umbracite Daggers':       {prevId:2118322388,tier:9,type:'tool_nomat'},
+  'Umbracite Hammer':        {prevId:318446982, tier:9,type:'tool_nomat'},
+  'Umbracite Hoe':           {prevId:688829506, tier:9,type:'tool_nomat'},
+  'Umbracite Knife':         {prevId:1260356897,tier:9,type:'tool_nomat'},
+  'Umbracite Mace':          {prevId:1999151730,tier:9,type:'tool_nomat'},
+  'Umbracite Machete':       {prevId:799622109, tier:9,type:'tool_nomat'},
+  'Umbracite Pickaxe':       {prevId:96513154,  tier:9,type:'tool_nomat'},
+  'Umbracite Quill':         {prevId:268540371, tier:9,type:'tool_nomat'},
+  'Umbracite Rod':           {prevId:2041164201,tier:9,type:'tool_nomat'},
+  'Umbracite Saw':           {prevId:2090523697,tier:9,type:'tool_nomat'},
+  'Umbracite Scissors':      {prevId:1264098940,tier:9,type:'tool_nomat'},
+  'Umbracite Shortsword':    {prevId:2001060480,tier:9,type:'tool_nomat'},
+  'Umbracite Spear & Shield':{prevId:246070958, tier:9,type:'tool_nomat'},
+  // T10 Astralite
+  'Astralite Axe':           {prevId:1674000473,tier:10,type:'tool_nomat'},
+  'Astralite Bow':           {prevId:2094143120,tier:10,type:'tool_nomat'},
+  'Astralite Chisel':        {prevId:1732455557,tier:10,type:'tool_nomat'},
+  'Astralite Claymore':      {prevId:450178430, tier:10,type:'tool_nomat'},
+  'Astralite Crossbow':      {prevId:1581833452,tier:10,type:'tool_nomat'},
+  'Astralite Daggers':       {prevId:1851662708,tier:10,type:'tool_nomat'},
+  'Astralite Hammer':        {prevId:318446982, tier:10,type:'tool_nomat'},
+  'Astralite Hoe':           {prevId:805993420, tier:10,type:'tool_nomat'},
+  'Astralite Knife':         {prevId:211315133, tier:10,type:'tool_nomat'},
+  'Astralite Mace':          {prevId:1072017811,tier:10,type:'tool_nomat'},
+  'Astralite Machete':       {prevId:28384916,  tier:10,type:'tool_nomat'},
+  'Astralite Pickaxe':       {prevId:96513154,  tier:10,type:'tool_nomat'},
+  'Astralite Quill':         {prevId:659271654, tier:10,type:'tool_nomat'},
+  'Astralite Rod':           {prevId:1297008737,tier:10,type:'tool_nomat'},
+  'Astralite Saw':           {prevId:252555012, tier:10,type:'tool_nomat'},
+  'Astralite Scissors':      {prevId:1264098940,tier:10,type:'tool_nomat'},
+  'Astralite Shortsword':    {prevId:2001060480,tier:10,type:'tool_nomat'},
+  'Astralite Spear & Shield':{prevId:246070958, tier:10,type:'tool_nomat'},
+  // ===Plated装備 T2-T6（Ingot x5 + Cloth x2）===
   'Pyrelite Plated Armor':   {prevId:422440070, tier:2,type:'plated'},
   'Pyrelite Plated Belt':    {prevId:922569705, tier:2,type:'plated'},
   'Pyrelite Plated Boots':   {prevId:155776141, tier:2,type:'plated'},
@@ -1955,7 +2028,24 @@ const MANUAL_RECIPE_DEF = {
   'Luminite Plated Armor':   {prevId:1614334993,tier:5,type:'plated'},
   'Luminite Plated Belt':    {prevId:803904452, tier:5,type:'plated'},
   'Luminite Plated Boots':   {prevId:1205236443,tier:5,type:'plated'},
-  // ===Duelist装備（Ingot x4 + Leather x2 + Cloth x1 + AncientMetal x15）===
+  // T7-T10 Plated（prevIdはAPIから）
+  'Aurumite Plated Armor':   {prevId:656747139, tier:7,type:'plated_nomat'},
+  'Aurumite Plated Belt':    {prevId:1007421323,tier:7,type:'plated_nomat'},
+  'Aurumite Plated Boots':   {prevId:1088161042,tier:7,type:'plated_nomat'},
+  'Aurumite Plated Helm':    {prevId:1365299920,tier:7,type:'plated_nomat'},
+  'Celestium Plated Armor':  {prevId:1684382139,tier:8,type:'plated_nomat'},
+  'Celestium Plated Belt':   {prevId:1007421323,tier:8,type:'plated_nomat'},
+  'Celestium Plated Boots':  {prevId:1159284870,tier:8,type:'plated_nomat'},
+  'Celestium Plated Helm':   {prevId:1260797505,tier:8,type:'plated_nomat'},
+  'Umbracite Plated Armor':  {prevId:1327243115,tier:9,type:'plated_nomat'},
+  'Umbracite Plated Belt':   {prevId:535510448, tier:9,type:'plated_nomat'},
+  'Umbracite Plated Boots':  {prevId:7277222,   tier:9,type:'plated_nomat'},
+  'Umbracite Plated Helm':   {prevId:100210345, tier:9,type:'plated_nomat'},
+  'Astralite Plated Armor':  {prevId:1327243115,tier:10,type:'plated_nomat'},
+  'Astralite Plated Belt':   {prevId:1246240393,tier:10,type:'plated_nomat'},
+  'Astralite Plated Boots':  {prevId:7277222,   tier:10,type:'plated_nomat'},
+  'Astralite Plated Helm':   {prevId:100210345, tier:10,type:'plated_nomat'},
+  // ===Duelist装備 T2-T6（Ingot x4 + Leather x2 + Cloth x1 + AncientMetal x15）===
   'Pyrelite Duelist Armor':  {prevId:1554355057,tier:2,type:'duelist'},
   'Pyrelite Duelist Belt':   {prevId:288183013, tier:2,type:'duelist'},
   'Pyrelite Duelist Boots':  {prevId:664595734, tier:2,type:'duelist'},
@@ -1965,7 +2055,24 @@ const MANUAL_RECIPE_DEF = {
   'Emarium Duelist Helm':    {prevId:1779898711,tier:3,type:'duelist'},
   'Elenvar Duelist Armor':   {prevId:1808783387,tier:4,type:'duelist'},
   'Elenvar Duelist Helm':    {prevId:1754497634,tier:4,type:'duelist'},
-  // ===衣類・布装備（素材IDを直接指定）===
+  // T7-T10 Duelist
+  'Aurumite Duelist Armor':  {prevId:256396301, tier:7,type:'duelist_nomat'},
+  'Aurumite Duelist Belt':   {prevId:1401165975,tier:7,type:'duelist_nomat'},
+  'Aurumite Duelist Boots':  {prevId:2020613832,tier:7,type:'duelist_nomat'},
+  'Aurumite Duelist Helm':   {prevId:270863881, tier:7,type:'duelist_nomat'},
+  'Celestium Duelist Armor': {prevId:516841544, tier:8,type:'duelist_nomat'},
+  'Celestium Duelist Belt':  {prevId:1181233364,tier:8,type:'duelist_nomat'},
+  'Celestium Duelist Boots': {prevId:2020613832,tier:8,type:'duelist_nomat'},
+  'Celestium Duelist Helm':  {prevId:1558619235,tier:8,type:'duelist_nomat'},
+  'Umbracite Duelist Armor': {prevId:1631596312,tier:9,type:'duelist_nomat'},
+  'Umbracite Duelist Belt':  {prevId:1181233364,tier:9,type:'duelist_nomat'},
+  'Umbracite Duelist Boots': {prevId:772551420, tier:9,type:'duelist_nomat'},
+  'Umbracite Duelist Helm':  {prevId:1094723673,tier:9,type:'duelist_nomat'},
+  'Astralite Duelist Armor': {prevId:1631596312,tier:10,type:'duelist_nomat'},
+  'Astralite Duelist Belt':  {prevId:1805581060,tier:10,type:'duelist_nomat'},
+  'Astralite Duelist Boots': {prevId:119023036, tier:10,type:'duelist_nomat'},
+  'Astralite Duelist Helm':  {prevId:1094723673,tier:10,type:'duelist_nomat'},
+  // ===衣類（素材IDを直接指定）===
   'Simple Leather Belt':     {type:'direct',stacks:[{id:1548924604,q:1},{id:2070004,q:2}]},
   'Simple Leather Cap':      {type:'direct',stacks:[{id:1437965200,q:1},{id:2070004,q:4},{id:2050001,q:1}]},
   'Simple Leather Leggings': {type:'direct',stacks:[{id:1475691769,q:1},{id:1314601698,q:9},{id:782755200,q:1}]},
@@ -2017,38 +2124,52 @@ function getManualRecipe(itemId, itemName, tier) {
   if (!itemName) return null;
   const def = MANUAL_RECIPE_DEF[itemName];
   if (!def) return null;
-
   let stacks;
   if (def.type === 'direct') {
     stacks = def.stacks.map(s => ({item_id:s.id, quantity:s.q, item_type:'item'}));
-  } else {
+  } else if (def.type === 'tool') {
     if (!def.prevId) return null;
     const mats = TIER_MATERIALS[def.tier];
     if (!mats) return null;
-    if (def.type === 'tool') {
-      stacks = [
-        {item_id:def.prevId,   quantity:1, item_type:'item'},
-        {item_id:mats.ingot,   quantity:4, item_type:'item'},
-        {item_id:mats.rope,    quantity:2, item_type:'item'},
-        {item_id:mats.plank,   quantity:2, item_type:'item'},
-        {item_id:mats.leather, quantity:2, item_type:'item'},
-      ];
-    } else if (def.type === 'plated') {
-      stacks = [
-        {item_id:def.prevId, quantity:1, item_type:'item'},
-        {item_id:mats.ingot, quantity:5, item_type:'item'},
-        {item_id:mats.cloth, quantity:2, item_type:'item'},
-      ];
-    } else if (def.type === 'duelist') {
-      stacks = [
-        {item_id:def.prevId,   quantity:1,  item_type:'item'},
-        {item_id:mats.ingot,   quantity:4,  item_type:'item'},
-        {item_id:mats.leather, quantity:2,  item_type:'item'},
-        {item_id:mats.cloth,   quantity:1,  item_type:'item'},
-        {item_id:ANCIENT_METAL,quantity:15, item_type:'item'},
-      ];
-    } else return null;
-  }
+    stacks = [
+      {item_id:def.prevId,   quantity:1, item_type:'item'},
+      {item_id:mats.ingot,   quantity:4, item_type:'item'},
+      {item_id:mats.rope,    quantity:2, item_type:'item'},
+      {item_id:mats.plank,   quantity:2, item_type:'item'},
+      {item_id:mats.leather, quantity:2, item_type:'item'},
+    ];
+  } else if (def.type === 'tool_nomat') {
+    // T7以上: 前Tierアイテムのみ（素材IDが不明）
+    if (!def.prevId) return null;
+    stacks = [{item_id:def.prevId, quantity:1, item_type:'item'}];
+  } else if (def.type === 'plated') {
+    if (!def.prevId) return null;
+    const mats = TIER_MATERIALS[def.tier];
+    if (!mats) return null;
+    stacks = [
+      {item_id:def.prevId, quantity:1, item_type:'item'},
+      {item_id:mats.ingot, quantity:5, item_type:'item'},
+      {item_id:mats.cloth, quantity:2, item_type:'item'},
+    ];
+  } else if (def.type === 'plated_nomat') {
+    if (!def.prevId) return null;
+    stacks = [{item_id:def.prevId, quantity:1, item_type:'item'}];
+  } else if (def.type === 'duelist') {
+    if (!def.prevId) return null;
+    const mats = TIER_MATERIALS[def.tier];
+    if (!mats) return null;
+    stacks = [
+      {item_id:def.prevId,   quantity:1,  item_type:'item'},
+      {item_id:mats.ingot,   quantity:4,  item_type:'item'},
+      {item_id:mats.leather, quantity:2,  item_type:'item'},
+      {item_id:mats.cloth,   quantity:1,  item_type:'item'},
+      {item_id:ANCIENT_METAL,quantity:15, item_type:'item'},
+    ];
+  } else if (def.type === 'duelist_nomat') {
+    if (!def.prevId) return null;
+    stacks = [{item_id:def.prevId, quantity:1, item_type:'item'}];
+  } else return null;
+
   return {
     consumedItemStacks: stacks.filter(s => s.item_id),
     craftedItemStacks: [{item_id:itemId, quantity:1}],
@@ -2231,10 +2352,14 @@ function renderCraftTree(tree) {
   
   // リージョンのリストを取得
   const regions = new Set(['']); // すべてのリージョンを含む
+  if (!window._regionIdMap) window._regionIdMap = {};
   function collectRegions(node) {
     if (node.sellOrders) {
       node.sellOrders.forEach(order => {
-        if (order.regionName) regions.add(order.regionName);
+        if (order.regionName) {
+          regions.add(order.regionName);
+          if (order.regionId) window._regionIdMap[order.regionName] = order.regionId;
+        }
       });
     }
     if (node.recipes && node.recipes[0] && node.recipes[0].ingredients) {
@@ -2251,13 +2376,11 @@ function renderCraftTree(tree) {
     regions.forEach(region => {
       const option = document.createElement('option');
       option.value = region;
-      // リージョンIDを取得
+      // リージョンIDを取得（regionId→regionNameのマップから確実に取得）
       let regionIdText = '';
-      if (region && tree.sellOrders) {
-        const order = tree.sellOrders.find(o => o.regionName === region);
-        if (order && order.regionId) {
-          regionIdText = ` R${order.regionId}`;
-        }
+      if (region) {
+        const rid = window._regionIdMap?.[region];
+        if (rid) regionIdText = ` (R${rid})`;
       }
       option.textContent = region ? `${region}${regionIdText}` : 'すべてのリージョン';
       if (region === currentRegion) option.selected = true;
