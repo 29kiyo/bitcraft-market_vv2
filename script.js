@@ -108,7 +108,7 @@ let craftCurrentQuantity = 1;
 let craftSelectedItem = null;
 let craftSelectedItems = []; // 複数選択用
 let craftMultiSelectMode = false; // 複数選択モードフラグ
-const craftRecipeIndex = {}; // itemId → 選択中レシピインデックス
+const craftRecipeIndex = {};
 let selectedRegion = '';
 let currentOrderRegion = '';
 let currentOrderClaim = '';
@@ -1628,14 +1628,12 @@ window.switchCraftRecipe = function(itemId, recipeIndex) {
     const recipe = tree.allRecipes[recipeIndex];
     const ingredients = [];
     for (const stack of (recipe.consumedItemStacks || [])) {
-      if (String(stack.item_id) === '0') continue;
       const child = buildTreeFromCache(stack.item_id, stack.quantity * craftCurrentQuantity, 1);
       if (child) ingredients.push(child);
     }
     tree.recipes = [{
       craftedQty: recipe.craftedItemStacks?.[0]?.quantity || 1,
       ingredients,
-      recipeType: recipe.recipeType,
     }];
     renderCraftTree(tree);
   }
@@ -1852,352 +1850,220 @@ function collectAllItemIds(itemId, depth = 0) {
 // プリフェッチ: 全素材データを並列取得
 
 // ============================================
-// 手動レシピDB（T2以上クラフトレシピ）
+// 手動レシピDB（布装備・革装備 T2-T10、ツール T2-T10、装備 T2-T10）
 // ============================================
-const TIER_MATERIALS = {
-  1: {ingot:1050001,rope:1090004,plank:1020003,leather:1070004,cloth:1090002},
-  2: {ingot:2050001,rope:2090004,plank:2020003,leather:2070004,cloth:2090002},
-  3: {ingot:3050001,rope:3090004,plank:3020003,leather:3070004,cloth:3090002},
-  4: {ingot:4050001,rope:4090004,plank:4020003,leather:4070004,cloth:4090002},
-  5: {ingot:5050001,rope:5090004,plank:5020003,leather:5070004,cloth:5090002},
-  6: {ingot:6050001,rope:6090004,plank:6020003,leather:6070004,cloth:6090002},
+const TIER_MATS = {
+  1:{ingot:1050001,rope:1090004,plank:1020003,leather:1070004,cloth:1090002},
+  2:{ingot:2050001,rope:2090004,plank:2020003,leather:2070004,cloth:2090002},
+  3:{ingot:3050001,rope:3090004,plank:3020003,leather:3070004,cloth:3090002},
+  4:{ingot:4050001,rope:4090004,plank:4020003,leather:4070004,cloth:4090002},
+  5:{ingot:5050001,rope:5090004,plank:5020003,leather:5070004,cloth:5090002},
+  6:{ingot:6050001,rope:6090004,plank:6020003,leather:6070004,cloth:6090002},
 };
-const ANCIENT_METAL = 1718148009;
-
-const MANUAL_RECIPE_DEF = {
-  // ===ツール・武器（Ingot x4 + Rope x2 + Plank x2 + Leather x2）T2-T6===
-  'Pyrelite Axe':            {prevId:1201067083,tier:2,type:'tool'},
-  'Pyrelite Bow':            {prevId:2054875237,tier:2,type:'tool'},
-  'Pyrelite Chisel':         {prevId:1831352039,tier:2,type:'tool'},
-  'Pyrelite Claymore':       {prevId:252729537, tier:2,type:'tool'},
-  'Pyrelite Crossbow':       {prevId:1471860856,tier:2,type:'tool'},
-  'Pyrelite Daggers':        {prevId:747689943, tier:2,type:'tool'},
-  'Pyrelite Hammer':         {prevId:1669114499,tier:2,type:'tool'},
-  'Pyrelite Hoe':            {prevId:273473901, tier:2,type:'tool'},
-  'Pyrelite Knife':          {prevId:1503159114,tier:2,type:'tool'},
-  'Pyrelite Mace':           {prevId:1823909616,tier:2,type:'tool'},
-  'Pyrelite Machete':        {prevId:571682698, tier:2,type:'tool'},
-  'Pyrelite Pickaxe':        {prevId:1704711141,tier:2,type:'tool'},
-  'Pyrelite Quill':          {prevId:530006562, tier:2,type:'tool'},
-  'Pyrelite Rod':            {prevId:544541723, tier:2,type:'tool'},
-  'Pyrelite Saw':            {prevId:1355330989,tier:2,type:'tool'},
-  'Pyrelite Scissors':       {prevId:1125962328,tier:2,type:'tool'},
-  'Pyrelite Shortsword':     {prevId:194332661, tier:2,type:'tool'},
-  'Pyrelite Spear & Shield': {prevId:1826240904,tier:2,type:'tool'},
-  'Emarium Axe':             {prevId:1605904571,tier:3,type:'tool'},
-  'Emarium Bow':             {prevId:1034184552,tier:3,type:'tool'},
-  'Emarium Chisel':          {prevId:1413938165,tier:3,type:'tool'},
-  'Emarium Claymore':        {prevId:620508449, tier:3,type:'tool'},
-  'Emarium Crossbow':        {prevId:1512593047,tier:3,type:'tool'},
-  'Emarium Daggers':         {prevId:465856554, tier:3,type:'tool'},
-  'Emarium Hammer':          {prevId:482196569, tier:3,type:'tool'},
-  'Emarium Hoe':             {prevId:1644135836,tier:3,type:'tool'},
-  'Emarium Knife':           {prevId:1316428000,tier:3,type:'tool'},
-  'Emarium Mace':            {prevId:1598024081,tier:3,type:'tool'},
-  'Emarium Machete':         {prevId:223757569, tier:3,type:'tool'},
-  'Emarium Pickaxe':         {prevId:513104323, tier:3,type:'tool'},
-  'Emarium Quill':           {prevId:414853205, tier:3,type:'tool'},
-  'Emarium Rod':             {prevId:843645212, tier:3,type:'tool'},
-  'Emarium Saw':             {prevId:412214433, tier:3,type:'tool'},
-  'Emarium Scissors':        {prevId:343569714, tier:3,type:'tool'},
-  'Emarium Shortsword':      {prevId:333188935, tier:3,type:'tool'},
-  'Emarium Spear & Shield':  {prevId:2098377887,tier:3,type:'tool'},
-  'Elenvar Axe':             {prevId:1486054968,tier:4,type:'tool'},
-  'Elenvar Bow':             {prevId:1219038577,tier:4,type:'tool'},
-  'Elenvar Chisel':          {prevId:438003010, tier:4,type:'tool'},
-  'Elenvar Claymore':        {prevId:480170023, tier:4,type:'tool'},
-  'Elenvar Crossbow':        {prevId:1176798477,tier:4,type:'tool'},
-  'Elenvar Daggers':         {prevId:412987444, tier:4,type:'tool'},
-  'Elenvar Hammer':          {prevId:398791964, tier:4,type:'tool'},
-  'Elenvar Hoe':             {prevId:1043267104,tier:4,type:'tool'},
-  'Elenvar Knife':           {prevId:971385983, tier:4,type:'tool'},
-  'Elenvar Mace':            {prevId:1145327846,tier:4,type:'tool'},
-  'Elenvar Machete':         {prevId:1229547048,tier:4,type:'tool'},
-  'Elenvar Pickaxe':         {prevId:2124079079,tier:4,type:'tool'},
-  'Elenvar Quill':           {prevId:1221634026,tier:4,type:'tool'},
-  'Elenvar Rod':             {prevId:1094163061,tier:4,type:'tool'},
-  'Elenvar Saw':             {prevId:1930789220,tier:4,type:'tool'},
-  'Elenvar Scissors':        {prevId:803429716, tier:4,type:'tool'},
-  'Elenvar Spear & Shield':  {prevId:1888091519,tier:4,type:'tool'},
-  'Luminite Axe':            {prevId:489724302, tier:5,type:'tool'},
-  'Luminite Bow':            {prevId:735626470, tier:5,type:'tool'},
-  'Luminite Chisel':         {prevId:2122350182,tier:5,type:'tool'},
-  'Luminite Claymore':       {prevId:1800349844,tier:5,type:'tool'},
-  'Luminite Crossbow':       {prevId:1184634453,tier:5,type:'tool'},
-  'Luminite Daggers':        {prevId:1800053684,tier:5,type:'tool'},
-  'Luminite Hammer':         {prevId:382339978, tier:5,type:'tool'},
-  'Luminite Hoe':            {prevId:1891681591,tier:5,type:'tool'},
-  'Luminite Knife':          {prevId:268156651, tier:5,type:'tool'},
-  'Luminite Machete':        {prevId:1342482833,tier:5,type:'tool'},
-  'Luminite Pickaxe':        {prevId:2015514055,tier:5,type:'tool'},
-  'Luminite Quill':          {prevId:139776334, tier:5,type:'tool'},
-  'Luminite Rod':            {prevId:1858500155,tier:5,type:'tool'},
-  'Luminite Saw':            {prevId:1115966209,tier:5,type:'tool'},
-  'Luminite Scissors':       {prevId:582320225, tier:5,type:'tool'},
-  'Luminite Spear & Shield': {prevId:1800572877,tier:5,type:'tool'},
-  'Rathium Chisel':          {prevId:1771114282,tier:6,type:'tool'},
-  'Rathium Scissors':        {prevId:783907612, tier:6,type:'tool'},
-  // T7 Aurumite（prevIdはAPIから取得）
-  'Aurumite Axe':            {prevId:1337511485,tier:7,type:'tool_nomat'},
-  'Aurumite Bow':            {prevId:1491113278,tier:7,type:'tool_nomat'},
-  'Aurumite Chisel':         {prevId:1428413909,tier:7,type:'tool_nomat'},
-  'Aurumite Claymore':       {prevId:576104158, tier:7,type:'tool_nomat'},
-  'Aurumite Crossbow':       {prevId:533184370, tier:7,type:'tool_nomat'},
-  'Aurumite Daggers':        {prevId:1002395423,tier:7,type:'tool_nomat'},
-  'Aurumite Hammer':         {prevId:500003016, tier:7,type:'tool_nomat'},
-  'Aurumite Hoe':            {prevId:433291223, tier:7,type:'tool_nomat'},
-  'Aurumite Knife':          {prevId:270820549, tier:7,type:'tool_nomat'},
-  'Aurumite Mace':           {prevId:1134539652,tier:7,type:'tool_nomat'},
-  'Aurumite Machete':        {prevId:728445804, tier:7,type:'tool_nomat'},
-  'Aurumite Pickaxe':        {prevId:1606324183,tier:7,type:'tool_nomat'},
-  'Aurumite Quill':          {prevId:2024640963,tier:7,type:'tool_nomat'},
-  'Aurumite Rod':            {prevId:1677637105,tier:7,type:'tool_nomat'},
-  'Aurumite Saw':            {prevId:413702311, tier:7,type:'tool_nomat'},
-  'Aurumite Scissors':       {prevId:1700689396,tier:7,type:'tool_nomat'},
-  'Aurumite Shortsword':     {prevId:502541107, tier:7,type:'tool_nomat'},
-  'Aurumite Spear & Shield': {prevId:1641524052,tier:7,type:'tool_nomat'},
-  // T8 Celestium
-  'Celestium Axe':           {prevId:1337511485,tier:8,type:'tool_nomat'},
-  'Celestium Bow':           {prevId:1255416131,tier:8,type:'tool_nomat'},
-  'Celestium Chisel':        {prevId:247800929, tier:8,type:'tool_nomat'},
-  'Celestium Claymore':      {prevId:576104158, tier:8,type:'tool_nomat'},
-  'Celestium Crossbow':      {prevId:533184370, tier:8,type:'tool_nomat'},
-  'Celestium Daggers':       {prevId:1002395423,tier:8,type:'tool_nomat'},
-  'Celestium Hammer':        {prevId:1047843413,tier:8,type:'tool_nomat'},
-  'Celestium Hoe':           {prevId:110205879, tier:8,type:'tool_nomat'},
-  'Celestium Knife':         {prevId:240995661, tier:8,type:'tool_nomat'},
-  'Celestium Mace':          {prevId:69932165,  tier:8,type:'tool_nomat'},
-  'Celestium Machete':       {prevId:728445804, tier:8,type:'tool_nomat'},
-  'Celestium Pickaxe':       {prevId:991451810, tier:8,type:'tool_nomat'},
-  'Celestium Quill':         {prevId:268540371, tier:8,type:'tool_nomat'},
-  'Celestium Rod':           {prevId:2041164201,tier:8,type:'tool_nomat'},
-  'Celestium Saw':           {prevId:1176061468,tier:8,type:'tool_nomat'},
-  'Celestium Scissors':      {prevId:1700689396,tier:8,type:'tool_nomat'},
-  'Celestium Shortsword':    {prevId:502541107, tier:8,type:'tool_nomat'},
-  'Celestium Spear & Shield':{prevId:1641524052,tier:8,type:'tool_nomat'},
-  // T9 Umbracite
-  'Umbracite Axe':           {prevId:1967177382,tier:9,type:'tool_nomat'},
-  'Umbracite Bow':           {prevId:1255416131,tier:9,type:'tool_nomat'},
-  'Umbracite Chisel':        {prevId:247800929, tier:9,type:'tool_nomat'},
-  'Umbracite Claymore':      {prevId:450178430, tier:9,type:'tool_nomat'},
-  'Umbracite Crossbow':      {prevId:29052855,  tier:9,type:'tool_nomat'},
-  'Umbracite Daggers':       {prevId:2118322388,tier:9,type:'tool_nomat'},
-  'Umbracite Hammer':        {prevId:318446982, tier:9,type:'tool_nomat'},
-  'Umbracite Hoe':           {prevId:688829506, tier:9,type:'tool_nomat'},
-  'Umbracite Knife':         {prevId:1260356897,tier:9,type:'tool_nomat'},
-  'Umbracite Mace':          {prevId:1999151730,tier:9,type:'tool_nomat'},
-  'Umbracite Machete':       {prevId:799622109, tier:9,type:'tool_nomat'},
-  'Umbracite Pickaxe':       {prevId:96513154,  tier:9,type:'tool_nomat'},
-  'Umbracite Quill':         {prevId:268540371, tier:9,type:'tool_nomat'},
-  'Umbracite Rod':           {prevId:2041164201,tier:9,type:'tool_nomat'},
-  'Umbracite Saw':           {prevId:2090523697,tier:9,type:'tool_nomat'},
-  'Umbracite Scissors':      {prevId:1264098940,tier:9,type:'tool_nomat'},
-  'Umbracite Shortsword':    {prevId:2001060480,tier:9,type:'tool_nomat'},
-  'Umbracite Spear & Shield':{prevId:246070958, tier:9,type:'tool_nomat'},
-  // T10 Astralite
-  'Astralite Axe':           {prevId:1674000473,tier:10,type:'tool_nomat'},
-  'Astralite Bow':           {prevId:2094143120,tier:10,type:'tool_nomat'},
-  'Astralite Chisel':        {prevId:1732455557,tier:10,type:'tool_nomat'},
-  'Astralite Claymore':      {prevId:450178430, tier:10,type:'tool_nomat'},
-  'Astralite Crossbow':      {prevId:1581833452,tier:10,type:'tool_nomat'},
-  'Astralite Daggers':       {prevId:1851662708,tier:10,type:'tool_nomat'},
-  'Astralite Hammer':        {prevId:318446982, tier:10,type:'tool_nomat'},
-  'Astralite Hoe':           {prevId:805993420, tier:10,type:'tool_nomat'},
-  'Astralite Knife':         {prevId:211315133, tier:10,type:'tool_nomat'},
-  'Astralite Mace':          {prevId:1072017811,tier:10,type:'tool_nomat'},
-  'Astralite Machete':       {prevId:28384916,  tier:10,type:'tool_nomat'},
-  'Astralite Pickaxe':       {prevId:96513154,  tier:10,type:'tool_nomat'},
-  'Astralite Quill':         {prevId:659271654, tier:10,type:'tool_nomat'},
-  'Astralite Rod':           {prevId:1297008737,tier:10,type:'tool_nomat'},
-  'Astralite Saw':           {prevId:252555012, tier:10,type:'tool_nomat'},
-  'Astralite Scissors':      {prevId:1264098940,tier:10,type:'tool_nomat'},
-  'Astralite Shortsword':    {prevId:2001060480,tier:10,type:'tool_nomat'},
-  'Astralite Spear & Shield':{prevId:246070958, tier:10,type:'tool_nomat'},
-  // ===Plated装備 T2-T6（Ingot x5 + Cloth x2）===
-  'Pyrelite Plated Armor':   {prevId:422440070, tier:2,type:'plated'},
-  'Pyrelite Plated Belt':    {prevId:922569705, tier:2,type:'plated'},
-  'Pyrelite Plated Boots':   {prevId:155776141, tier:2,type:'plated'},
-  'Pyrelite Plated Helm':    {prevId:1919532147,tier:2,type:'plated'},
-  'Emarium Plated Armor':    {prevId:1268204743,tier:3,type:'plated'},
-  'Emarium Plated Belt':     {prevId:1682637898,tier:3,type:'plated'},
-  'Emarium Plated Boots':    {prevId:763048785, tier:3,type:'plated'},
-  'Emarium Plated Helm':     {prevId:2077008468,tier:3,type:'plated'},
-  'Elenvar Plated Armor':    {prevId:543757315, tier:4,type:'plated'},
-  'Elenvar Plated Belt':     {prevId:2093870307,tier:4,type:'plated'},
-  'Elenvar Plated Boots':    {prevId:1871358332,tier:4,type:'plated'},
-  'Luminite Plated Armor':   {prevId:1614334993,tier:5,type:'plated'},
-  'Luminite Plated Belt':    {prevId:803904452, tier:5,type:'plated'},
-  'Luminite Plated Boots':   {prevId:1205236443,tier:5,type:'plated'},
-  // T7-T10 Plated（prevIdはAPIから）
-  'Aurumite Plated Armor':   {prevId:656747139, tier:7,type:'plated_nomat'},
-  'Aurumite Plated Belt':    {prevId:1007421323,tier:7,type:'plated_nomat'},
-  'Aurumite Plated Boots':   {prevId:1088161042,tier:7,type:'plated_nomat'},
-  'Aurumite Plated Helm':    {prevId:1365299920,tier:7,type:'plated_nomat'},
-  'Celestium Plated Armor':  {prevId:1684382139,tier:8,type:'plated_nomat'},
-  'Celestium Plated Belt':   {prevId:1007421323,tier:8,type:'plated_nomat'},
-  'Celestium Plated Boots':  {prevId:1159284870,tier:8,type:'plated_nomat'},
-  'Celestium Plated Helm':   {prevId:1260797505,tier:8,type:'plated_nomat'},
-  'Umbracite Plated Armor':  {prevId:1327243115,tier:9,type:'plated_nomat'},
-  'Umbracite Plated Belt':   {prevId:535510448, tier:9,type:'plated_nomat'},
-  'Umbracite Plated Boots':  {prevId:7277222,   tier:9,type:'plated_nomat'},
-  'Umbracite Plated Helm':   {prevId:100210345, tier:9,type:'plated_nomat'},
-  'Astralite Plated Armor':  {prevId:1327243115,tier:10,type:'plated_nomat'},
-  'Astralite Plated Belt':   {prevId:1246240393,tier:10,type:'plated_nomat'},
-  'Astralite Plated Boots':  {prevId:7277222,   tier:10,type:'plated_nomat'},
-  'Astralite Plated Helm':   {prevId:100210345, tier:10,type:'plated_nomat'},
-  // ===Duelist装備 T2-T6（Ingot x4 + Leather x2 + Cloth x1 + AncientMetal x15）===
-  'Pyrelite Duelist Armor':  {prevId:1554355057,tier:2,type:'duelist'},
-  'Pyrelite Duelist Belt':   {prevId:288183013, tier:2,type:'duelist'},
-  'Pyrelite Duelist Boots':  {prevId:664595734, tier:2,type:'duelist'},
-  'Pyrelite Duelist Helm':   {prevId:152653749, tier:2,type:'duelist'},
-  'Emarium Duelist Armor':   {prevId:712055376, tier:3,type:'duelist'},
-  'Emarium Duelist Belt':    {prevId:1654952717,tier:3,type:'duelist'},
-  'Emarium Duelist Helm':    {prevId:1779898711,tier:3,type:'duelist'},
-  'Elenvar Duelist Armor':   {prevId:1808783387,tier:4,type:'duelist'},
-  'Elenvar Duelist Helm':    {prevId:1754497634,tier:4,type:'duelist'},
-  // T7-T10 Duelist
-  'Aurumite Duelist Armor':  {prevId:256396301, tier:7,type:'duelist_nomat'},
-  'Aurumite Duelist Belt':   {prevId:1401165975,tier:7,type:'duelist_nomat'},
-  'Aurumite Duelist Boots':  {prevId:2020613832,tier:7,type:'duelist_nomat'},
-  'Aurumite Duelist Helm':   {prevId:270863881, tier:7,type:'duelist_nomat'},
-  'Celestium Duelist Armor': {prevId:516841544, tier:8,type:'duelist_nomat'},
-  'Celestium Duelist Belt':  {prevId:1181233364,tier:8,type:'duelist_nomat'},
-  'Celestium Duelist Boots': {prevId:2020613832,tier:8,type:'duelist_nomat'},
-  'Celestium Duelist Helm':  {prevId:1558619235,tier:8,type:'duelist_nomat'},
-  'Umbracite Duelist Armor': {prevId:1631596312,tier:9,type:'duelist_nomat'},
-  'Umbracite Duelist Belt':  {prevId:1181233364,tier:9,type:'duelist_nomat'},
-  'Umbracite Duelist Boots': {prevId:772551420, tier:9,type:'duelist_nomat'},
-  'Umbracite Duelist Helm':  {prevId:1094723673,tier:9,type:'duelist_nomat'},
-  'Astralite Duelist Armor': {prevId:1631596312,tier:10,type:'duelist_nomat'},
-  'Astralite Duelist Belt':  {prevId:1805581060,tier:10,type:'duelist_nomat'},
-  'Astralite Duelist Boots': {prevId:119023036, tier:10,type:'duelist_nomat'},
-  'Astralite Duelist Helm':  {prevId:1094723673,tier:10,type:'duelist_nomat'},
-  // ===衣類（素材IDを直接指定）===
-  'Simple Leather Belt':     {type:'direct',stacks:[{id:1548924604,q:1},{id:2070004,q:2}]},
-  'Simple Leather Cap':      {type:'direct',stacks:[{id:1437965200,q:1},{id:2070004,q:4},{id:2050001,q:1}]},
-  'Simple Leather Leggings': {type:'direct',stacks:[{id:1475691769,q:1},{id:1314601698,q:9},{id:782755200,q:1}]},
-  'Simple Leather Shirt':    {type:'direct',stacks:[{id:745343940, q:1},{id:1314601698,q:15},{id:782755200,q:1}]},
-  'Simple Woven Belt':       {type:'direct',stacks:[{id:922569704, q:1},{id:2090002,q:2}]},
-  'Sturdy Leather Belt':     {type:'direct',stacks:[{id:1911943829,q:1},{id:3070004,q:2}]},
-  'Sturdy Leather Cap':      {type:'direct',stacks:[{id:2092519490,q:1},{id:296645870,q:9},{id:1014472344,q:1}]},
-  'Sturdy Leather Leggings': {type:'direct',stacks:[{id:1764915050,q:1},{id:296645870,q:9},{id:1014472344,q:1}]},
-  'Sturdy Leather Shirt':    {type:'direct',stacks:[{id:745343940, q:1},{id:3070004,q:5},{id:3050001,q:2}]},
-  'Sturdy Woven Belt':       {type:'direct',stacks:[{id:83640847,  q:1},{id:296645870,q:3},{id:1014472344,q:1}]},
-  'Fine Leather Belt':       {type:'direct',stacks:[{id:1884263400,q:1},{id:1069959598,q:3},{id:1866006436,q:1}]},
-  'Fine Leather Cap':        {type:'direct',stacks:[{id:1144193560,q:1},{id:1069959598,q:9},{id:1866006436,q:1}]},
-  'Fine Leather Leggings':   {type:'direct',stacks:[{id:1242370395,q:1},{id:1069959598,q:9},{id:1866006436,q:1}]},
-  'Fine Leather Shirt':      {type:'direct',stacks:[{id:975181088, q:1},{id:1069959598,q:15},{id:1866006436,q:1}]},
-  'Fine Woven Belt':         {type:'direct',stacks:[{id:420318150, q:1},{id:1069959598,q:3},{id:1866006436,q:1}]},
-  'Exquisite Leather Belt':  {type:'direct',stacks:[{id:1738310260,q:1},{id:534852613,q:3},{id:1336640512,q:1}]},
-  'Exquisite Leather Cap':   {type:'direct',stacks:[{id:1144193560,q:1},{id:5070004,q:4},{id:5050001,q:1}]},
-  'Exquisite Leather Leggings':{type:'direct',stacks:[{id:1242370395,q:1},{id:5070004,q:4},{id:5050001,q:1}]},
-  'Exquisite Leather Shirt': {type:'direct',stacks:[{id:327065735, q:1},{id:534852613,q:15},{id:1336640512,q:1}]},
-  'Exquisite Woven Belt':    {type:'direct',stacks:[{id:420318150, q:1},{id:5090002,q:2}]},
-  'Peerless Leather Belt':   {type:'direct',stacks:[{id:1738310260,q:1},{id:6070004,q:2}]},
-  'Peerless Leather Cap':    {type:'direct',stacks:[{id:1734073016,q:1},{id:447596001,q:9},{id:479733233,q:1}]},
-  'Peerless Leather Leggings':{type:'direct',stacks:[{id:1757060372,q:1},{id:447596001,q:9},{id:479733233,q:1}]},
-  'Peerless Leather Shirt':  {type:'direct',stacks:[{id:327065735, q:1},{id:6070004,q:5},{id:6050001,q:2}]},
-  'Peerless Woven Belt':     {type:'direct',stacks:[{id:1495228276,q:1},{id:6090002,q:2}]},
-  'Ornate Leather Belt':     {type:'direct',stacks:[{id:1639525324,q:1},{id:1720157429,q:3},{id:1639666736,q:1}]},
-  'Ornate Leather Cap':      {type:'direct',stacks:[{id:1734073016,q:1},{id:806992520,q:4},{id:1899017490,q:1}]},
-  'Ornate Leather Leggings': {type:'direct',stacks:[{id:1757060372,q:1},{id:806992520,q:4},{id:1899017490,q:1}]},
-  'Ornate Leather Shirt':    {type:'direct',stacks:[{id:1466357367,q:1},{id:806992520,q:5},{id:1899017490,q:2}]},
-  'Ornate Woven Belt':       {type:'direct',stacks:[{id:901367887, q:1},{id:1720157429,q:3},{id:1639666736,q:1}]},
-  'Pristine Leather Belt':   {type:'direct',stacks:[{id:1639525324,q:1},{id:1743778001,q:2}]},
-  'Pristine Leather Cap':    {type:'direct',stacks:[{id:1259363783,q:1},{id:1743778001,q:4},{id:1464752960,q:1}]},
-  'Pristine Leather Leggings':{type:'direct',stacks:[{id:172806342, q:1},{id:1407207381,q:9},{id:2081179538,q:1}]},
-  'Pristine Leather Shirt':  {type:'direct',stacks:[{id:60984074,  q:1},{id:1407207381,q:15},{id:2081179538,q:1}]},
-  'Pristine Woven Belt':     {type:'direct',stacks:[{id:2108103317,q:1},{id:1407207381,q:3},{id:2081179538,q:1}]},
-  'Magnificent Leather Belt': {type:'direct',stacks:[{id:148416223, q:1},{id:585466639,q:3},{id:1047477197,q:1}]},
-  'Magnificent Leather Cap':  {type:'direct',stacks:[{id:371225209, q:1},{id:585466639,q:9},{id:1047477197,q:1}]},
-  'Magnificent Leather Leggings':{type:'direct',stacks:[{id:172806342,q:1},{id:1580025475,q:4},{id:445742898,q:1}]},
-  'Magnificent Leather Shirt':{type:'direct',stacks:[{id:60984074,  q:1},{id:1580025475,q:5},{id:445742898,q:2}]},
-  'Magnificent Woven Belt':   {type:'direct',stacks:[{id:2108103317,q:1},{id:282660928,q:2}]},
-  'Flawless Leather Belt':    {type:'direct',stacks:[{id:148416223, q:1},{id:711364475,q:2}]},
-  'Flawless Leather Cap':     {type:'direct',stacks:[{id:371225209, q:1},{id:711364475,q:4},{id:2069757207,q:1}]},
-  'Flawless Leather Leggings':{type:'direct',stacks:[{id:1246471378,q:1},{id:144400630,q:9},{id:214980690,q:1}]},
-  'Flawless Leather Shirt':   {type:'direct',stacks:[{id:465467902, q:1},{id:711364475,q:5},{id:2069757207,q:2}]},
-  'Flawless Woven Belt':      {type:'direct',stacks:[{id:2052070652,q:1},{id:35270576,q:2}]},
+const ANC_METAL = 1718148009;
+const CRAFT_RECIPES = {
+  // ツール・武器 T2-T6 (prevId x1 + Ingot x4 + Rope x2 + Plank x2 + Leather x2)
+  'Pyrelite Axe':            {p:1201067083,t:2,k:'tool'},'Pyrelite Bow':            {p:2054875237,t:2,k:'tool'},
+  'Pyrelite Chisel':         {p:1831352039,t:2,k:'tool'},'Pyrelite Claymore':       {p:252729537, t:2,k:'tool'},
+  'Pyrelite Crossbow':       {p:1471860856,t:2,k:'tool'},'Pyrelite Daggers':        {p:747689943, t:2,k:'tool'},
+  'Pyrelite Hammer':         {p:1669114499,t:2,k:'tool'},'Pyrelite Hoe':            {p:273473901, t:2,k:'tool'},
+  'Pyrelite Knife':          {p:1503159114,t:2,k:'tool'},'Pyrelite Mace':           {p:1823909616,t:2,k:'tool'},
+  'Pyrelite Machete':        {p:571682698, t:2,k:'tool'},'Pyrelite Pickaxe':        {p:1704711141,t:2,k:'tool'},
+  'Pyrelite Quill':          {p:530006562, t:2,k:'tool'},'Pyrelite Rod':            {p:544541723, t:2,k:'tool'},
+  'Pyrelite Saw':            {p:1355330989,t:2,k:'tool'},'Pyrelite Scissors':       {p:1125962328,t:2,k:'tool'},
+  'Pyrelite Shortsword':     {p:194332661, t:2,k:'tool'},'Pyrelite Spear & Shield': {p:1826240904,t:2,k:'tool'},
+  'Emarium Axe':             {p:1605904571,t:3,k:'tool'},'Emarium Bow':             {p:1034184552,t:3,k:'tool'},
+  'Emarium Chisel':          {p:1413938165,t:3,k:'tool'},'Emarium Claymore':        {p:620508449, t:3,k:'tool'},
+  'Emarium Crossbow':        {p:1512593047,t:3,k:'tool'},'Emarium Daggers':         {p:465856554, t:3,k:'tool'},
+  'Emarium Hammer':          {p:482196569, t:3,k:'tool'},'Emarium Hoe':             {p:1644135836,t:3,k:'tool'},
+  'Emarium Knife':           {p:1316428000,t:3,k:'tool'},'Emarium Mace':            {p:1598024081,t:3,k:'tool'},
+  'Emarium Machete':         {p:223757569, t:3,k:'tool'},'Emarium Pickaxe':         {p:513104323, t:3,k:'tool'},
+  'Emarium Quill':           {p:414853205, t:3,k:'tool'},'Emarium Rod':             {p:843645212, t:3,k:'tool'},
+  'Emarium Saw':             {p:412214433, t:3,k:'tool'},'Emarium Scissors':        {p:343569714, t:3,k:'tool'},
+  'Emarium Shortsword':      {p:333188935, t:3,k:'tool'},'Emarium Spear & Shield':  {p:2098377887,t:3,k:'tool'},
+  'Elenvar Axe':             {p:1486054968,t:4,k:'tool'},'Elenvar Bow':             {p:1219038577,t:4,k:'tool'},
+  'Elenvar Chisel':          {p:438003010, t:4,k:'tool'},'Elenvar Claymore':        {p:480170023, t:4,k:'tool'},
+  'Elenvar Crossbow':        {p:1176798477,t:4,k:'tool'},'Elenvar Daggers':         {p:412987444, t:4,k:'tool'},
+  'Elenvar Hammer':          {p:398791964, t:4,k:'tool'},'Elenvar Hoe':             {p:1043267104,t:4,k:'tool'},
+  'Elenvar Knife':           {p:971385983, t:4,k:'tool'},'Elenvar Mace':            {p:1145327846,t:4,k:'tool'},
+  'Elenvar Machete':         {p:1229547048,t:4,k:'tool'},'Elenvar Pickaxe':         {p:2124079079,t:4,k:'tool'},
+  'Elenvar Quill':           {p:1221634026,t:4,k:'tool'},'Elenvar Rod':             {p:1094163061,t:4,k:'tool'},
+  'Elenvar Saw':             {p:1930789220,t:4,k:'tool'},'Elenvar Scissors':        {p:803429716, t:4,k:'tool'},
+  'Elenvar Spear & Shield':  {p:1888091519,t:4,k:'tool'},
+  'Luminite Axe':            {p:489724302, t:5,k:'tool'},'Luminite Bow':            {p:735626470, t:5,k:'tool'},
+  'Luminite Chisel':         {p:2122350182,t:5,k:'tool'},'Luminite Claymore':       {p:1800349844,t:5,k:'tool'},
+  'Luminite Crossbow':       {p:1184634453,t:5,k:'tool'},'Luminite Daggers':        {p:1800053684,t:5,k:'tool'},
+  'Luminite Hammer':         {p:382339978, t:5,k:'tool'},'Luminite Hoe':            {p:1891681591,t:5,k:'tool'},
+  'Luminite Knife':          {p:268156651, t:5,k:'tool'},'Luminite Machete':        {p:1342482833,t:5,k:'tool'},
+  'Luminite Pickaxe':        {p:2015514055,t:5,k:'tool'},'Luminite Quill':          {p:139776334, t:5,k:'tool'},
+  'Luminite Rod':            {p:1858500155,t:5,k:'tool'},'Luminite Saw':            {p:1115966209,t:5,k:'tool'},
+  'Luminite Scissors':       {p:582320225, t:5,k:'tool'},'Luminite Spear & Shield': {p:1800572877,t:5,k:'tool'},
+  'Rathium Chisel':          {p:1771114282,t:6,k:'tool'},'Rathium Scissors':        {p:783907612, t:6,k:'tool'},
+  // T7-T10 ツール・武器 (prevId x1 のみ)
+  'Aurumite Axe':            {p:1337511485,k:'prev'},'Aurumite Bow':            {p:1491113278,k:'prev'},
+  'Aurumite Chisel':         {p:1428413909,k:'prev'},'Aurumite Claymore':       {p:576104158, k:'prev'},
+  'Aurumite Crossbow':       {p:533184370, k:'prev'},'Aurumite Daggers':        {p:1002395423,k:'prev'},
+  'Aurumite Hammer':         {p:500003016, k:'prev'},'Aurumite Hoe':            {p:433291223, k:'prev'},
+  'Aurumite Knife':          {p:270820549, k:'prev'},'Aurumite Mace':           {p:1134539652,k:'prev'},
+  'Aurumite Machete':        {p:728445804, k:'prev'},'Aurumite Pickaxe':        {p:1606324183,k:'prev'},
+  'Aurumite Quill':          {p:2024640963,k:'prev'},'Aurumite Rod':            {p:1677637105,k:'prev'},
+  'Aurumite Saw':            {p:413702311, k:'prev'},'Aurumite Scissors':       {p:1700689396,k:'prev'},
+  'Aurumite Shortsword':     {p:502541107, k:'prev'},'Aurumite Spear & Shield': {p:1641524052,k:'prev'},
+  'Celestium Axe':           {p:1337511485,k:'prev'},'Celestium Bow':           {p:1255416131,k:'prev'},
+  'Celestium Chisel':        {p:247800929, k:'prev'},'Celestium Claymore':      {p:576104158, k:'prev'},
+  'Celestium Crossbow':      {p:533184370, k:'prev'},'Celestium Daggers':       {p:1002395423,k:'prev'},
+  'Celestium Hammer':        {p:1047843413,k:'prev'},'Celestium Hoe':           {p:110205879, k:'prev'},
+  'Celestium Knife':         {p:240995661, k:'prev'},'Celestium Mace':          {p:69932165,  k:'prev'},
+  'Celestium Machete':       {p:728445804, k:'prev'},'Celestium Pickaxe':       {p:991451810, k:'prev'},
+  'Celestium Quill':         {p:268540371, k:'prev'},'Celestium Rod':           {p:2041164201,k:'prev'},
+  'Celestium Saw':           {p:1176061468,k:'prev'},'Celestium Scissors':      {p:1700689396,k:'prev'},
+  'Celestium Shortsword':    {p:502541107, k:'prev'},'Celestium Spear & Shield':{p:1641524052,k:'prev'},
+  'Umbracite Axe':           {p:1967177382,k:'prev'},'Umbracite Bow':           {p:1255416131,k:'prev'},
+  'Umbracite Chisel':        {p:247800929, k:'prev'},'Umbracite Claymore':      {p:450178430, k:'prev'},
+  'Umbracite Crossbow':      {p:29052855,  k:'prev'},'Umbracite Daggers':       {p:2118322388,k:'prev'},
+  'Umbracite Hammer':        {p:318446982, k:'prev'},'Umbracite Hoe':           {p:688829506, k:'prev'},
+  'Umbracite Knife':         {p:1260356897,k:'prev'},'Umbracite Mace':          {p:1999151730,k:'prev'},
+  'Umbracite Machete':       {p:799622109, k:'prev'},'Umbracite Pickaxe':       {p:96513154,  k:'prev'},
+  'Umbracite Quill':         {p:268540371, k:'prev'},'Umbracite Rod':           {p:2041164201,k:'prev'},
+  'Umbracite Saw':           {p:2090523697,k:'prev'},'Umbracite Scissors':      {p:1264098940,k:'prev'},
+  'Umbracite Shortsword':    {p:2001060480,k:'prev'},'Umbracite Spear & Shield':{p:246070958, k:'prev'},
+  'Astralite Axe':           {p:1674000473,k:'prev'},'Astralite Bow':           {p:2094143120,k:'prev'},
+  'Astralite Chisel':        {p:1732455557,k:'prev'},'Astralite Claymore':      {p:450178430, k:'prev'},
+  'Astralite Crossbow':      {p:1581833452,k:'prev'},'Astralite Daggers':       {p:1851662708,k:'prev'},
+  'Astralite Hammer':        {p:318446982, k:'prev'},'Astralite Hoe':           {p:805993420, k:'prev'},
+  'Astralite Knife':         {p:211315133, k:'prev'},'Astralite Mace':          {p:1072017811,k:'prev'},
+  'Astralite Machete':       {p:28384916,  k:'prev'},'Astralite Pickaxe':       {p:96513154,  k:'prev'},
+  'Astralite Quill':         {p:659271654, k:'prev'},'Astralite Rod':           {p:1297008737,k:'prev'},
+  'Astralite Saw':           {p:252555012, k:'prev'},'Astralite Scissors':      {p:1264098940,k:'prev'},
+  'Astralite Shortsword':    {p:2001060480,k:'prev'},'Astralite Spear & Shield':{p:246070958, k:'prev'},
+  // Plated T2-T6 (prevId x1 + Ingot x5 + Cloth x2)
+  'Pyrelite Plated Armor':   {p:422440070, t:2,k:'plated'},'Pyrelite Plated Belt':    {p:922569705, t:2,k:'plated'},
+  'Pyrelite Plated Boots':   {p:155776141, t:2,k:'plated'},'Pyrelite Plated Helm':    {p:1919532147,t:2,k:'plated'},
+  'Emarium Plated Armor':    {p:1268204743,t:3,k:'plated'},'Emarium Plated Belt':     {p:1682637898,t:3,k:'plated'},
+  'Emarium Plated Boots':    {p:763048785, t:3,k:'plated'},'Emarium Plated Helm':     {p:2077008468,t:3,k:'plated'},
+  'Elenvar Plated Armor':    {p:543757315, t:4,k:'plated'},'Elenvar Plated Belt':     {p:2093870307,t:4,k:'plated'},
+  'Elenvar Plated Boots':    {p:1871358332,t:4,k:'plated'},
+  'Luminite Plated Armor':   {p:1614334993,t:5,k:'plated'},'Luminite Plated Belt':    {p:803904452, t:5,k:'plated'},
+  'Luminite Plated Boots':   {p:1205236443,t:5,k:'plated'},
+  // Plated T7-T10 (prevId x1 のみ)
+  'Aurumite Plated Armor':   {p:656747139, k:'prev'},'Aurumite Plated Belt':    {p:1007421323,k:'prev'},
+  'Aurumite Plated Boots':   {p:1088161042,k:'prev'},'Aurumite Plated Helm':    {p:1365299920,k:'prev'},
+  'Celestium Plated Armor':  {p:1684382139,k:'prev'},'Celestium Plated Belt':   {p:1007421323,k:'prev'},
+  'Celestium Plated Boots':  {p:1159284870,k:'prev'},'Celestium Plated Helm':   {p:1260797505,k:'prev'},
+  'Umbracite Plated Armor':  {p:1327243115,k:'prev'},'Umbracite Plated Belt':   {p:535510448, k:'prev'},
+  'Umbracite Plated Boots':  {p:7277222,   k:'prev'},'Umbracite Plated Helm':   {p:100210345, k:'prev'},
+  'Astralite Plated Armor':  {p:1327243115,k:'prev'},'Astralite Plated Belt':   {p:1246240393,k:'prev'},
+  'Astralite Plated Boots':  {p:7277222,   k:'prev'},'Astralite Plated Helm':   {p:100210345, k:'prev'},
+  // Duelist T2-T6 (prevId x1 + Ingot x4 + Leather x2 + Cloth x1 + AncMetal x15)
+  'Pyrelite Duelist Armor':  {p:1554355057,t:2,k:'duelist'},'Pyrelite Duelist Belt':   {p:288183013, t:2,k:'duelist'},
+  'Pyrelite Duelist Boots':  {p:664595734, t:2,k:'duelist'},'Pyrelite Duelist Helm':   {p:152653749, t:2,k:'duelist'},
+  'Emarium Duelist Armor':   {p:712055376, t:3,k:'duelist'},'Emarium Duelist Belt':    {p:1654952717,t:3,k:'duelist'},
+  'Emarium Duelist Helm':    {p:1779898711,t:3,k:'duelist'},
+  'Elenvar Duelist Armor':   {p:1808783387,t:4,k:'duelist'},'Elenvar Duelist Helm':    {p:1754497634,t:4,k:'duelist'},
+  // Duelist T7-T10 (prevId x1 のみ)
+  'Aurumite Duelist Armor':  {p:256396301, k:'prev'},'Aurumite Duelist Belt':   {p:1401165975,k:'prev'},
+  'Aurumite Duelist Boots':  {p:2020613832,k:'prev'},'Aurumite Duelist Helm':   {p:270863881, k:'prev'},
+  'Celestium Duelist Armor': {p:516841544, k:'prev'},'Celestium Duelist Belt':  {p:1181233364,k:'prev'},
+  'Celestium Duelist Boots': {p:2020613832,k:'prev'},'Celestium Duelist Helm':  {p:1558619235,k:'prev'},
+  'Umbracite Duelist Armor': {p:1631596312,k:'prev'},'Umbracite Duelist Belt':  {p:1181233364,k:'prev'},
+  'Umbracite Duelist Boots': {p:772551420, k:'prev'},'Umbracite Duelist Helm':  {p:1094723673,k:'prev'},
+  'Astralite Duelist Armor': {p:1631596312,k:'prev'},'Astralite Duelist Belt':  {p:1805581060,k:'prev'},
+  'Astralite Duelist Boots': {p:119023036, k:'prev'},'Astralite Duelist Helm':  {p:1094723673,k:'prev'},
+  // 革装備・布装備 T2-T10 (素材IDを直接指定)
+  'Simple Leather Belt':      {k:'direct',s:[{id:1548924604,q:1},{id:2070004,q:2}]},
+  'Simple Leather Cap':       {k:'direct',s:[{id:1437965200,q:1},{id:2070004,q:4},{id:2050001,q:1}]},
+  'Simple Leather Leggings':  {k:'direct',s:[{id:1475691769,q:1},{id:1314601698,q:9},{id:782755200,q:1}]},
+  'Simple Leather Shirt':     {k:'direct',s:[{id:745343940, q:1},{id:1314601698,q:15},{id:782755200,q:1}]},
+  'Simple Woven Belt':        {k:'direct',s:[{id:922569704, q:1},{id:2090002,q:2}]},
+  'Sturdy Leather Belt':      {k:'direct',s:[{id:1911943829,q:1},{id:3070004,q:2}]},
+  'Sturdy Leather Cap':       {k:'direct',s:[{id:2092519490,q:1},{id:296645870,q:9},{id:1014472344,q:1}]},
+  'Sturdy Leather Leggings':  {k:'direct',s:[{id:1764915050,q:1},{id:296645870,q:9},{id:1014472344,q:1}]},
+  'Sturdy Leather Shirt':     {k:'direct',s:[{id:745343940, q:1},{id:3070004,q:5},{id:3050001,q:2}]},
+  'Sturdy Woven Belt':        {k:'direct',s:[{id:83640847,  q:1},{id:296645870,q:3},{id:1014472344,q:1}]},
+  'Fine Leather Belt':        {k:'direct',s:[{id:1884263400,q:1},{id:1069959598,q:3},{id:1866006436,q:1}]},
+  'Fine Leather Cap':         {k:'direct',s:[{id:1144193560,q:1},{id:1069959598,q:9},{id:1866006436,q:1}]},
+  'Fine Leather Leggings':    {k:'direct',s:[{id:1242370395,q:1},{id:1069959598,q:9},{id:1866006436,q:1}]},
+  'Fine Leather Shirt':       {k:'direct',s:[{id:975181088, q:1},{id:1069959598,q:15},{id:1866006436,q:1}]},
+  'Fine Woven Belt':          {k:'direct',s:[{id:420318150, q:1},{id:1069959598,q:3},{id:1866006436,q:1}]},
+  'Exquisite Leather Belt':   {k:'direct',s:[{id:1738310260,q:1},{id:534852613,q:3},{id:1336640512,q:1}]},
+  'Exquisite Leather Cap':    {k:'direct',s:[{id:1144193560,q:1},{id:5070004,q:4},{id:5050001,q:1}]},
+  'Exquisite Leather Leggings':{k:'direct',s:[{id:1242370395,q:1},{id:5070004,q:4},{id:5050001,q:1}]},
+  'Exquisite Leather Shirt':  {k:'direct',s:[{id:327065735, q:1},{id:534852613,q:15},{id:1336640512,q:1}]},
+  'Exquisite Woven Belt':     {k:'direct',s:[{id:420318150, q:1},{id:5090002,q:2}]},
+  'Peerless Leather Belt':    {k:'direct',s:[{id:1738310260,q:1},{id:6070004,q:2}]},
+  'Peerless Leather Cap':     {k:'direct',s:[{id:1734073016,q:1},{id:447596001,q:9},{id:479733233,q:1}]},
+  'Peerless Leather Leggings':{k:'direct',s:[{id:1757060372,q:1},{id:447596001,q:9},{id:479733233,q:1}]},
+  'Peerless Leather Shirt':   {k:'direct',s:[{id:327065735, q:1},{id:6070004,q:5},{id:6050001,q:2}]},
+  'Peerless Woven Belt':      {k:'direct',s:[{id:1495228276,q:1},{id:6090002,q:2}]},
+  'Ornate Leather Belt':      {k:'direct',s:[{id:1639525324,q:1},{id:1720157429,q:3},{id:1639666736,q:1}]},
+  'Ornate Leather Cap':       {k:'direct',s:[{id:1734073016,q:1},{id:806992520,q:4},{id:1899017490,q:1}]},
+  'Ornate Leather Leggings':  {k:'direct',s:[{id:1757060372,q:1},{id:806992520,q:4},{id:1899017490,q:1}]},
+  'Ornate Leather Shirt':     {k:'direct',s:[{id:1466357367,q:1},{id:806992520,q:5},{id:1899017490,q:2}]},
+  'Ornate Woven Belt':        {k:'direct',s:[{id:901367887, q:1},{id:1720157429,q:3},{id:1639666736,q:1}]},
+  'Pristine Leather Belt':    {k:'direct',s:[{id:1639525324,q:1},{id:1743778001,q:2}]},
+  'Pristine Leather Cap':     {k:'direct',s:[{id:1259363783,q:1},{id:1743778001,q:4},{id:1464752960,q:1}]},
+  'Pristine Leather Leggings':{k:'direct',s:[{id:172806342, q:1},{id:1407207381,q:9},{id:2081179538,q:1}]},
+  'Pristine Leather Shirt':   {k:'direct',s:[{id:60984074,  q:1},{id:1407207381,q:15},{id:2081179538,q:1}]},
+  'Pristine Woven Belt':      {k:'direct',s:[{id:2108103317,q:1},{id:1407207381,q:3},{id:2081179538,q:1}]},
+  'Magnificent Leather Belt':  {k:'direct',s:[{id:148416223, q:1},{id:585466639,q:3},{id:1047477197,q:1}]},
+  'Magnificent Leather Cap':   {k:'direct',s:[{id:371225209, q:1},{id:585466639,q:9},{id:1047477197,q:1}]},
+  'Magnificent Leather Leggings':{k:'direct',s:[{id:172806342,q:1},{id:1580025475,q:4},{id:445742898,q:1}]},
+  'Magnificent Leather Shirt': {k:'direct',s:[{id:60984074,  q:1},{id:1580025475,q:5},{id:445742898,q:2}]},
+  'Magnificent Woven Belt':    {k:'direct',s:[{id:2108103317,q:1},{id:282660928,q:2}]},
+  'Flawless Leather Belt':     {k:'direct',s:[{id:148416223, q:1},{id:711364475,q:2}]},
+  'Flawless Leather Cap':      {k:'direct',s:[{id:371225209, q:1},{id:711364475,q:4},{id:2069757207,q:1}]},
+  'Flawless Leather Leggings': {k:'direct',s:[{id:1246471378,q:1},{id:144400630,q:9},{id:214980690,q:1}]},
+  'Flawless Leather Shirt':    {k:'direct',s:[{id:465467902, q:1},{id:711364475,q:5},{id:2069757207,q:2}]},
+  'Flawless Woven Belt':       {k:'direct',s:[{id:2052070652,q:1},{id:35270576,q:2}]},
 };
 
 function getManualRecipe(itemId, itemName, tier) {
   if (!itemName) return null;
-  const def = MANUAL_RECIPE_DEF[itemName];
-  if (!def) return null;
+  const d = CRAFT_RECIPES[itemName];
+  if (!d || !d.p && d.k !== 'direct') return null;
   let stacks;
-  if (def.type === 'direct') {
-    stacks = def.stacks.map(s => ({item_id:s.id, quantity:s.q, item_type:'item'}));
-  } else if (def.type === 'tool') {
-    if (!def.prevId) return null;
-    const mats = TIER_MATERIALS[def.tier];
-    if (!mats) return null;
-    stacks = [
-      {item_id:def.prevId,   quantity:1, item_type:'item'},
-      {item_id:mats.ingot,   quantity:4, item_type:'item'},
-      {item_id:mats.rope,    quantity:2, item_type:'item'},
-      {item_id:mats.plank,   quantity:2, item_type:'item'},
-      {item_id:mats.leather, quantity:2, item_type:'item'},
-    ];
-  } else if (def.type === 'tool_nomat') {
-    // T7以上: 前Tierアイテムのみ（素材IDが不明）
-    if (!def.prevId) return null;
-    stacks = [{item_id:def.prevId, quantity:1, item_type:'item'}];
-  } else if (def.type === 'plated') {
-    if (!def.prevId) return null;
-    const mats = TIER_MATERIALS[def.tier];
-    if (!mats) return null;
-    stacks = [
-      {item_id:def.prevId, quantity:1, item_type:'item'},
-      {item_id:mats.ingot, quantity:5, item_type:'item'},
-      {item_id:mats.cloth, quantity:2, item_type:'item'},
-    ];
-  } else if (def.type === 'plated_nomat') {
-    if (!def.prevId) return null;
-    stacks = [{item_id:def.prevId, quantity:1, item_type:'item'}];
-  } else if (def.type === 'duelist') {
-    if (!def.prevId) return null;
-    const mats = TIER_MATERIALS[def.tier];
-    if (!mats) return null;
-    stacks = [
-      {item_id:def.prevId,   quantity:1,  item_type:'item'},
-      {item_id:mats.ingot,   quantity:4,  item_type:'item'},
-      {item_id:mats.leather, quantity:2,  item_type:'item'},
-      {item_id:mats.cloth,   quantity:1,  item_type:'item'},
-      {item_id:ANCIENT_METAL,quantity:15, item_type:'item'},
-    ];
-  } else if (def.type === 'duelist_nomat') {
-    if (!def.prevId) return null;
-    stacks = [{item_id:def.prevId, quantity:1, item_type:'item'}];
+  const m = TIER_MATS[d.t];
+  if (d.k === 'direct') {
+    stacks = d.s.map(x => ({item_id:x.id, quantity:x.q, item_type:'item'}));
+  } else if (d.k === 'tool' && m) {
+    stacks = [{item_id:d.p,quantity:1,item_type:'item'},{item_id:m.ingot,quantity:4,item_type:'item'},
+               {item_id:m.rope,quantity:2,item_type:'item'},{item_id:m.plank,quantity:2,item_type:'item'},
+               {item_id:m.leather,quantity:2,item_type:'item'}];
+  } else if (d.k === 'plated' && m) {
+    stacks = [{item_id:d.p,quantity:1,item_type:'item'},{item_id:m.ingot,quantity:5,item_type:'item'},
+               {item_id:m.cloth,quantity:2,item_type:'item'}];
+  } else if (d.k === 'duelist' && m) {
+    stacks = [{item_id:d.p,quantity:1,item_type:'item'},{item_id:m.ingot,quantity:4,item_type:'item'},
+               {item_id:m.leather,quantity:2,item_type:'item'},{item_id:m.cloth,quantity:1,item_type:'item'},
+               {item_id:ANC_METAL,quantity:15,item_type:'item'}];
+  } else if (d.k === 'prev' && d.p) {
+    stacks = [{item_id:d.p, quantity:1, item_type:'item'}];
   } else return null;
-
   return {
     consumedItemStacks: stacks.filter(s => s.item_id),
     craftedItemStacks: [{item_id:itemId, quantity:1}],
     recipeType: 'manual',
-    name: `手動レシピ (新規クラフト)`,
+    name: '手動レシピ (新規クラフト)',
   };
 }
 
 async function prefetchAllItemData(itemId) {
   const data = await fetchItemData(itemId);
   if (!data) return;
-  const manualIds = new Set();
-  const collectManual = (id, depth=0) => {
-    if (depth > 3) return;
-    const d = recipeCache[id];
-    if (!d?.item) return;
-    const mr = getManualRecipe(id, d.item.name, d.item.tier);
-    if (mr) mr.consumedItemStacks.forEach(s => {
-      const sid = String(s.item_id);
-      if (sid && sid !== '0') { manualIds.add(sid); collectManual(sid, depth+1); }
-    });
+  const mIds = new Set();
+  const colM = (id, d=0) => {
+    if (d>3) return;
+    const r = recipeCache[id];
+    if (!r?.item) return;
+    const mr = getManualRecipe(id, r.item.name, r.item.tier);
+    if (mr) mr.consumedItemStacks.forEach(s => { const sid=String(s.item_id); if(sid&&sid!=="0"){mIds.add(sid);colM(sid,d+1);} });
   };
-  collectManual(String(itemId));
+  colM(String(itemId));
   const allIds = collectAllItemIds(itemId, 0);
-  manualIds.forEach(id => allIds.add(id));
+  mIds.forEach(id => allIds.add(id));
   await Promise.all([...allIds].filter(id => !recipeCache[id]).map(id => fetchItemData(id)));
-  collectManual(String(itemId));
-  manualIds.forEach(id => allIds.add(id));
+  colM(String(itemId));
+  mIds.forEach(id => allIds.add(id));
   await Promise.all([...allIds].filter(id => !recipeCache[id]).map(id => fetchItemData(id)));
 }
 
@@ -2206,17 +2072,14 @@ async function prefetchAllMarketData(itemId) {
   const data = recipeCache[itemId];
   if (!data) return;
   const allIds = collectAllItemIds(itemId, 0);
-  const addManual = (id, depth=0) => {
-    if (depth > 3) return;
-    const d = recipeCache[id];
-    if (!d?.item) return;
-    const mr = getManualRecipe(id, d.item.name, d.item.tier);
-    if (mr) mr.consumedItemStacks.forEach(s => {
-      const sid = String(s.item_id);
-      if (sid && sid !== '0') { allIds.add(sid); addManual(sid, depth+1); }
-    });
+  const addM = (id, d=0) => {
+    if (d>3) return;
+    const r = recipeCache[id];
+    if (!r?.item) return;
+    const mr = getManualRecipe(id, r.item.name, r.item.tier);
+    if (mr) mr.consumedItemStacks.forEach(s => { const sid=String(s.item_id); if(sid&&sid!=="0"){allIds.add(sid);addM(sid,d+1);} });
   };
-  addManual(String(itemId));
+  addM(String(itemId));
   await Promise.all([...allIds].filter(id => !marketDataCache[id]).map(id => fetchMarketData(id)));
 }
 
@@ -2234,16 +2097,11 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
   
   // craftingRecipesを追加
   if (craftingRecipes.length > 0) {
-    craftingRecipes.forEach(r => {
-      allRecipes.push({ ...r, recipeType: 'crafting' });
-    });
+    craftingRecipes.forEach(r => { allRecipes.push({...r, recipeType:'crafting'}); });
   }
   // 手動レシピを追加
-  const manualRec = getManualRecipe(itemId, item.name, item.tier);
-  if (manualRec) {
-    if (craftingRecipes.length === 0) allRecipes.unshift(manualRec);
-    else allRecipes.push(manualRec);
-  }
+  const mr = getManualRecipe(itemId, item.name, item.tier);
+  if (mr) { if (craftingRecipes.length===0) allRecipes.unshift(mr); else allRecipes.push(mr); }
   // recipesUsingItemを追加（ 材料に自分自身が含まれていないもの）
   if (recipesUsingItem.length > 0) {
     recipesUsingItem.forEach(r => {
@@ -2352,14 +2210,10 @@ function renderCraftTree(tree) {
   
   // リージョンのリストを取得
   const regions = new Set(['']); // すべてのリージョンを含む
-  if (!window._regionIdMap) window._regionIdMap = {};
   function collectRegions(node) {
     if (node.sellOrders) {
       node.sellOrders.forEach(order => {
-        if (order.regionName) {
-          regions.add(order.regionName);
-          if (order.regionId) window._regionIdMap[order.regionName] = order.regionId;
-        }
+        if (order.regionName) regions.add(order.regionName);
       });
     }
     if (node.recipes && node.recipes[0] && node.recipes[0].ingredients) {
@@ -2376,11 +2230,13 @@ function renderCraftTree(tree) {
     regions.forEach(region => {
       const option = document.createElement('option');
       option.value = region;
-      // リージョンIDを取得（regionId→regionNameのマップから確実に取得）
+      // リージョンIDを取得
       let regionIdText = '';
-      if (region) {
-        const rid = window._regionIdMap?.[region];
-        if (rid) regionIdText = ` (R${rid})`;
+      if (region && tree.sellOrders) {
+        const order = tree.sellOrders.find(o => o.regionName === region);
+        if (order && order.regionId) {
+          regionIdText = ` R${order.regionId}`;
+        }
       }
       option.textContent = region ? `${region}${regionIdText}` : 'すべてのリージョン';
       if (region === currentRegion) option.selected = true;
