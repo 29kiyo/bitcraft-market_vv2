@@ -1850,7 +1850,7 @@ function collectAllItemIds(itemId, depth = 0) {
 // プリフェッチ: 全素材データを並列取得
 
 // ============================================
-// 手動レシピDB
+// 手動レシピDB（T2以上 APIにレシピがないアイテム全種）
 // ============================================
 const TIER_MATS = {
   1:{ingot:1050001,rope:1090004,plank:1020003,leather:1070004,cloth:1090002},
@@ -1861,12 +1861,11 @@ const TIER_MATS = {
   6:{ingot:6050001,rope:6090004,plank:6020003,leather:6070004,cloth:6090002},
 };
 const ANC_METAL = 1718148009;
-
-// k: 'tool'=Ingot×4+Rope×2+Plank×2+Leather×2, 'plated'=Ingot×5+Cloth×2
-//    'duelist'=Ingot×4+Leather×2+Cloth×1+AncMetal×15, 'prev'=前Tierのみ
-//    'direct'=素材を直接指定
+// k: tool=Ingot×4+Rope×2+Plank×2+Leather×2
+//    plated=Ingot×5+Cloth×2, duelist=Ingot×4+Leather×2+Cloth×1+AncMetal×15
+//    prev=前Tierのみ, direct=素材を直接指定({s:[{id,q}]})
 const CRAFT_DB = {
-  // ツール・武器 T2-T6
+  // ===ツール・武器 T2-T6===
   'Pyrelite Axe':{p:1201067083,t:2,k:'tool'},'Pyrelite Bow':{p:2054875237,t:2,k:'tool'},
   'Pyrelite Chisel':{p:1831352039,t:2,k:'tool'},'Pyrelite Claymore':{p:252729537,t:2,k:'tool'},
   'Pyrelite Crossbow':{p:1471860856,t:2,k:'tool'},'Pyrelite Daggers':{p:747689943,t:2,k:'tool'},
@@ -1903,7 +1902,7 @@ const CRAFT_DB = {
   'Luminite Rod':{p:1858500155,t:5,k:'tool'},'Luminite Saw':{p:1115966209,t:5,k:'tool'},
   'Luminite Scissors':{p:582320225,t:5,k:'tool'},'Luminite Spear & Shield':{p:1800572877,t:5,k:'tool'},
   'Rathium Chisel':{p:1771114282,t:6,k:'tool'},'Rathium Scissors':{p:783907612,t:6,k:'tool'},
-  // T7-T10 ツール（prevId x1のみ）
+  // ===T7-T10 ツール（prev x1のみ）===
   'Aurumite Axe':{p:1337511485,k:'prev'},'Aurumite Bow':{p:1491113278,k:'prev'},
   'Aurumite Chisel':{p:1428413909,k:'prev'},'Aurumite Claymore':{p:576104158,k:'prev'},
   'Aurumite Crossbow':{p:533184370,k:'prev'},'Aurumite Daggers':{p:1002395423,k:'prev'},
@@ -1940,7 +1939,7 @@ const CRAFT_DB = {
   'Astralite Quill':{p:659271654,k:'prev'},'Astralite Rod':{p:1297008737,k:'prev'},
   'Astralite Saw':{p:252555012,k:'prev'},'Astralite Scissors':{p:1264098940,k:'prev'},
   'Astralite Shortsword':{p:2001060480,k:'prev'},'Astralite Spear & Shield':{p:246070958,k:'prev'},
-  // Plated T2-T6
+  // ===Plated T2-T6 (Ingot×5+Cloth×2)===
   'Pyrelite Plated Armor':{p:422440070,t:2,k:'plated'},'Pyrelite Plated Belt':{p:922569705,t:2,k:'plated'},
   'Pyrelite Plated Boots':{p:155776141,t:2,k:'plated'},'Pyrelite Plated Helm':{p:1919532147,t:2,k:'plated'},
   'Emarium Plated Armor':{p:1268204743,t:3,k:'plated'},'Emarium Plated Belt':{p:1682637898,t:3,k:'plated'},
@@ -1949,7 +1948,7 @@ const CRAFT_DB = {
   'Elenvar Plated Boots':{p:1871358332,t:4,k:'plated'},
   'Luminite Plated Armor':{p:1614334993,t:5,k:'plated'},'Luminite Plated Belt':{p:803904452,t:5,k:'plated'},
   'Luminite Plated Boots':{p:1205236443,t:5,k:'plated'},
-  // Plated T7-T10 (prev x1)
+  // Plated T7-T10
   'Aurumite Plated Armor':{p:656747139,k:'prev'},'Aurumite Plated Belt':{p:1007421323,k:'prev'},
   'Aurumite Plated Boots':{p:1088161042,k:'prev'},'Aurumite Plated Helm':{p:1365299920,k:'prev'},
   'Celestium Plated Armor':{p:1684382139,k:'prev'},'Celestium Plated Belt':{p:1007421323,k:'prev'},
@@ -1958,13 +1957,13 @@ const CRAFT_DB = {
   'Umbracite Plated Boots':{p:7277222,k:'prev'},'Umbracite Plated Helm':{p:100210345,k:'prev'},
   'Astralite Plated Armor':{p:1327243115,k:'prev'},'Astralite Plated Belt':{p:1246240393,k:'prev'},
   'Astralite Plated Boots':{p:7277222,k:'prev'},'Astralite Plated Helm':{p:100210345,k:'prev'},
-  // Duelist T2-T6
+  // ===Duelist T2-T6 (Ingot×4+Leather×2+Cloth×1+AncMetal×15)===
   'Pyrelite Duelist Armor':{p:1554355057,t:2,k:'duelist'},'Pyrelite Duelist Belt':{p:288183013,t:2,k:'duelist'},
   'Pyrelite Duelist Boots':{p:664595734,t:2,k:'duelist'},'Pyrelite Duelist Helm':{p:152653749,t:2,k:'duelist'},
   'Emarium Duelist Armor':{p:712055376,t:3,k:'duelist'},'Emarium Duelist Belt':{p:1654952717,t:3,k:'duelist'},
   'Emarium Duelist Helm':{p:1779898711,t:3,k:'duelist'},
   'Elenvar Duelist Armor':{p:1808783387,t:4,k:'duelist'},'Elenvar Duelist Helm':{p:1754497634,t:4,k:'duelist'},
-  // Duelist T7-T10 (prev x1)
+  // Duelist T7-T10
   'Aurumite Duelist Armor':{p:256396301,k:'prev'},'Aurumite Duelist Belt':{p:1401165975,k:'prev'},
   'Aurumite Duelist Boots':{p:2020613832,k:'prev'},'Aurumite Duelist Helm':{p:270863881,k:'prev'},
   'Celestium Duelist Armor':{p:516841544,k:'prev'},'Celestium Duelist Belt':{p:1181233364,k:'prev'},
@@ -1973,52 +1972,107 @@ const CRAFT_DB = {
   'Umbracite Duelist Boots':{p:772551420,k:'prev'},'Umbracite Duelist Helm':{p:1094723673,k:'prev'},
   'Astralite Duelist Armor':{p:1631596312,k:'prev'},'Astralite Duelist Belt':{p:1805581060,k:'prev'},
   'Astralite Duelist Boots':{p:119023036,k:'prev'},'Astralite Duelist Helm':{p:1094723673,k:'prev'},
-  // 革装備・布装備（直接指定）T2-T10
+  // ===革装備 T2-T10 (direct)===
   'Simple Leather Belt':{k:'direct',s:[{id:1548924604,q:1},{id:2070004,q:2}]},
+  'Simple Leather Boots':{k:'direct',s:[{id:442339538,q:1},{id:2070004,q:2}]},
   'Simple Leather Cap':{k:'direct',s:[{id:1437965200,q:1},{id:2070004,q:4},{id:2050001,q:1}]},
   'Simple Leather Leggings':{k:'direct',s:[{id:1475691769,q:1},{id:1314601698,q:9},{id:782755200,q:1}]},
   'Simple Leather Shirt':{k:'direct',s:[{id:745343940,q:1},{id:1314601698,q:15},{id:782755200,q:1}]},
-  'Simple Woven Belt':{k:'direct',s:[{id:922569704,q:1},{id:2090002,q:2}]},
   'Sturdy Leather Belt':{k:'direct',s:[{id:1911943829,q:1},{id:3070004,q:2}]},
+  'Sturdy Leather Boots':{k:'direct',s:[{id:687015665,q:1},{id:296645870,q:3},{id:1014472344,q:1}]},
   'Sturdy Leather Cap':{k:'direct',s:[{id:2092519490,q:1},{id:296645870,q:9},{id:1014472344,q:1}]},
   'Sturdy Leather Leggings':{k:'direct',s:[{id:1764915050,q:1},{id:296645870,q:9},{id:1014472344,q:1}]},
   'Sturdy Leather Shirt':{k:'direct',s:[{id:745343940,q:1},{id:3070004,q:5},{id:3050001,q:2}]},
-  'Sturdy Woven Belt':{k:'direct',s:[{id:83640847,q:1},{id:296645870,q:3},{id:1014472344,q:1}]},
   'Fine Leather Belt':{k:'direct',s:[{id:1884263400,q:1},{id:1069959598,q:3},{id:1866006436,q:1}]},
+  'Fine Leather Boots':{k:'direct',s:[{id:1576306916,q:1},{id:1069959598,q:3},{id:1866006436,q:1}]},
   'Fine Leather Cap':{k:'direct',s:[{id:1144193560,q:1},{id:1069959598,q:9},{id:1866006436,q:1}]},
   'Fine Leather Leggings':{k:'direct',s:[{id:1242370395,q:1},{id:1069959598,q:9},{id:1866006436,q:1}]},
   'Fine Leather Shirt':{k:'direct',s:[{id:975181088,q:1},{id:1069959598,q:15},{id:1866006436,q:1}]},
-  'Fine Woven Belt':{k:'direct',s:[{id:420318150,q:1},{id:1069959598,q:3},{id:1866006436,q:1}]},
   'Exquisite Leather Belt':{k:'direct',s:[{id:1738310260,q:1},{id:534852613,q:3},{id:1336640512,q:1}]},
+  'Exquisite Leather Boots':{k:'direct',s:[{id:28351344,q:1},{id:534852613,q:3},{id:1336640512,q:1}]},
   'Exquisite Leather Cap':{k:'direct',s:[{id:1144193560,q:1},{id:5070004,q:4},{id:5050001,q:1}]},
   'Exquisite Leather Leggings':{k:'direct',s:[{id:1242370395,q:1},{id:5070004,q:4},{id:5050001,q:1}]},
   'Exquisite Leather Shirt':{k:'direct',s:[{id:327065735,q:1},{id:534852613,q:15},{id:1336640512,q:1}]},
-  'Exquisite Woven Belt':{k:'direct',s:[{id:420318150,q:1},{id:5090002,q:2}]},
   'Peerless Leather Belt':{k:'direct',s:[{id:1738310260,q:1},{id:6070004,q:2}]},
+  'Peerless Leather Boots':{k:'direct',s:[{id:28351344,q:1},{id:6070004,q:2}]},
   'Peerless Leather Cap':{k:'direct',s:[{id:1734073016,q:1},{id:447596001,q:9},{id:479733233,q:1}]},
   'Peerless Leather Leggings':{k:'direct',s:[{id:1757060372,q:1},{id:447596001,q:9},{id:479733233,q:1}]},
   'Peerless Leather Shirt':{k:'direct',s:[{id:327065735,q:1},{id:6070004,q:5},{id:6050001,q:2}]},
-  'Peerless Woven Belt':{k:'direct',s:[{id:1495228276,q:1},{id:6090002,q:2}]},
   'Ornate Leather Belt':{k:'direct',s:[{id:1639525324,q:1},{id:1720157429,q:3},{id:1639666736,q:1}]},
+  'Ornate Leather Boots':{k:'direct',s:[{id:1036802637,q:1},{id:1720157429,q:3},{id:1639666736,q:1}]},
   'Ornate Leather Cap':{k:'direct',s:[{id:1734073016,q:1},{id:806992520,q:4},{id:1899017490,q:1}]},
   'Ornate Leather Leggings':{k:'direct',s:[{id:1757060372,q:1},{id:806992520,q:4},{id:1899017490,q:1}]},
   'Ornate Leather Shirt':{k:'direct',s:[{id:1466357367,q:1},{id:806992520,q:5},{id:1899017490,q:2}]},
-  'Ornate Woven Belt':{k:'direct',s:[{id:901367887,q:1},{id:1720157429,q:3},{id:1639666736,q:1}]},
   'Pristine Leather Belt':{k:'direct',s:[{id:1639525324,q:1},{id:1743778001,q:2}]},
+  'Pristine Leather Boots':{k:'direct',s:[{id:1036802637,q:1},{id:1743778001,q:2}]},
   'Pristine Leather Cap':{k:'direct',s:[{id:1259363783,q:1},{id:1743778001,q:4},{id:1464752960,q:1}]},
   'Pristine Leather Leggings':{k:'direct',s:[{id:172806342,q:1},{id:1407207381,q:9},{id:2081179538,q:1}]},
   'Pristine Leather Shirt':{k:'direct',s:[{id:60984074,q:1},{id:1407207381,q:15},{id:2081179538,q:1}]},
-  'Pristine Woven Belt':{k:'direct',s:[{id:2108103317,q:1},{id:1407207381,q:3},{id:2081179538,q:1}]},
   'Magnificent Leather Belt':{k:'direct',s:[{id:148416223,q:1},{id:585466639,q:3},{id:1047477197,q:1}]},
+  'Magnificent Leather Boots':{k:'direct',s:[{id:793832906,q:1},{id:1580025475,q:2}]},
   'Magnificent Leather Cap':{k:'direct',s:[{id:371225209,q:1},{id:585466639,q:9},{id:1047477197,q:1}]},
   'Magnificent Leather Leggings':{k:'direct',s:[{id:172806342,q:1},{id:1580025475,q:4},{id:445742898,q:1}]},
   'Magnificent Leather Shirt':{k:'direct',s:[{id:60984074,q:1},{id:1580025475,q:5},{id:445742898,q:2}]},
-  'Magnificent Woven Belt':{k:'direct',s:[{id:2108103317,q:1},{id:282660928,q:2}]},
   'Flawless Leather Belt':{k:'direct',s:[{id:148416223,q:1},{id:711364475,q:2}]},
+  'Flawless Leather Boots':{k:'direct',s:[{id:1640149934,q:1},{id:144400630,q:3},{id:214980690,q:1}]},
   'Flawless Leather Cap':{k:'direct',s:[{id:371225209,q:1},{id:711364475,q:4},{id:2069757207,q:1}]},
   'Flawless Leather Leggings':{k:'direct',s:[{id:1246471378,q:1},{id:144400630,q:9},{id:214980690,q:1}]},
   'Flawless Leather Shirt':{k:'direct',s:[{id:465467902,q:1},{id:711364475,q:5},{id:2069757207,q:2}]},
+  // ===布装備 T2-T10 (direct)===
+  'Simple Woven Belt':{k:'direct',s:[{id:922569704,q:1},{id:2090002,q:2}]},
+  'Simple Woven Cap':{k:'direct',s:[{id:1431325923,q:1},{id:1314601698,q:9},{id:782755200,q:1}]},
+  'Simple Woven Gloves':{k:'direct',s:[{id:2020078588,q:1},{id:1314601698,q:3},{id:782755200,q:1}]},
+  'Simple Woven Shirt':{k:'direct',s:[{id:422440069,q:1},{id:2090002,q:5},{id:2070004,q:2}]},
+  'Simple Woven Shoes':{k:'direct',s:[{id:155776140,q:1},{id:2090002,q:2}]},
+  'Simple Woven Shorts':{k:'direct',s:[{id:1263241821,q:1},{id:1314601698,q:9},{id:782755200,q:1}]},
+  'Sturdy Woven Belt':{k:'direct',s:[{id:83640847,q:1},{id:296645870,q:3},{id:1014472344,q:1}]},
+  'Sturdy Woven Cap':{k:'direct',s:[{id:610894040,q:1},{id:296645870,q:9},{id:1014472344,q:1}]},
+  'Sturdy Woven Gloves':{k:'direct',s:[{id:1621000871,q:1},{id:296645870,q:3},{id:1014472344,q:1}]},
+  'Sturdy Woven Shirt':{k:'direct',s:[{id:866064270,q:1},{id:296645870,q:15},{id:1014472344,q:1}]},
+  'Sturdy Woven Shoes':{k:'direct',s:[{id:331949206,q:1},{id:296645870,q:3},{id:1014472344,q:1}]},
+  'Sturdy Woven Shorts':{k:'direct',s:[{id:1263241821,q:1},{id:3090002,q:4},{id:3070004,q:1}]},
+  'Fine Woven Belt':{k:'direct',s:[{id:420318150,q:1},{id:1069959598,q:3},{id:1866006436,q:1}]},
+  'Fine Woven Cap':{k:'direct',s:[{id:610894040,q:1},{id:4090002,q:4},{id:4070004,q:1}]},
+  'Fine Woven Gloves':{k:'direct',s:[{id:1621000871,q:1},{id:4090002,q:1}]},
+  'Fine Woven Shirt':{k:'direct',s:[{id:866064270,q:1},{id:4090002,q:5},{id:4070004,q:2}]},
+  'Fine Woven Shoes':{k:'direct',s:[{id:331949206,q:1},{id:4090002,q:2}]},
+  'Fine Woven Shorts':{k:'direct',s:[{id:379237240,q:1},{id:1069959598,q:9},{id:1866006436,q:1}]},
+  'Exquisite Woven Belt':{k:'direct',s:[{id:420318150,q:1},{id:5090002,q:2}]},
+  'Exquisite Woven Cap':{k:'direct',s:[{id:1590050482,q:1},{id:534852613,q:9},{id:1336640512,q:1}]},
+  'Exquisite Woven Gloves':{k:'direct',s:[{id:1445320140,q:1},{id:534852613,q:3},{id:1336640512,q:1}]},
+  'Exquisite Woven Shirt':{k:'direct',s:[{id:1344397607,q:1},{id:5090002,q:5},{id:5070004,q:2}]},
+  'Exquisite Woven Shoes':{k:'direct',s:[{id:607489491,q:1},{id:5090002,q:2}]},
+  'Exquisite Woven Shorts':{k:'direct',s:[{id:379237240,q:1},{id:5090002,q:4},{id:5070004,q:1}]},
+  'Peerless Woven Belt':{k:'direct',s:[{id:1495228276,q:1},{id:6090002,q:2}]},
+  'Peerless Woven Cap':{k:'direct',s:[{id:1590050482,q:1},{id:6090002,q:4},{id:6070004,q:1}]},
+  'Peerless Woven Gloves':{k:'direct',s:[{id:1445320140,q:1},{id:6090002,q:1}]},
+  'Peerless Woven Shirt':{k:'direct',s:[{id:684202987,q:1},{id:6090002,q:5},{id:6070004,q:2}]},
+  'Peerless Woven Shoes':{k:'direct',s:[{id:488632591,q:1},{id:447596001,q:3},{id:479733233,q:1}]},
+  'Peerless Woven Shorts':{k:'direct',s:[{id:1610447653,q:1},{id:447596001,q:9},{id:479733233,q:1}]},
+  'Ornate Woven Belt':{k:'direct',s:[{id:901367887,q:1},{id:1720157429,q:3},{id:1639666736,q:1}]},
+  'Ornate Woven Cap':{k:'direct',s:[{id:1445926404,q:1},{id:1720157429,q:9},{id:1639666736,q:1}]},
+  'Ornate Woven Gloves':{k:'direct',s:[{id:1400699435,q:1},{id:1720157429,q:3},{id:1639666736,q:1}]},
+  'Ornate Woven Shirt':{k:'direct',s:[{id:589244226,q:1},{id:1720157429,q:15},{id:1639666736,q:1}]},
+  'Ornate Woven Shoes':{k:'direct',s:[{id:488632591,q:1},{id:1610800379,q:2}]},
+  'Ornate Woven Shorts':{k:'direct',s:[{id:1610447653,q:1},{id:1610800379,q:4},{id:806992520,q:1}]},
+  'Pristine Woven Belt':{k:'direct',s:[{id:2108103317,q:1},{id:1407207381,q:3},{id:2081179538,q:1}]},
+  'Pristine Woven Cap':{k:'direct',s:[{id:1445926404,q:1},{id:136406464,q:4},{id:1743778001,q:1}]},
+  'Pristine Woven Gloves':{k:'direct',s:[{id:1320364860,q:1},{id:1407207381,q:3},{id:2081179538,q:1}]},
+  'Pristine Woven Shirt':{k:'direct',s:[{id:429927042,q:1},{id:1407207381,q:15},{id:2081179538,q:1}]},
+  'Pristine Woven Shoes':{k:'direct',s:[{id:104655445,q:1},{id:1407207381,q:3},{id:2081179538,q:1}]},
+  'Pristine Woven Shorts':{k:'direct',s:[{id:552669230,q:1},{id:136406464,q:4},{id:1743778001,q:1}]},
+  'Magnificent Woven Belt':{k:'direct',s:[{id:2108103317,q:1},{id:282660928,q:2}]},
+  'Magnificent Woven Cap':{k:'direct',s:[{id:1368641270,q:1},{id:585466639,q:9},{id:1047477197,q:1}]},
+  'Magnificent Woven Gloves':{k:'direct',s:[{id:1124560435,q:1},{id:585466639,q:3},{id:1047477197,q:1}]},
+  'Magnificent Woven Shirt':{k:'direct',s:[{id:135038453,q:1},{id:585466639,q:15},{id:1047477197,q:1}]},
+  'Magnificent Woven Shoes':{k:'direct',s:[{id:104655445,q:1},{id:282660928,q:2}]},
+  'Magnificent Woven Shorts':{k:'direct',s:[{id:1068118468,q:1},{id:282660928,q:4},{id:1580025475,q:1}]},
   'Flawless Woven Belt':{k:'direct',s:[{id:2052070652,q:1},{id:35270576,q:2}]},
+  'Flawless Woven Cap':{k:'direct',s:[{id:1136046458,q:1},{id:144400630,q:9},{id:214980690,q:1}]},
+  'Flawless Woven Gloves':{k:'direct',s:[{id:647052976,q:1},{id:35270576,q:1}]},
+  'Flawless Woven Shirt':{k:'direct',s:[{id:135038453,q:1},{id:35270576,q:5},{id:711364475,q:2}]},
+  'Flawless Woven Shoes':{k:'direct',s:[{id:485050532,q:1},{id:144400630,q:3},{id:214980690,q:1}]},
+  'Flawless Woven Shorts':{k:'direct',s:[{id:228162554,q:1},{id:144400630,q:9},{id:214980690,q:1}]},
 };
 
 function getManualRecipe(itemId, itemName, tier) {
