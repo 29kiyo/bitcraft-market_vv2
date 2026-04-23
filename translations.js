@@ -300,6 +300,7 @@ const ITEM_TRANSLATIONS = {
   "帆": "Sail Cloth",
   "塩": "Salt",
   "砂糖": "Sugar",
+  "アイドゥンノ": "Aidunno",
 
 // ===== 未登録タグ追加 =====
   "研究":"research",
@@ -1159,6 +1160,8 @@ const EN_ITEM_BASE = {
   "Filet Package": "フィレパック",
   "Sack of Hex Coins": "ヘックスコイン袋",
   "Scale": "鱗",
+  "Aidunno Sauce": "アイドゥンノソース",
+  "Aidunno":"アイドゥンノ",
 };
 
 // カテゴリ別プレフィックス訳
@@ -1423,6 +1426,7 @@ const EN_EXACT = {
   "Crushed Sturdy Shells": "砕いた頑丈な貝殻",
   "Essential Codex": "エッセンシャル手引書",
   "Essential Outpost Research": "エッセンシャル前哨地研究",
+  "Advanced Outpost Research":"高度な前哨基地研究",
   "Essential Stone Carvings": "エッセンシャル石刻み",
   "Essential Stone Diagrams": "エッセンシャル石図",
   "Fair Sack of Hex Coins": "フェアヘックスコイン袋",
@@ -1465,6 +1469,7 @@ const EN_EXACT = {
   "Proficient Stone Carvings": "熟練石刻み",
   "Proficient Study Journal": "熟練学習帳",
   "Comprehensive Study Journal":"総合学習帳帳",
+  "Advanced Study Journal":"高度な学習長",
   "Outdoor Logcraft Fence": "屋外ログクラフトフェンス",
   "Outdoor Logcraft Lamp Post": "屋外ログクラフト街灯",
   "Owl Egg": "フクロウ卵",
@@ -1526,10 +1531,13 @@ const EN_EXACT = {
   "Ramparte Business Voucher": "ランパルテビジネスバウチャー",
   "Rumbagh Business Voucher": "ルンバグビジネスバウチャー",
   "Svim Business Voucher": "スビムビジネスバウチャー",
+  "Alesi Business Voucher":"アレシビジネスバウチャー",
   "Berserker Crafting Potion": "バーサーカークラフトポーション",
   "Berserker Gathering Potion": "バーサーカー採集ポーション",
   "Flint Tool Bundle": "フリントツールセット",
   "Flint Tool Bundle II": "フリントツールセットII",
+  "Aidunno Sauce":"アイドゥンノソース",
+  "Aidunno":"アイドゥンノ",
 };
 
 function getJaName(enName) {
