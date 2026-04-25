@@ -1848,35 +1848,238 @@ function collectAllItemIds(itemId, depth = 0) {
 }
 
 // プリフェッチ: 全素材データを並列取得
+
+// ============================================
+// 手動レシピDB
+// ============================================
+const TIER_MATS = {
+  1:{ingot:1050001,rope:1090004,plank:1020003,leather:1070004,cloth:1090002},
+  2:{ingot:2050001,rope:2090004,plank:2020003,leather:2070004,cloth:2090002},
+  3:{ingot:3050001,rope:3090004,plank:3020003,leather:3070004,cloth:3090002},
+  4:{ingot:4050001,rope:4090004,plank:4020003,leather:4070004,cloth:4090002},
+  5:{ingot:5050001,rope:5090004,plank:5020003,leather:5070004,cloth:5090002},
+  6:{ingot:6050001,rope:6090004,plank:6020003,leather:6070004,cloth:6090002},
+};
+const ANC_METAL = 1718148009;
+
+// k: 'tool'=Ingot×4+Rope×2+Plank×2+Leather×2, 'plated'=Ingot×5+Cloth×2
+//    'duelist'=Ingot×4+Leather×2+Cloth×1+AncMetal×15, 'prev'=前Tierのみ
+//    'direct'=素材を直接指定
+const CRAFT_DB = {
+  // ツール・武器 T2-T6
+  'Pyrelite Axe':{p:1201067083,t:2,k:'tool'},'Pyrelite Bow':{p:2054875237,t:2,k:'tool'},
+  'Pyrelite Chisel':{p:1831352039,t:2,k:'tool'},'Pyrelite Claymore':{p:252729537,t:2,k:'tool'},
+  'Pyrelite Crossbow':{p:1471860856,t:2,k:'tool'},'Pyrelite Daggers':{p:747689943,t:2,k:'tool'},
+  'Pyrelite Hammer':{p:1669114499,t:2,k:'tool'},'Pyrelite Hoe':{p:273473901,t:2,k:'tool'},
+  'Pyrelite Knife':{p:1503159114,t:2,k:'tool'},'Pyrelite Mace':{p:1823909616,t:2,k:'tool'},
+  'Pyrelite Machete':{p:571682698,t:2,k:'tool'},'Pyrelite Pickaxe':{p:1704711141,t:2,k:'tool'},
+  'Pyrelite Quill':{p:530006562,t:2,k:'tool'},'Pyrelite Rod':{p:544541723,t:2,k:'tool'},
+  'Pyrelite Saw':{p:1355330989,t:2,k:'tool'},'Pyrelite Scissors':{p:1125962328,t:2,k:'tool'},
+  'Pyrelite Shortsword':{p:194332661,t:2,k:'tool'},'Pyrelite Spear & Shield':{p:1826240904,t:2,k:'tool'},
+  'Emarium Axe':{p:1605904571,t:3,k:'tool'},'Emarium Bow':{p:1034184552,t:3,k:'tool'},
+  'Emarium Chisel':{p:1413938165,t:3,k:'tool'},'Emarium Claymore':{p:620508449,t:3,k:'tool'},
+  'Emarium Crossbow':{p:1512593047,t:3,k:'tool'},'Emarium Daggers':{p:465856554,t:3,k:'tool'},
+  'Emarium Hammer':{p:482196569,t:3,k:'tool'},'Emarium Hoe':{p:1644135836,t:3,k:'tool'},
+  'Emarium Knife':{p:1316428000,t:3,k:'tool'},'Emarium Mace':{p:1598024081,t:3,k:'tool'},
+  'Emarium Machete':{p:223757569,t:3,k:'tool'},'Emarium Pickaxe':{p:513104323,t:3,k:'tool'},
+  'Emarium Quill':{p:414853205,t:3,k:'tool'},'Emarium Rod':{p:843645212,t:3,k:'tool'},
+  'Emarium Saw':{p:412214433,t:3,k:'tool'},'Emarium Scissors':{p:343569714,t:3,k:'tool'},
+  'Emarium Shortsword':{p:333188935,t:3,k:'tool'},'Emarium Spear & Shield':{p:2098377887,t:3,k:'tool'},
+  'Elenvar Axe':{p:1486054968,t:4,k:'tool'},'Elenvar Bow':{p:1219038577,t:4,k:'tool'},
+  'Elenvar Chisel':{p:438003010,t:4,k:'tool'},'Elenvar Claymore':{p:480170023,t:4,k:'tool'},
+  'Elenvar Crossbow':{p:1176798477,t:4,k:'tool'},'Elenvar Daggers':{p:412987444,t:4,k:'tool'},
+  'Elenvar Hammer':{p:398791964,t:4,k:'tool'},'Elenvar Hoe':{p:1043267104,t:4,k:'tool'},
+  'Elenvar Knife':{p:971385983,t:4,k:'tool'},'Elenvar Mace':{p:1145327846,t:4,k:'tool'},
+  'Elenvar Machete':{p:1229547048,t:4,k:'tool'},'Elenvar Pickaxe':{p:2124079079,t:4,k:'tool'},
+  'Elenvar Quill':{p:1221634026,t:4,k:'tool'},'Elenvar Rod':{p:1094163061,t:4,k:'tool'},
+  'Elenvar Saw':{p:1930789220,t:4,k:'tool'},'Elenvar Scissors':{p:803429716,t:4,k:'tool'},
+  'Elenvar Spear & Shield':{p:1888091519,t:4,k:'tool'},
+  'Luminite Axe':{p:489724302,t:5,k:'tool'},'Luminite Bow':{p:735626470,t:5,k:'tool'},
+  'Luminite Chisel':{p:2122350182,t:5,k:'tool'},'Luminite Claymore':{p:1800349844,t:5,k:'tool'},
+  'Luminite Crossbow':{p:1184634453,t:5,k:'tool'},'Luminite Daggers':{p:1800053684,t:5,k:'tool'},
+  'Luminite Hammer':{p:382339978,t:5,k:'tool'},'Luminite Hoe':{p:1891681591,t:5,k:'tool'},
+  'Luminite Knife':{p:268156651,t:5,k:'tool'},'Luminite Machete':{p:1342482833,t:5,k:'tool'},
+  'Luminite Pickaxe':{p:2015514055,t:5,k:'tool'},'Luminite Quill':{p:139776334,t:5,k:'tool'},
+  'Luminite Rod':{p:1858500155,t:5,k:'tool'},'Luminite Saw':{p:1115966209,t:5,k:'tool'},
+  'Luminite Scissors':{p:582320225,t:5,k:'tool'},'Luminite Spear & Shield':{p:1800572877,t:5,k:'tool'},
+  'Rathium Chisel':{p:1771114282,t:6,k:'tool'},'Rathium Scissors':{p:783907612,t:6,k:'tool'},
+  // T7-T10 ツール（prevId x1のみ）
+  'Aurumite Axe':{p:1337511485,k:'prev'},'Aurumite Bow':{p:1491113278,k:'prev'},
+  'Aurumite Chisel':{p:1428413909,k:'prev'},'Aurumite Claymore':{p:576104158,k:'prev'},
+  'Aurumite Crossbow':{p:533184370,k:'prev'},'Aurumite Daggers':{p:1002395423,k:'prev'},
+  'Aurumite Hammer':{p:500003016,k:'prev'},'Aurumite Hoe':{p:433291223,k:'prev'},
+  'Aurumite Knife':{p:270820549,k:'prev'},'Aurumite Mace':{p:1134539652,k:'prev'},
+  'Aurumite Machete':{p:728445804,k:'prev'},'Aurumite Pickaxe':{p:1606324183,k:'prev'},
+  'Aurumite Quill':{p:2024640963,k:'prev'},'Aurumite Rod':{p:1677637105,k:'prev'},
+  'Aurumite Saw':{p:413702311,k:'prev'},'Aurumite Scissors':{p:1700689396,k:'prev'},
+  'Aurumite Shortsword':{p:502541107,k:'prev'},'Aurumite Spear & Shield':{p:1641524052,k:'prev'},
+  'Celestium Axe':{p:1337511485,k:'prev'},'Celestium Bow':{p:1255416131,k:'prev'},
+  'Celestium Chisel':{p:247800929,k:'prev'},'Celestium Claymore':{p:576104158,k:'prev'},
+  'Celestium Crossbow':{p:533184370,k:'prev'},'Celestium Daggers':{p:1002395423,k:'prev'},
+  'Celestium Hammer':{p:1047843413,k:'prev'},'Celestium Hoe':{p:110205879,k:'prev'},
+  'Celestium Knife':{p:240995661,k:'prev'},'Celestium Mace':{p:69932165,k:'prev'},
+  'Celestium Machete':{p:728445804,k:'prev'},'Celestium Pickaxe':{p:991451810,k:'prev'},
+  'Celestium Quill':{p:268540371,k:'prev'},'Celestium Rod':{p:2041164201,k:'prev'},
+  'Celestium Saw':{p:1176061468,k:'prev'},'Celestium Scissors':{p:1700689396,k:'prev'},
+  'Celestium Shortsword':{p:502541107,k:'prev'},'Celestium Spear & Shield':{p:1641524052,k:'prev'},
+  'Umbracite Axe':{p:1967177382,k:'prev'},'Umbracite Bow':{p:1255416131,k:'prev'},
+  'Umbracite Chisel':{p:247800929,k:'prev'},'Umbracite Claymore':{p:450178430,k:'prev'},
+  'Umbracite Crossbow':{p:29052855,k:'prev'},'Umbracite Daggers':{p:2118322388,k:'prev'},
+  'Umbracite Hammer':{p:318446982,k:'prev'},'Umbracite Hoe':{p:688829506,k:'prev'},
+  'Umbracite Knife':{p:1260356897,k:'prev'},'Umbracite Mace':{p:1999151730,k:'prev'},
+  'Umbracite Machete':{p:799622109,k:'prev'},'Umbracite Pickaxe':{p:96513154,k:'prev'},
+  'Umbracite Quill':{p:268540371,k:'prev'},'Umbracite Rod':{p:2041164201,k:'prev'},
+  'Umbracite Saw':{p:2090523697,k:'prev'},'Umbracite Scissors':{p:1264098940,k:'prev'},
+  'Umbracite Shortsword':{p:2001060480,k:'prev'},'Umbracite Spear & Shield':{p:246070958,k:'prev'},
+  'Astralite Axe':{p:1674000473,k:'prev'},'Astralite Bow':{p:2094143120,k:'prev'},
+  'Astralite Chisel':{p:1732455557,k:'prev'},'Astralite Claymore':{p:450178430,k:'prev'},
+  'Astralite Crossbow':{p:1581833452,k:'prev'},'Astralite Daggers':{p:1851662708,k:'prev'},
+  'Astralite Hammer':{p:318446982,k:'prev'},'Astralite Hoe':{p:805993420,k:'prev'},
+  'Astralite Knife':{p:211315133,k:'prev'},'Astralite Mace':{p:1072017811,k:'prev'},
+  'Astralite Machete':{p:28384916,k:'prev'},'Astralite Pickaxe':{p:96513154,k:'prev'},
+  'Astralite Quill':{p:659271654,k:'prev'},'Astralite Rod':{p:1297008737,k:'prev'},
+  'Astralite Saw':{p:252555012,k:'prev'},'Astralite Scissors':{p:1264098940,k:'prev'},
+  'Astralite Shortsword':{p:2001060480,k:'prev'},'Astralite Spear & Shield':{p:246070958,k:'prev'},
+  // Plated T2-T6
+  'Pyrelite Plated Armor':{p:422440070,t:2,k:'plated'},'Pyrelite Plated Belt':{p:922569705,t:2,k:'plated'},
+  'Pyrelite Plated Boots':{p:155776141,t:2,k:'plated'},'Pyrelite Plated Helm':{p:1919532147,t:2,k:'plated'},
+  'Emarium Plated Armor':{p:1268204743,t:3,k:'plated'},'Emarium Plated Belt':{p:1682637898,t:3,k:'plated'},
+  'Emarium Plated Boots':{p:763048785,t:3,k:'plated'},'Emarium Plated Helm':{p:2077008468,t:3,k:'plated'},
+  'Elenvar Plated Armor':{p:543757315,t:4,k:'plated'},'Elenvar Plated Belt':{p:2093870307,t:4,k:'plated'},
+  'Elenvar Plated Boots':{p:1871358332,t:4,k:'plated'},
+  'Luminite Plated Armor':{p:1614334993,t:5,k:'plated'},'Luminite Plated Belt':{p:803904452,t:5,k:'plated'},
+  'Luminite Plated Boots':{p:1205236443,t:5,k:'plated'},
+  // Plated T7-T10 (prev x1)
+  'Aurumite Plated Armor':{p:656747139,k:'prev'},'Aurumite Plated Belt':{p:1007421323,k:'prev'},
+  'Aurumite Plated Boots':{p:1088161042,k:'prev'},'Aurumite Plated Helm':{p:1365299920,k:'prev'},
+  'Celestium Plated Armor':{p:1684382139,k:'prev'},'Celestium Plated Belt':{p:1007421323,k:'prev'},
+  'Celestium Plated Boots':{p:1159284870,k:'prev'},'Celestium Plated Helm':{p:1260797505,k:'prev'},
+  'Umbracite Plated Armor':{p:1327243115,k:'prev'},'Umbracite Plated Belt':{p:535510448,k:'prev'},
+  'Umbracite Plated Boots':{p:7277222,k:'prev'},'Umbracite Plated Helm':{p:100210345,k:'prev'},
+  'Astralite Plated Armor':{p:1327243115,k:'prev'},'Astralite Plated Belt':{p:1246240393,k:'prev'},
+  'Astralite Plated Boots':{p:7277222,k:'prev'},'Astralite Plated Helm':{p:100210345,k:'prev'},
+  // Duelist T2-T6
+  'Pyrelite Duelist Armor':{p:1554355057,t:2,k:'duelist'},'Pyrelite Duelist Belt':{p:288183013,t:2,k:'duelist'},
+  'Pyrelite Duelist Boots':{p:664595734,t:2,k:'duelist'},'Pyrelite Duelist Helm':{p:152653749,t:2,k:'duelist'},
+  'Emarium Duelist Armor':{p:712055376,t:3,k:'duelist'},'Emarium Duelist Belt':{p:1654952717,t:3,k:'duelist'},
+  'Emarium Duelist Helm':{p:1779898711,t:3,k:'duelist'},
+  'Elenvar Duelist Armor':{p:1808783387,t:4,k:'duelist'},'Elenvar Duelist Helm':{p:1754497634,t:4,k:'duelist'},
+  // Duelist T7-T10 (prev x1)
+  'Aurumite Duelist Armor':{p:256396301,k:'prev'},'Aurumite Duelist Belt':{p:1401165975,k:'prev'},
+  'Aurumite Duelist Boots':{p:2020613832,k:'prev'},'Aurumite Duelist Helm':{p:270863881,k:'prev'},
+  'Celestium Duelist Armor':{p:516841544,k:'prev'},'Celestium Duelist Belt':{p:1181233364,k:'prev'},
+  'Celestium Duelist Boots':{p:2020613832,k:'prev'},'Celestium Duelist Helm':{p:1558619235,k:'prev'},
+  'Umbracite Duelist Armor':{p:1631596312,k:'prev'},'Umbracite Duelist Belt':{p:1181233364,k:'prev'},
+  'Umbracite Duelist Boots':{p:772551420,k:'prev'},'Umbracite Duelist Helm':{p:1094723673,k:'prev'},
+  'Astralite Duelist Armor':{p:1631596312,k:'prev'},'Astralite Duelist Belt':{p:1805581060,k:'prev'},
+  'Astralite Duelist Boots':{p:119023036,k:'prev'},'Astralite Duelist Helm':{p:1094723673,k:'prev'},
+  // 革装備・布装備（直接指定）T2-T10
+  'Simple Leather Belt':{k:'direct',s:[{id:1548924604,q:1},{id:2070004,q:2}]},
+  'Simple Leather Cap':{k:'direct',s:[{id:1437965200,q:1},{id:2070004,q:4},{id:2050001,q:1}]},
+  'Simple Leather Leggings':{k:'direct',s:[{id:1475691769,q:1},{id:1314601698,q:9},{id:782755200,q:1}]},
+  'Simple Leather Shirt':{k:'direct',s:[{id:745343940,q:1},{id:1314601698,q:15},{id:782755200,q:1}]},
+  'Simple Woven Belt':{k:'direct',s:[{id:922569704,q:1},{id:2090002,q:2}]},
+  'Sturdy Leather Belt':{k:'direct',s:[{id:1911943829,q:1},{id:3070004,q:2}]},
+  'Sturdy Leather Cap':{k:'direct',s:[{id:2092519490,q:1},{id:296645870,q:9},{id:1014472344,q:1}]},
+  'Sturdy Leather Leggings':{k:'direct',s:[{id:1764915050,q:1},{id:296645870,q:9},{id:1014472344,q:1}]},
+  'Sturdy Leather Shirt':{k:'direct',s:[{id:745343940,q:1},{id:3070004,q:5},{id:3050001,q:2}]},
+  'Sturdy Woven Belt':{k:'direct',s:[{id:83640847,q:1},{id:296645870,q:3},{id:1014472344,q:1}]},
+  'Fine Leather Belt':{k:'direct',s:[{id:1884263400,q:1},{id:1069959598,q:3},{id:1866006436,q:1}]},
+  'Fine Leather Cap':{k:'direct',s:[{id:1144193560,q:1},{id:1069959598,q:9},{id:1866006436,q:1}]},
+  'Fine Leather Leggings':{k:'direct',s:[{id:1242370395,q:1},{id:1069959598,q:9},{id:1866006436,q:1}]},
+  'Fine Leather Shirt':{k:'direct',s:[{id:975181088,q:1},{id:1069959598,q:15},{id:1866006436,q:1}]},
+  'Fine Woven Belt':{k:'direct',s:[{id:420318150,q:1},{id:1069959598,q:3},{id:1866006436,q:1}]},
+  'Exquisite Leather Belt':{k:'direct',s:[{id:1738310260,q:1},{id:534852613,q:3},{id:1336640512,q:1}]},
+  'Exquisite Leather Cap':{k:'direct',s:[{id:1144193560,q:1},{id:5070004,q:4},{id:5050001,q:1}]},
+  'Exquisite Leather Leggings':{k:'direct',s:[{id:1242370395,q:1},{id:5070004,q:4},{id:5050001,q:1}]},
+  'Exquisite Leather Shirt':{k:'direct',s:[{id:327065735,q:1},{id:534852613,q:15},{id:1336640512,q:1}]},
+  'Exquisite Woven Belt':{k:'direct',s:[{id:420318150,q:1},{id:5090002,q:2}]},
+  'Peerless Leather Belt':{k:'direct',s:[{id:1738310260,q:1},{id:6070004,q:2}]},
+  'Peerless Leather Cap':{k:'direct',s:[{id:1734073016,q:1},{id:447596001,q:9},{id:479733233,q:1}]},
+  'Peerless Leather Leggings':{k:'direct',s:[{id:1757060372,q:1},{id:447596001,q:9},{id:479733233,q:1}]},
+  'Peerless Leather Shirt':{k:'direct',s:[{id:327065735,q:1},{id:6070004,q:5},{id:6050001,q:2}]},
+  'Peerless Woven Belt':{k:'direct',s:[{id:1495228276,q:1},{id:6090002,q:2}]},
+  'Ornate Leather Belt':{k:'direct',s:[{id:1639525324,q:1},{id:1720157429,q:3},{id:1639666736,q:1}]},
+  'Ornate Leather Cap':{k:'direct',s:[{id:1734073016,q:1},{id:806992520,q:4},{id:1899017490,q:1}]},
+  'Ornate Leather Leggings':{k:'direct',s:[{id:1757060372,q:1},{id:806992520,q:4},{id:1899017490,q:1}]},
+  'Ornate Leather Shirt':{k:'direct',s:[{id:1466357367,q:1},{id:806992520,q:5},{id:1899017490,q:2}]},
+  'Ornate Woven Belt':{k:'direct',s:[{id:901367887,q:1},{id:1720157429,q:3},{id:1639666736,q:1}]},
+  'Pristine Leather Belt':{k:'direct',s:[{id:1639525324,q:1},{id:1743778001,q:2}]},
+  'Pristine Leather Cap':{k:'direct',s:[{id:1259363783,q:1},{id:1743778001,q:4},{id:1464752960,q:1}]},
+  'Pristine Leather Leggings':{k:'direct',s:[{id:172806342,q:1},{id:1407207381,q:9},{id:2081179538,q:1}]},
+  'Pristine Leather Shirt':{k:'direct',s:[{id:60984074,q:1},{id:1407207381,q:15},{id:2081179538,q:1}]},
+  'Pristine Woven Belt':{k:'direct',s:[{id:2108103317,q:1},{id:1407207381,q:3},{id:2081179538,q:1}]},
+  'Magnificent Leather Belt':{k:'direct',s:[{id:148416223,q:1},{id:585466639,q:3},{id:1047477197,q:1}]},
+  'Magnificent Leather Cap':{k:'direct',s:[{id:371225209,q:1},{id:585466639,q:9},{id:1047477197,q:1}]},
+  'Magnificent Leather Leggings':{k:'direct',s:[{id:172806342,q:1},{id:1580025475,q:4},{id:445742898,q:1}]},
+  'Magnificent Leather Shirt':{k:'direct',s:[{id:60984074,q:1},{id:1580025475,q:5},{id:445742898,q:2}]},
+  'Magnificent Woven Belt':{k:'direct',s:[{id:2108103317,q:1},{id:282660928,q:2}]},
+  'Flawless Leather Belt':{k:'direct',s:[{id:148416223,q:1},{id:711364475,q:2}]},
+  'Flawless Leather Cap':{k:'direct',s:[{id:371225209,q:1},{id:711364475,q:4},{id:2069757207,q:1}]},
+  'Flawless Leather Leggings':{k:'direct',s:[{id:1246471378,q:1},{id:144400630,q:9},{id:214980690,q:1}]},
+  'Flawless Leather Shirt':{k:'direct',s:[{id:465467902,q:1},{id:711364475,q:5},{id:2069757207,q:2}]},
+  'Flawless Woven Belt':{k:'direct',s:[{id:2052070652,q:1},{id:35270576,q:2}]},
+};
+
+function getManualRecipe(itemId, itemName, tier) {
+  if (!itemName) return null;
+  const d = CRAFT_DB[itemName];
+  if (!d) return null;
+  let stacks;
+  const m = d.t ? TIER_MATS[d.t] : null;
+  if (d.k === 'direct') {
+    stacks = d.s.map(x => ({item_id:x.id,quantity:x.q,item_type:'item'}));
+  } else if (d.k === 'tool' && m) {
+    stacks = [{item_id:d.p,quantity:1,item_type:'item'},{item_id:m.ingot,quantity:4,item_type:'item'},
+              {item_id:m.rope,quantity:2,item_type:'item'},{item_id:m.plank,quantity:2,item_type:'item'},
+              {item_id:m.leather,quantity:2,item_type:'item'}];
+  } else if (d.k === 'plated' && m) {
+    stacks = [{item_id:d.p,quantity:1,item_type:'item'},{item_id:m.ingot,quantity:5,item_type:'item'},
+              {item_id:m.cloth,quantity:2,item_type:'item'}];
+  } else if (d.k === 'duelist' && m) {
+    stacks = [{item_id:d.p,quantity:1,item_type:'item'},{item_id:m.ingot,quantity:4,item_type:'item'},
+              {item_id:m.leather,quantity:2,item_type:'item'},{item_id:m.cloth,quantity:1,item_type:'item'},
+              {item_id:ANC_METAL,quantity:15,item_type:'item'}];
+  } else if (d.k === 'prev' && d.p) {
+    stacks = [{item_id:d.p,quantity:1,item_type:'item'}];
+  } else return null;
+  return {
+    consumedItemStacks: stacks.filter(s => s.item_id),
+    craftedItemStacks: [{item_id:itemId,quantity:1}],
+    recipeType: 'manual',
+    name: '手動レシピ (新規クラフト)',
+  };
+}
+
 async function prefetchAllItemData(itemId) {
   const data = await fetchItemData(itemId);
   if (!data) return;
-  
+  const mIds = new Set();
+  const colM = (id,d=0) => {
+    if(d>3) return; const r=recipeCache[id]; if(!r?.item) return;
+    const mr=getManualRecipe(id,r.item.name,r.item.tier);
+    if(mr) mr.consumedItemStacks.forEach(s=>{const sid=String(s.item_id);if(sid&&sid!=="0"){mIds.add(sid);colM(sid,d+1);}});
+  };
+  colM(String(itemId));
   const allIds = collectAllItemIds(itemId, 0);
-  const promises = [];
-  
-  for (const id of allIds) {
-    if (!recipeCache[id]) {
-      promises.push(fetchItemData(id));
-    }
-  }
-  await Promise.all(promises);
+  mIds.forEach(id=>allIds.add(id));
+  await Promise.all([...allIds].filter(id=>!recipeCache[id]).map(id=>fetchItemData(id)));
+  colM(String(itemId)); mIds.forEach(id=>allIds.add(id));
+  await Promise.all([...allIds].filter(id=>!recipeCache[id]).map(id=>fetchItemData(id)));
 }
 
 // プリフェッチ: 全市場データを並列取得
 async function prefetchAllMarketData(itemId) {
   const data = recipeCache[itemId];
   if (!data) return;
-  
   const allIds = collectAllItemIds(itemId, 0);
-  const promises = [];
-  
-  for (const id of allIds) {
-    if (!marketDataCache[id]) {
-      promises.push(fetchMarketData(id));
-    }
-  }
-  await Promise.all(promises);
+  const addM = (id,d=0) => {
+    if(d>3) return; const r=recipeCache[id]; if(!r?.item) return;
+    const mr=getManualRecipe(id,r.item.name,r.item.tier);
+    if(mr) mr.consumedItemStacks.forEach(s=>{const sid=String(s.item_id);if(sid&&sid!=="0"){allIds.add(sid);addM(sid,d+1);}});
+  };
+  addM(String(itemId));
+  await Promise.all([...allIds].filter(id=>!marketDataCache[id]).map(id=>fetchMarketData(id)));
 }
 
 // キャッシュ使用のツリービルド（プリフェッチ後で使用）
@@ -1891,16 +2094,13 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
   // 全レシピを収集（重複去除）
   let allRecipes = [];
   
+  // 手動レシピを最優先で追加
+  const _mr = getManualRecipe(itemId, item.name, item.tier);
+  if (_mr) allRecipes.push(_mr);
   // craftingRecipesを追加
   if (craftingRecipes.length > 0) {
-    craftingRecipes.forEach(r => {
-      allRecipes.push({
-        ...r,
-        recipeType: 'crafting'
-      });
-    });
+    craftingRecipes.forEach(r => { allRecipes.push({...r, recipeType:'crafting'}); });
   }
-  
   // recipesUsingItemを追加（ 材料に自分自身が含まれていないもの）
   if (recipesUsingItem.length > 0) {
     recipesUsingItem.forEach(r => {
@@ -1931,351 +2131,6 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
   });
   
   const recipes = uniqueRecipes;
-  // ============================================
-  // 手動レシピを追加（重複去除後に先頭へ）
-  // ============================================
-  (function addManualRecipe() {
-    const n = item.name;
-    // 既に手動レシピがある場合はスキップ
-    if (recipes.some(r => r.recipeType === 'manual')) return;
-
-    const TM = {
-      1:{i:1050001,r:1090004,p:1020003,l:1070004,c:1090002},
-      2:{i:2050001,r:2090004,p:2020003,l:2070004,c:2090002},
-      3:{i:3050001,r:3090004,p:3020003,l:3070004,c:3090002},
-      4:{i:4050001,r:4090004,p:4020003,l:4070004,c:4090002},
-      5:{i:5050001,r:5090004,p:5020003,l:5070004,c:5090002},
-      6:{i:6050001,r:6090004,p:6020003,l:6070004,c:6090002},
-    };
-    const ANC = 1718148009;
-    const make = (stacks) => ({
-      consumedItemStacks: stacks.map(s => ({item_id:s[0], quantity:s[1]})),
-      craftedItemStacks: [{item_id:itemId, quantity:1}],
-      recipeType: 'manual', name: '手動レシピ (新規クラフト)'
-    });
-    const tool = (prev,t) => { const m=TM[t]; return m?make([[prev,1],[m.i,4],[m.r,2],[m.p,2],[m.l,2]]):null; };
-    const plated = (prev,t) => { const m=TM[t]; return m?make([[prev,1],[m.i,5],[m.c,2]]):null; };
-    const duelist = (prev,t) => { const m=TM[t]; return m?make([[prev,1],[m.i,4],[m.l,2],[m.c,1],[ANC,15]]):null; };
-    const pv = (prev) => make([[prev,1]]);
-    const d = (...s) => make(s);
-
-    let recipe = null;
-    // ツール T2
-    if(n==='Pyrelite Axe')recipe=tool(1201067083,2);
-    else if(n==='Pyrelite Bow')recipe=tool(2054875237,2);
-    else if(n==='Pyrelite Chisel')recipe=tool(1831352039,2);
-    else if(n==='Pyrelite Claymore')recipe=tool(252729537,2);
-    else if(n==='Pyrelite Crossbow')recipe=tool(1471860856,2);
-    else if(n==='Pyrelite Daggers')recipe=tool(747689943,2);
-    else if(n==='Pyrelite Hammer')recipe=tool(1669114499,2);
-    else if(n==='Pyrelite Hoe')recipe=tool(273473901,2);
-    else if(n==='Pyrelite Knife')recipe=tool(1503159114,2);
-    else if(n==='Pyrelite Mace')recipe=tool(1823909616,2);
-    else if(n==='Pyrelite Machete')recipe=tool(571682698,2);
-    else if(n==='Pyrelite Pickaxe')recipe=tool(1704711141,2);
-    else if(n==='Pyrelite Quill')recipe=tool(530006562,2);
-    else if(n==='Pyrelite Rod')recipe=tool(544541723,2);
-    else if(n==='Pyrelite Saw')recipe=tool(1355330989,2);
-    else if(n==='Pyrelite Scissors')recipe=tool(1125962328,2);
-    else if(n==='Pyrelite Shortsword')recipe=tool(194332661,2);
-    else if(n==='Pyrelite Spear & Shield')recipe=tool(1826240904,2);
-    // ツール T3
-    else if(n==='Emarium Axe')recipe=tool(1605904571,3);
-    else if(n==='Emarium Bow')recipe=tool(1034184552,3);
-    else if(n==='Emarium Chisel')recipe=tool(1413938165,3);
-    else if(n==='Emarium Claymore')recipe=tool(620508449,3);
-    else if(n==='Emarium Crossbow')recipe=tool(1512593047,3);
-    else if(n==='Emarium Daggers')recipe=tool(465856554,3);
-    else if(n==='Emarium Hammer')recipe=tool(482196569,3);
-    else if(n==='Emarium Hoe')recipe=tool(1644135836,3);
-    else if(n==='Emarium Knife')recipe=tool(1316428000,3);
-    else if(n==='Emarium Mace')recipe=tool(1598024081,3);
-    else if(n==='Emarium Machete')recipe=tool(223757569,3);
-    else if(n==='Emarium Pickaxe')recipe=tool(513104323,3);
-    else if(n==='Emarium Quill')recipe=tool(414853205,3);
-    else if(n==='Emarium Rod')recipe=tool(843645212,3);
-    else if(n==='Emarium Saw')recipe=tool(412214433,3);
-    else if(n==='Emarium Scissors')recipe=tool(343569714,3);
-    else if(n==='Emarium Shortsword')recipe=tool(333188935,3);
-    else if(n==='Emarium Spear & Shield')recipe=tool(2098377887,3);
-    // ツール T4
-    else if(n==='Elenvar Axe')recipe=tool(1486054968,4);
-    else if(n==='Elenvar Bow')recipe=tool(1219038577,4);
-    else if(n==='Elenvar Chisel')recipe=tool(438003010,4);
-    else if(n==='Elenvar Claymore')recipe=tool(480170023,4);
-    else if(n==='Elenvar Crossbow')recipe=tool(1176798477,4);
-    else if(n==='Elenvar Daggers')recipe=tool(412987444,4);
-    else if(n==='Elenvar Hammer')recipe=tool(398791964,4);
-    else if(n==='Elenvar Hoe')recipe=tool(1043267104,4);
-    else if(n==='Elenvar Knife')recipe=tool(971385983,4);
-    else if(n==='Elenvar Mace')recipe=tool(1145327846,4);
-    else if(n==='Elenvar Machete')recipe=tool(1229547048,4);
-    else if(n==='Elenvar Pickaxe')recipe=tool(2124079079,4);
-    else if(n==='Elenvar Quill')recipe=tool(1221634026,4);
-    else if(n==='Elenvar Rod')recipe=tool(1094163061,4);
-    else if(n==='Elenvar Saw')recipe=tool(1930789220,4);
-    else if(n==='Elenvar Scissors')recipe=tool(803429716,4);
-    else if(n==='Elenvar Spear & Shield')recipe=tool(1888091519,4);
-    // ツール T5
-    else if(n==='Luminite Axe')recipe=tool(489724302,5);
-    else if(n==='Luminite Bow')recipe=tool(735626470,5);
-    else if(n==='Luminite Chisel')recipe=tool(2122350182,5);
-    else if(n==='Luminite Claymore')recipe=tool(1800349844,5);
-    else if(n==='Luminite Crossbow')recipe=tool(1184634453,5);
-    else if(n==='Luminite Daggers')recipe=tool(1800053684,5);
-    else if(n==='Luminite Hammer')recipe=tool(382339978,5);
-    else if(n==='Luminite Hoe')recipe=tool(1891681591,5);
-    else if(n==='Luminite Knife')recipe=tool(268156651,5);
-    else if(n==='Luminite Machete')recipe=tool(1342482833,5);
-    else if(n==='Luminite Pickaxe')recipe=tool(2015514055,5);
-    else if(n==='Luminite Quill')recipe=tool(139776334,5);
-    else if(n==='Luminite Rod')recipe=tool(1858500155,5);
-    else if(n==='Luminite Saw')recipe=tool(1115966209,5);
-    else if(n==='Luminite Scissors')recipe=tool(582320225,5);
-    else if(n==='Luminite Spear & Shield')recipe=tool(1800572877,5);
-    // ツール T6
-    else if(n==='Rathium Chisel')recipe=tool(1771114282,6);
-    else if(n==='Rathium Scissors')recipe=tool(783907612,6);
-    // ツール T7
-    else if(n==='Aurumite Axe')recipe=pv(1337511485);
-    else if(n==='Aurumite Bow')recipe=pv(1491113278);
-    else if(n==='Aurumite Chisel')recipe=pv(1428413909);
-    else if(n==='Aurumite Claymore')recipe=pv(576104158);
-    else if(n==='Aurumite Crossbow')recipe=pv(533184370);
-    else if(n==='Aurumite Daggers')recipe=pv(1002395423);
-    else if(n==='Aurumite Hammer')recipe=pv(500003016);
-    else if(n==='Aurumite Hoe')recipe=pv(433291223);
-    else if(n==='Aurumite Knife')recipe=pv(270820549);
-    else if(n==='Aurumite Mace')recipe=pv(1134539652);
-    else if(n==='Aurumite Machete')recipe=pv(728445804);
-    else if(n==='Aurumite Pickaxe')recipe=pv(1606324183);
-    else if(n==='Aurumite Quill')recipe=pv(2024640963);
-    else if(n==='Aurumite Rod')recipe=pv(1677637105);
-    else if(n==='Aurumite Saw')recipe=pv(413702311);
-    else if(n==='Aurumite Scissors')recipe=pv(1700689396);
-    else if(n==='Aurumite Shortsword')recipe=pv(502541107);
-    else if(n==='Aurumite Spear & Shield')recipe=pv(1641524052);
-    // ツール T8
-    else if(n==='Celestium Axe')recipe=pv(1337511485);
-    else if(n==='Celestium Bow')recipe=pv(1255416131);
-    else if(n==='Celestium Chisel')recipe=pv(247800929);
-    else if(n==='Celestium Claymore')recipe=pv(576104158);
-    else if(n==='Celestium Crossbow')recipe=pv(533184370);
-    else if(n==='Celestium Daggers')recipe=pv(1002395423);
-    else if(n==='Celestium Hammer')recipe=pv(1047843413);
-    else if(n==='Celestium Hoe')recipe=pv(110205879);
-    else if(n==='Celestium Knife')recipe=pv(240995661);
-    else if(n==='Celestium Mace')recipe=pv(69932165);
-    else if(n==='Celestium Machete')recipe=pv(728445804);
-    else if(n==='Celestium Pickaxe')recipe=pv(991451810);
-    else if(n==='Celestium Quill')recipe=pv(268540371);
-    else if(n==='Celestium Rod')recipe=pv(2041164201);
-    else if(n==='Celestium Saw')recipe=pv(1176061468);
-    else if(n==='Celestium Scissors')recipe=pv(1700689396);
-    else if(n==='Celestium Shortsword')recipe=pv(502541107);
-    else if(n==='Celestium Spear & Shield')recipe=pv(1641524052);
-    // ツール T9
-    else if(n==='Umbracite Axe')recipe=pv(1967177382);
-    else if(n==='Umbracite Bow')recipe=pv(1255416131);
-    else if(n==='Umbracite Chisel')recipe=pv(247800929);
-    else if(n==='Umbracite Claymore')recipe=pv(450178430);
-    else if(n==='Umbracite Crossbow')recipe=pv(29052855);
-    else if(n==='Umbracite Daggers')recipe=pv(2118322388);
-    else if(n==='Umbracite Hammer')recipe=pv(318446982);
-    else if(n==='Umbracite Hoe')recipe=pv(688829506);
-    else if(n==='Umbracite Knife')recipe=pv(1260356897);
-    else if(n==='Umbracite Mace')recipe=pv(1999151730);
-    else if(n==='Umbracite Machete')recipe=pv(799622109);
-    else if(n==='Umbracite Pickaxe')recipe=pv(96513154);
-    else if(n==='Umbracite Quill')recipe=pv(268540371);
-    else if(n==='Umbracite Rod')recipe=pv(2041164201);
-    else if(n==='Umbracite Saw')recipe=pv(2090523697);
-    else if(n==='Umbracite Scissors')recipe=pv(1264098940);
-    else if(n==='Umbracite Shortsword')recipe=pv(2001060480);
-    else if(n==='Umbracite Spear & Shield')recipe=pv(246070958);
-    // ツール T10
-    else if(n==='Astralite Axe')recipe=pv(1674000473);
-    else if(n==='Astralite Bow')recipe=pv(2094143120);
-    else if(n==='Astralite Chisel')recipe=pv(1732455557);
-    else if(n==='Astralite Claymore')recipe=pv(450178430);
-    else if(n==='Astralite Crossbow')recipe=pv(1581833452);
-    else if(n==='Astralite Daggers')recipe=pv(1851662708);
-    else if(n==='Astralite Hammer')recipe=pv(318446982);
-    else if(n==='Astralite Hoe')recipe=pv(805993420);
-    else if(n==='Astralite Knife')recipe=pv(211315133);
-    else if(n==='Astralite Mace')recipe=pv(1072017811);
-    else if(n==='Astralite Machete')recipe=pv(28384916);
-    else if(n==='Astralite Pickaxe')recipe=pv(96513154);
-    else if(n==='Astralite Quill')recipe=pv(659271654);
-    else if(n==='Astralite Rod')recipe=pv(1297008737);
-    else if(n==='Astralite Saw')recipe=pv(252555012);
-    else if(n==='Astralite Scissors')recipe=pv(1264098940);
-    else if(n==='Astralite Shortsword')recipe=pv(2001060480);
-    else if(n==='Astralite Spear & Shield')recipe=pv(246070958);
-    // Plated T2-T6
-    else if(n==='Pyrelite Plated Armor')recipe=plated(422440070,2);
-    else if(n==='Pyrelite Plated Belt')recipe=plated(922569705,2);
-    else if(n==='Pyrelite Plated Boots')recipe=plated(155776141,2);
-    else if(n==='Pyrelite Plated Helm')recipe=plated(1919532147,2);
-    else if(n==='Emarium Plated Armor')recipe=plated(1268204743,3);
-    else if(n==='Emarium Plated Belt')recipe=plated(1682637898,3);
-    else if(n==='Emarium Plated Boots')recipe=plated(763048785,3);
-    else if(n==='Emarium Plated Helm')recipe=plated(2077008468,3);
-    else if(n==='Elenvar Plated Armor')recipe=plated(543757315,4);
-    else if(n==='Elenvar Plated Belt')recipe=plated(2093870307,4);
-    else if(n==='Elenvar Plated Boots')recipe=plated(1871358332,4);
-    else if(n==='Luminite Plated Armor')recipe=plated(1614334993,5);
-    else if(n==='Luminite Plated Belt')recipe=plated(803904452,5);
-    else if(n==='Luminite Plated Boots')recipe=plated(1205236443,5);
-    // Plated T7-T10
-    else if(n==='Aurumite Plated Armor')recipe=pv(656747139);
-    else if(n==='Aurumite Plated Belt')recipe=pv(1007421323);
-    else if(n==='Aurumite Plated Boots')recipe=pv(1088161042);
-    else if(n==='Aurumite Plated Helm')recipe=pv(1365299920);
-    else if(n==='Celestium Plated Armor')recipe=pv(1684382139);
-    else if(n==='Celestium Plated Belt')recipe=pv(1007421323);
-    else if(n==='Celestium Plated Boots')recipe=pv(1159284870);
-    else if(n==='Celestium Plated Helm')recipe=pv(1260797505);
-    else if(n==='Umbracite Plated Armor')recipe=pv(1327243115);
-    else if(n==='Umbracite Plated Belt')recipe=pv(535510448);
-    else if(n==='Umbracite Plated Boots')recipe=pv(7277222);
-    else if(n==='Umbracite Plated Helm')recipe=pv(100210345);
-    else if(n==='Astralite Plated Armor')recipe=pv(1327243115);
-    else if(n==='Astralite Plated Belt')recipe=pv(1246240393);
-    else if(n==='Astralite Plated Boots')recipe=pv(7277222);
-    else if(n==='Astralite Plated Helm')recipe=pv(100210345);
-    // Duelist T2-T6
-    else if(n==='Pyrelite Duelist Armor')recipe=duelist(1554355057,2);
-    else if(n==='Pyrelite Duelist Belt')recipe=duelist(288183013,2);
-    else if(n==='Pyrelite Duelist Boots')recipe=duelist(664595734,2);
-    else if(n==='Pyrelite Duelist Helm')recipe=duelist(152653749,2);
-    else if(n==='Emarium Duelist Armor')recipe=duelist(712055376,3);
-    else if(n==='Emarium Duelist Belt')recipe=duelist(1654952717,3);
-    else if(n==='Emarium Duelist Helm')recipe=duelist(1779898711,3);
-    else if(n==='Elenvar Duelist Armor')recipe=duelist(1808783387,4);
-    else if(n==='Elenvar Duelist Helm')recipe=duelist(1754497634,4);
-    // Duelist T7-T10
-    else if(n==='Aurumite Duelist Armor')recipe=pv(256396301);
-    else if(n==='Aurumite Duelist Belt')recipe=pv(1401165975);
-    else if(n==='Aurumite Duelist Boots')recipe=pv(2020613832);
-    else if(n==='Aurumite Duelist Helm')recipe=pv(270863881);
-    else if(n==='Celestium Duelist Armor')recipe=pv(516841544);
-    else if(n==='Celestium Duelist Belt')recipe=pv(1181233364);
-    else if(n==='Celestium Duelist Boots')recipe=pv(2020613832);
-    else if(n==='Celestium Duelist Helm')recipe=pv(1558619235);
-    else if(n==='Umbracite Duelist Armor')recipe=pv(1631596312);
-    else if(n==='Umbracite Duelist Belt')recipe=pv(1181233364);
-    else if(n==='Umbracite Duelist Boots')recipe=pv(772551420);
-    else if(n==='Umbracite Duelist Helm')recipe=pv(1094723673);
-    else if(n==='Astralite Duelist Armor')recipe=pv(1631596312);
-    else if(n==='Astralite Duelist Belt')recipe=pv(1805581060);
-    else if(n==='Astralite Duelist Boots')recipe=pv(119023036);
-    else if(n==='Astralite Duelist Helm')recipe=pv(1094723673);
-    // 革装備 T2-T10
-    else if(n==='Simple Leather Belt')recipe=d([1548924604,1],[2070004,2]);
-    else if(n==='Simple Leather Boots')recipe=d([442339538,1],[2070004,2]);
-    else if(n==='Simple Leather Cap')recipe=d([1437965200,1],[2070004,4],[2050001,1]);
-    else if(n==='Simple Leather Leggings')recipe=d([1475691769,1],[1314601698,9],[782755200,1]);
-    else if(n==='Simple Leather Shirt')recipe=d([745343940,1],[1314601698,15],[782755200,1]);
-    else if(n==='Sturdy Leather Belt')recipe=d([1911943829,1],[3070004,2]);
-    else if(n==='Sturdy Leather Boots')recipe=d([687015665,1],[296645870,3],[1014472344,1]);
-    else if(n==='Sturdy Leather Cap')recipe=d([2092519490,1],[296645870,9],[1014472344,1]);
-    else if(n==='Sturdy Leather Leggings')recipe=d([1764915050,1],[296645870,9],[1014472344,1]);
-    else if(n==='Sturdy Leather Shirt')recipe=d([745343940,1],[3070004,5],[3050001,2]);
-    else if(n==='Fine Leather Belt')recipe=d([1884263400,1],[1069959598,3],[1866006436,1]);
-    else if(n==='Fine Leather Boots')recipe=d([1576306916,1],[1069959598,3],[1866006436,1]);
-    else if(n==='Fine Leather Cap')recipe=d([1144193560,1],[1069959598,9],[1866006436,1]);
-    else if(n==='Fine Leather Leggings')recipe=d([1242370395,1],[1069959598,9],[1866006436,1]);
-    else if(n==='Fine Leather Shirt')recipe=d([975181088,1],[1069959598,15],[1866006436,1]);
-    else if(n==='Exquisite Leather Belt')recipe=d([1738310260,1],[534852613,3],[1336640512,1]);
-    else if(n==='Exquisite Leather Boots')recipe=d([28351344,1],[534852613,3],[1336640512,1]);
-    else if(n==='Exquisite Leather Cap')recipe=d([1144193560,1],[5070004,4],[5050001,1]);
-    else if(n==='Exquisite Leather Leggings')recipe=d([1242370395,1],[5070004,4],[5050001,1]);
-    else if(n==='Exquisite Leather Shirt')recipe=d([327065735,1],[534852613,15],[1336640512,1]);
-    else if(n==='Peerless Leather Belt')recipe=d([1738310260,1],[6070004,2]);
-    else if(n==='Peerless Leather Boots')recipe=d([28351344,1],[6070004,2]);
-    else if(n==='Peerless Leather Cap')recipe=d([1734073016,1],[447596001,9],[479733233,1]);
-    else if(n==='Peerless Leather Leggings')recipe=d([1757060372,1],[447596001,9],[479733233,1]);
-    else if(n==='Peerless Leather Shirt')recipe=d([327065735,1],[6070004,5],[6050001,2]);
-    else if(n==='Ornate Leather Belt')recipe=d([1639525324,1],[1720157429,3],[1639666736,1]);
-    else if(n==='Ornate Leather Boots')recipe=d([1036802637,1],[1720157429,3],[1639666736,1]);
-    else if(n==='Ornate Leather Cap')recipe=d([1734073016,1],[806992520,4],[1899017490,1]);
-    else if(n==='Ornate Leather Leggings')recipe=d([1757060372,1],[806992520,4],[1899017490,1]);
-    else if(n==='Ornate Leather Shirt')recipe=d([1466357367,1],[806992520,5],[1899017490,2]);
-    else if(n==='Pristine Leather Belt')recipe=d([1639525324,1],[1743778001,2]);
-    else if(n==='Pristine Leather Boots')recipe=d([1036802637,1],[1743778001,2]);
-    else if(n==='Pristine Leather Cap')recipe=d([1259363783,1],[1743778001,4],[1464752960,1]);
-    else if(n==='Pristine Leather Leggings')recipe=d([172806342,1],[1407207381,9],[2081179538,1]);
-    else if(n==='Pristine Leather Shirt')recipe=d([60984074,1],[1407207381,15],[2081179538,1]);
-    else if(n==='Magnificent Leather Belt')recipe=d([148416223,1],[585466639,3],[1047477197,1]);
-    else if(n==='Magnificent Leather Boots')recipe=d([793832906,1],[1580025475,2]);
-    else if(n==='Magnificent Leather Cap')recipe=d([371225209,1],[585466639,9],[1047477197,1]);
-    else if(n==='Magnificent Leather Leggings')recipe=d([172806342,1],[1580025475,4],[445742898,1]);
-    else if(n==='Magnificent Leather Shirt')recipe=d([60984074,1],[1580025475,5],[445742898,2]);
-    else if(n==='Flawless Leather Belt')recipe=d([148416223,1],[711364475,2]);
-    else if(n==='Flawless Leather Boots')recipe=d([1640149934,1],[144400630,3],[214980690,1]);
-    else if(n==='Flawless Leather Cap')recipe=d([371225209,1],[711364475,4],[2069757207,1]);
-    else if(n==='Flawless Leather Leggings')recipe=d([1246471378,1],[144400630,9],[214980690,1]);
-    else if(n==='Flawless Leather Shirt')recipe=d([465467902,1],[711364475,5],[2069757207,2]);
-    // 布装備 T2-T10
-    else if(n==='Simple Woven Belt')recipe=d([922569704,1],[2090002,2]);
-    else if(n==='Simple Woven Cap')recipe=d([1431325923,1],[1314601698,9],[782755200,1]);
-    else if(n==='Simple Woven Gloves')recipe=d([2020078588,1],[1314601698,3],[782755200,1]);
-    else if(n==='Simple Woven Shirt')recipe=d([422440069,1],[2090002,5],[2070004,2]);
-    else if(n==='Simple Woven Shoes')recipe=d([155776140,1],[2090002,2]);
-    else if(n==='Simple Woven Shorts')recipe=d([1263241821,1],[1314601698,9],[782755200,1]);
-    else if(n==='Sturdy Woven Belt')recipe=d([83640847,1],[296645870,3],[1014472344,1]);
-    else if(n==='Sturdy Woven Cap')recipe=d([610894040,1],[296645870,9],[1014472344,1]);
-    else if(n==='Sturdy Woven Gloves')recipe=d([1621000871,1],[296645870,3],[1014472344,1]);
-    else if(n==='Sturdy Woven Shirt')recipe=d([866064270,1],[296645870,15],[1014472344,1]);
-    else if(n==='Sturdy Woven Shoes')recipe=d([331949206,1],[296645870,3],[1014472344,1]);
-    else if(n==='Sturdy Woven Shorts')recipe=d([1263241821,1],[3090002,4],[3070004,1]);
-    else if(n==='Fine Woven Belt')recipe=d([420318150,1],[1069959598,3],[1866006436,1]);
-    else if(n==='Fine Woven Cap')recipe=d([610894040,1],[4090002,4],[4070004,1]);
-    else if(n==='Fine Woven Gloves')recipe=d([1621000871,1],[4090002,1]);
-    else if(n==='Fine Woven Shirt')recipe=d([866064270,1],[4090002,5],[4070004,2]);
-    else if(n==='Fine Woven Shoes')recipe=d([331949206,1],[4090002,2]);
-    else if(n==='Fine Woven Shorts')recipe=d([379237240,1],[1069959598,9],[1866006436,1]);
-    else if(n==='Exquisite Woven Belt')recipe=d([420318150,1],[5090002,2]);
-    else if(n==='Exquisite Woven Cap')recipe=d([1590050482,1],[534852613,9],[1336640512,1]);
-    else if(n==='Exquisite Woven Gloves')recipe=d([1445320140,1],[534852613,3],[1336640512,1]);
-    else if(n==='Exquisite Woven Shirt')recipe=d([1344397607,1],[5090002,5],[5070004,2]);
-    else if(n==='Exquisite Woven Shoes')recipe=d([607489491,1],[5090002,2]);
-    else if(n==='Exquisite Woven Shorts')recipe=d([379237240,1],[5090002,4],[5070004,1]);
-    else if(n==='Peerless Woven Belt')recipe=d([1495228276,1],[6090002,2]);
-    else if(n==='Peerless Woven Cap')recipe=d([1590050482,1],[6090002,4],[6070004,1]);
-    else if(n==='Peerless Woven Gloves')recipe=d([1445320140,1],[6090002,1]);
-    else if(n==='Peerless Woven Shirt')recipe=d([684202987,1],[6090002,5],[6070004,2]);
-    else if(n==='Peerless Woven Shoes')recipe=d([488632591,1],[447596001,3],[479733233,1]);
-    else if(n==='Peerless Woven Shorts')recipe=d([1610447653,1],[447596001,9],[479733233,1]);
-    else if(n==='Ornate Woven Belt')recipe=d([901367887,1],[1720157429,3],[1639666736,1]);
-    else if(n==='Ornate Woven Cap')recipe=d([1445926404,1],[1720157429,9],[1639666736,1]);
-    else if(n==='Ornate Woven Gloves')recipe=d([1400699435,1],[1720157429,3],[1639666736,1]);
-    else if(n==='Ornate Woven Shirt')recipe=d([589244226,1],[1720157429,15],[1639666736,1]);
-    else if(n==='Ornate Woven Shoes')recipe=d([488632591,1],[1610800379,2]);
-    else if(n==='Ornate Woven Shorts')recipe=d([1610447653,1],[1610800379,4],[806992520,1]);
-    else if(n==='Pristine Woven Belt')recipe=d([2108103317,1],[1407207381,3],[2081179538,1]);
-    else if(n==='Pristine Woven Cap')recipe=d([1445926404,1],[136406464,4],[1743778001,1]);
-    else if(n==='Pristine Woven Gloves')recipe=d([1320364860,1],[1407207381,3],[2081179538,1]);
-    else if(n==='Pristine Woven Shirt')recipe=d([429927042,1],[1407207381,15],[2081179538,1]);
-    else if(n==='Pristine Woven Shoes')recipe=d([104655445,1],[1407207381,3],[2081179538,1]);
-    else if(n==='Pristine Woven Shorts')recipe=d([552669230,1],[136406464,4],[1743778001,1]);
-    else if(n==='Magnificent Woven Belt')recipe=d([2108103317,1],[282660928,2]);
-    else if(n==='Magnificent Woven Cap')recipe=d([1368641270,1],[585466639,9],[1047477197,1]);
-    else if(n==='Magnificent Woven Gloves')recipe=d([1124560435,1],[585466639,3],[1047477197,1]);
-    else if(n==='Magnificent Woven Shirt')recipe=d([135038453,1],[585466639,15],[1047477197,1]);
-    else if(n==='Magnificent Woven Shoes')recipe=d([104655445,1],[282660928,2]);
-    else if(n==='Magnificent Woven Shorts')recipe=d([1068118468,1],[282660928,4],[1580025475,1]);
-    else if(n==='Flawless Woven Belt')recipe=d([2052070652,1],[35270576,2]);
-    else if(n==='Flawless Woven Cap')recipe=d([1136046458,1],[144400630,9],[214980690,1]);
-    else if(n==='Flawless Woven Gloves')recipe=d([647052976,1],[35270576,1]);
-    else if(n==='Flawless Woven Shirt')recipe=d([135038453,1],[35270576,5],[711364475,2]);
-    else if(n==='Flawless Woven Shoes')recipe=d([485050532,1],[144400630,3],[214980690,1]);
-    else if(n==='Flawless Woven Shorts')recipe=d([228162554,1],[144400630,9],[214980690,1]);
-
-    if (recipe) recipes.unshift(recipe);
-  })();
-
   
   const marketData = marketDataCache[itemId] || {};
   const sells = (marketData?.sellOrders || []).sort((a, b) =>
