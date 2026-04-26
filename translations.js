@@ -1623,6 +1623,9 @@ function getJaName(enName) {
 const AUTO_PARTS = [
   // 複合語句（先に処理）
   ["Beginner's",        '初心者の'],
+  ["Novice's",           '見習いの'],
+  ["Expert's",           '専門家の'],
+  ["Masterwork's",       '傑作の'],
   ['Outpost Research',  '前哨地研究'],
   ['Study Journal',     '学習帳'],
   ['Cloth Research',    '布研究'],
