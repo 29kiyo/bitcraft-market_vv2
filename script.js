@@ -2612,7 +2612,6 @@ function renderMaterialSummary(tree) {
           const totalPrice = unitPrice !== null ? unitPrice * i.quantity : null;
           return `<div class="craft-summary-item">
             <span class="craft-summary-name">${i.name}</span>
-            <span class="craft-summary-qty">× ${i.quantity}</span>
             <span class="craft-summary-price">${unitPrice !== null
               ? `${unitPrice.toLocaleString('ja-JP')} 🪙 × ${i.quantity} = ${totalPrice.toLocaleString('ja-JP')} 🪙`
               : '—'}</span>
