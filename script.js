@@ -787,6 +787,8 @@ function renderOrders(orders, orderType, page = 1, sort = 'asc', regionFilter = 
     : Number(b.priceThreshold) - Number(a.priceThreshold));
 
   const totalPages = Math.ceil(filtered.length / ORDERS_PER_PAGE);
+  // 各注文に固有UIDを付与（未設定のもののみ）
+  filtered.forEach(o => { if (!o._uid) o._uid = `${o.sellerUsername||""}_${o.priceThreshold}_${o.claimName||""}_${o.quantity}_${Math.random()}`; });
   const pageOrders = filtered.slice((page - 1) * ORDERS_PER_PAGE, page * ORDERS_PER_PAGE);
   const sellCount = filtered.filter(o => o.orderType === 'sell').length;
   const buyCount = filtered.filter(o => o.orderType === 'buy').length;
@@ -830,7 +832,17 @@ function renderOrders(orders, orderType, page = 1, sort = 'asc', regionFilter = 
                 <td>${o.regionName ? `${o.regionName} (R${o.regionId})` : '—'}</td>
                 <td class="coords">${formatCoords(o)}</td>
                 ${o.orderType === 'sell'
-                  ? `<td><button onclick="addToCalcList(${JSON.stringify(o).replace(/"/g, '&quot;')}, '${window._currentItem?.name || ''}')" style="background:rgba(0,200,150,0.1);border:1px solid rgba(0,200,150,0.3);color:#00c896;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:12px;">追加</button></td>`
+                  ? (() => {
+                      const uid = o._uid;
+                      const added = window._addedOrderUids?.has(uid);
+                      return `<td><button
+                        onclick="if(!this.disabled){addToCalcList(${JSON.stringify({...o,_uid:uid}).replace(/"/g,'&quot;')},'${(window._currentItem?.name||'').replace(/'/g,"\'")}',this)}"
+                        ${added ? 'disabled' : ''}
+                        style="${added
+                          ? 'background:rgba(255,255,255,0.05);border:1px solid #444;color:#666;padding:2px 8px;border-radius:4px;cursor:default;font-size:12px;'
+                          : 'background:rgba(0,200,150,0.1);border:1px solid rgba(0,200,150,0.3);color:#00c896;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:12px;'}"
+                      >${added ? '追加済み' : '追加'}</button></td>`;
+                    })()
                   : '<td></td>'}
               </tr>`).join('')}
           </tbody>
@@ -1051,18 +1063,20 @@ function updateCalcListCount() {
   if (el) el.textContent = window._calcList.length > 0 ? `(${window._calcList.length})` : '';
 }
 
-window.addToCalcList = function(order, itemName) {
-  const existing = window._calcList.find(i => i.itemName === itemName && i.claimName === order.claimName && i.priceThreshold === order.priceThreshold);
-  if (existing) {
-    const toast = document.createElement('div');
-    toast.textContent = `「${itemName}」はすでに同じ領地でリストに追加されています`;
-    toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0d1827;border:1px solid #f0a500;color:#f0a500;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;pointer-events:none;transition:opacity 0.5s;';
-    document.body.appendChild(toast);
-    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 2000);
-    return;
-  }
+// 追加済み注文のUID管理
+window._addedOrderUids = window._addedOrderUids || new Set();
+
+window.addToCalcList = function(order, itemName, btnEl) {
+  const uid = order._uid;
   window._calcList.push({ ...order, itemName, buyQty: 0 });
+  window._addedOrderUids.add(uid);
   updateCalcListCount();
+  // ボタンを押された状態に変更
+  if (btnEl) {
+    btnEl.textContent = '追加済み';
+    btnEl.disabled = true;
+    btnEl.style.cssText = 'background:rgba(255,255,255,0.05);border:1px solid #444;color:#666;padding:2px 8px;border-radius:4px;cursor:default;font-size:12px;';
+  }
   const toast = document.createElement('div');
   toast.textContent = `「${itemName}」を集計リストに追加しました`;
   toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0d1827;border:1px solid #00c896;color:#00c896;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;pointer-events:none;transition:opacity 0.5s;';
@@ -1151,9 +1165,13 @@ window.openCalcList = function() {
   };
 
   window.removeCalcListItem = function(idx) {
+    const removed = window._calcList[idx];
+    if (removed?._uid) window._addedOrderUids?.delete(removed._uid);
     window._calcList.splice(idx, 1);
     updateCalcListCount();
     modal.innerHTML = renderContent();
+    // 注文一覧のボタンを再描画
+    renderOrders(currentOrders, currentOrderType, currentOrderPage, currentOrderSort, currentOrderRegion, currentOrderClaim);
   };
 };
 
@@ -2341,10 +2359,8 @@ function buildTreeFromCache(itemId, quantity, depth = 0) {
   if (!data) return null;
 
   const item = data.item;
-  // Ancient Metal Fragmentsはレシピなし扱い（APIのレシピは誤り）
-  const isAncientMetal = String(itemId) === '1718148009';
-  const craftingRecipes = isAncientMetal ? [] : (data.craftingRecipes || []);
-  const recipesUsingItem = isAncientMetal ? [] : (data.recipesUsingItem || []);
+  const craftingRecipes = data.craftingRecipes || [];
+  const recipesUsingItem = data.recipesUsingItem || [];
   
   // 全レシピを収集（重複去除）
   let allRecipes = [];
@@ -2552,73 +2568,12 @@ function renderCraftTree(tree) {
       : renderIngredients(tree.recipes[0].ingredients)
     }
     ${tree.recipes.length > 0 ? `
-    ${renderMaterialSummary(tree)}
     <div class="craft-total">
       <span class="craft-total-label">素材合計コスト（推定）</span>
       <span class="craft-total-value">${totalCost.toLocaleString('ja-JP')} 🪙</span>
     </div>` : ''}
   `;
   craftResultEl.innerHTML = html;
-}
-
-
-// 全素材をフラットに集計してコンパクト表示
-// prev系（前Tierアイテムのみ）は末端として扱う
-// 素材まとめ：直接の素材を集計（prev系は末端扱い、それ以外は再帰）
-function collectSummaryMaterials(node, map = {}) {
-  if (!node) return map;
-  const hasCraft = node.recipes.length > 0 && node.recipes[0].ingredients.length > 0;
-  if (!hasCraft) {
-    // レシピなし → そのまま末端
-    const key = String(node.itemId);
-    if (!map[key]) map[key] = { name: node.jaName || node.name, quantity: 0, lowestSell: node.lowestSell };
-    map[key].quantity += node.quantity;
-    return map;
-  }
-  // レシピあり → 各素材について判定
-  for (const child of node.recipes[0].ingredients) {
-    const childHasCraft = child.recipes.length > 0 && child.recipes[0].ingredients.length > 0;
-    // 素材が1個だけのレシピ（prev系）は末端として追加
-    const isPrev = childHasCraft && child.recipes[0].ingredients.length === 1 &&
-      (() => {
-        const grandchild = child.recipes[0].ingredients[0];
-        const tiers = ['Aurumite','Celestium','Umbracite','Astralite','Rathium','Luminite','Elenvar','Emarium','Pyrelite','Ferralith'];
-        const stripTier = n => tiers.reduce((s,t) => s.replace(t+' ',''), n);
-        return stripTier(child.name) === stripTier(grandchild.name);
-      })();
-    if (!childHasCraft || isPrev) {
-      // 末端素材として集計
-      const key = String(child.itemId);
-      if (!map[key]) map[key] = { name: child.jaName || child.name, quantity: 0, lowestSell: child.lowestSell };
-      map[key].quantity += child.quantity;
-    } else {
-      // レシピあり → さらに再帰
-      collectSummaryMaterials(child, map);
-    }
-  }
-  return map;
-}
-
-function renderMaterialSummary(tree) {
-  const map = collectSummaryMaterials(tree);
-  const items = Object.values(map);
-  if (items.length === 0) return '';
-  return `
-    <div class="craft-summary">
-      <div class="craft-summary-title">📦 素材まとめ</div>
-      <div class="craft-summary-list">
-        ${items.map(i => {
-          const unitPrice = i.lowestSell ? i.lowestSell.price : null;
-          const totalPrice = unitPrice !== null ? unitPrice * i.quantity : null;
-          return `<div class="craft-summary-item">
-            <span class="craft-summary-name">${i.name}</span>
-            <span class="craft-summary-price">${unitPrice !== null
-              ? `${unitPrice.toLocaleString('ja-JP')} 🪙 × ${i.quantity} = ${totalPrice.toLocaleString('ja-JP')} 🪙`
-              : '—'}</span>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>`;
 }
 
 function renderIngredients(ingredients, depth = 0) {
