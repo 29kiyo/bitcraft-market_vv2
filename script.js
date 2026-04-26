@@ -2564,37 +2564,43 @@ function renderCraftTree(tree) {
 
 // 全素材をフラットに集計してコンパクト表示
 // prev系（前Tierアイテムのみ）は末端として扱う
-function isPrevOnlyRecipe(node) {
-  if (!node) return false;
-  const r = node.recipes[0];
-  if (!r || r.ingredients.length !== 1) return false;
-  // 素材が1個だけで、CRAFT_DBのprev系か確認
-  // → 素材のアイテムが同カテゴリ（同じ武器/ツール種）の場合は末端扱い
-  const child = r.ingredients[0];
-  if (!child) return false;
-  const parentBase = node.name.replace(/^(Aurumite|Celestium|Umbracite|Astralite|Rathium|Luminite|Elenvar|Emarium|Pyrelite|Ferralith)\s/, '');
-  const childBase = child.name.replace(/^(Aurumite|Celestium|Umbracite|Astralite|Rathium|Luminite|Elenvar|Emarium|Pyrelite|Ferralith)\s/, '');
-  return parentBase === childBase;
-}
-
-function collectLeafMaterials(node, map = {}) {
+// 素材まとめ：直接の素材を集計（prev系は末端扱い、それ以外は再帰）
+function collectSummaryMaterials(node, map = {}) {
   if (!node) return map;
   const hasCraft = node.recipes.length > 0 && node.recipes[0].ingredients.length > 0;
-  // レシピなし、またはprev系（前Tierアイテムのみ）は末端素材として集計
-  if (!hasCraft || isPrevOnlyRecipe(node)) {
-    const key = node.itemId;
-    if (!map[key]) {
-      map[key] = { name: node.jaName || node.name, quantity: 0, lowestSell: node.lowestSell };
-    }
+  if (!hasCraft) {
+    // レシピなし → そのまま末端
+    const key = String(node.itemId);
+    if (!map[key]) map[key] = { name: node.jaName || node.name, quantity: 0, lowestSell: node.lowestSell };
     map[key].quantity += node.quantity;
-  } else {
-    node.recipes[0].ingredients.forEach(child => collectLeafMaterials(child, map));
+    return map;
+  }
+  // レシピあり → 各素材について判定
+  for (const child of node.recipes[0].ingredients) {
+    const childHasCraft = child.recipes.length > 0 && child.recipes[0].ingredients.length > 0;
+    // 素材が1個だけのレシピ（prev系）は末端として追加
+    const isPrev = childHasCraft && child.recipes[0].ingredients.length === 1 &&
+      (() => {
+        const grandchild = child.recipes[0].ingredients[0];
+        const tiers = ['Aurumite','Celestium','Umbracite','Astralite','Rathium','Luminite','Elenvar','Emarium','Pyrelite','Ferralith'];
+        const stripTier = n => tiers.reduce((s,t) => s.replace(t+' ',''), n);
+        return stripTier(child.name) === stripTier(grandchild.name);
+      })();
+    if (!childHasCraft || isPrev) {
+      // 末端素材として集計
+      const key = String(child.itemId);
+      if (!map[key]) map[key] = { name: child.jaName || child.name, quantity: 0, lowestSell: child.lowestSell };
+      map[key].quantity += child.quantity;
+    } else {
+      // レシピあり → さらに再帰
+      collectSummaryMaterials(child, map);
+    }
   }
   return map;
 }
 
 function renderMaterialSummary(tree) {
-  const map = collectLeafMaterials(tree);
+  const map = collectSummaryMaterials(tree);
   const items = Object.values(map);
   if (items.length === 0) return '';
   return `
