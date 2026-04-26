@@ -2608,11 +2608,14 @@ function renderMaterialSummary(tree) {
       <div class="craft-summary-title">📦 素材まとめ</div>
       <div class="craft-summary-list">
         ${items.map(i => {
-          const price = i.lowestSell ? i.lowestSell.price * i.quantity : null;
+          const unitPrice = i.lowestSell ? i.lowestSell.price : null;
+          const totalPrice = unitPrice !== null ? unitPrice * i.quantity : null;
           return `<div class="craft-summary-item">
             <span class="craft-summary-name">${i.name}</span>
             <span class="craft-summary-qty">× ${i.quantity}</span>
-            <span class="craft-summary-price">${price !== null ? price.toLocaleString('ja-JP') + ' 🪙' : '—'}</span>
+            <span class="craft-summary-price">${unitPrice !== null
+              ? `${unitPrice.toLocaleString('ja-JP')} 🪙 × ${i.quantity} = ${totalPrice.toLocaleString('ja-JP')} 🪙`
+              : '—'}</span>
           </div>`;
         }).join('')}
       </div>
