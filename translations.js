@@ -504,10 +504,15 @@ const ITEM_TRANSLATIONS = {
 "海水魚鱗": "Oceanfish Scale",
 "設計図破片": "Schematic Fragments",
 "拡張テレポートエナジーセル": "Expanded Teleportation Energy Cell",
-  "セル": "cell",
-  "テレポート": "Teleportation",
-  "エナジー": " Energy",
-  "フクロウ": "Owl"
+"セル": "cell",
+"テレポート": "Teleportation",
+"エナジー": " Energy",
+"フクロウ": "Owl",
+"桃": "Peach",
+"桃コブラー": "Peach Cobbler",
+"桃の木の種": "Peach tree Seed",
+"高品質な桃コブラー": "Hitg-Quality Peach Cobbler",
+"桃ジャム": "Peach Jam",
 
   
 };
@@ -515,6 +520,7 @@ const ITEM_TRANSLATIONS = {
 // 漢字キー → ひらがな読み（ひらがな・カタカナ検索対応用）
 const ITEM_YOMI = {
     "研究":"けんきゅう",
+    "高品質な": "こうひんしつな",
   "布":"ぬの",
   "革":"かわ",
   "金属":"きんぞく",
@@ -835,6 +841,7 @@ const ITEM_YOMI = {
   "革レギンス":            "かわれぎんす",
   "魚油パック":            "さかなあぶらぱっく",
   "手袋":                  "手袋",
+  "桃":                    "もも",
 };
 
 // ひらがな→カタカナ変換
@@ -1204,6 +1211,7 @@ const EN_EQUIPMENT_BASES = new Set([
 ]);
 
 const EN_EXACT = {
+  "Peach": "桃",
   "Simple Leather Bag": "シンプルな革のバッグ",
   "Queen Bee":"女王バチ",
   "Energized Sentinel's Shortsword": "エナジャイズドセンチネルのショートソード",
@@ -1572,5 +1580,144 @@ function getJaName(enName) {
   // 5. ベース名のみ
   if (EN_ITEM_BASE[enName]) return EN_ITEM_BASE[enName];
 
-  return null;
+  // 6. 法則ベース自動翻訳（上記で取れなかった場合のフォールバック）
+  return autoTranslate(enName);
+}
+
+// ============================================
+// 法則ベース自動翻訳
+// ============================================
+const AUTO_PARTS = [
+  // 長い語句を先に（部分一致の衝突防止のため降順）
+  // 品質プレフィックス
+  ['Flawless',       '完璧な'],
+  ['Magnificent',    '壮大な'],
+  ['Pristine',       '純粋な'],
+  ['Exquisite',      '卓越した'],
+  ['Peerless',       '比類なき'],
+  ['Ornate',         '装飾的な'],
+  ['Sturdy',         '頑丈な'],
+  ['Simple',         'シンプルな'],
+  ['Rough',          '粗い'],
+  ['Fine',           '上質な'],
+  ['Infused',        '注入された'],
+  // 素材名（T7以上など未登録のもの）
+  ['Celestium',      'セレスティウム'],
+  ['Umbracite',      'アンブラサイト'],
+  ['Astralite',      'アストラライト'],
+  // 複合アイテム種別（単語より先に）
+  ['Plated Armor',   'プレートアーマー'],
+  ['Plated Belt',    'プレートベルト'],
+  ['Plated Boots',   'プレートブーツ'],
+  ['Plated Helm',    'プレートヘルム'],
+  ['Plated Gloves',  'プレートグローブ'],
+  ['Duelist Armor',  'デュエリストアーマー'],
+  ['Duelist Belt',   'デュエリストベルト'],
+  ['Duelist Boots',  'デュエリストブーツ'],
+  ['Duelist Helm',   'デュエリストヘルム'],
+  ['Leather Cap',    'レザーキャップ'],
+  ['Leather Shirt',  'レザーシャツ'],
+  ['Leather Leggings','レザーレギンス'],
+  ['Leather Belt',   'レザーベルト'],
+  ['Leather Boots',  'レザーブーツ'],
+  ['Leather Bracers','レザーブレーサー'],
+  ['Leather Legguards','レザーレッグガード'],
+  ['Leather Shoes',  'レザーシューズ'],
+  ['Woven Belt',     '織りベルト'],
+  ['Woven Cap',      '織りキャップ'],
+  ['Woven Shirt',    '織りシャツ'],
+  ['Woven Shorts',   '織りショーツ'],
+  ['Woven Shoes',    '織りシューズ'],
+  ['Woven Gloves',   '織りグローブ'],
+  ['Ore Chunk',      '鉱石塊'],
+  ['Spear & Shield', '槍と盾'],
+  ['Gem Encrusted',  '宝石装飾'],
+  ['Hardened Shell', '硬化した殻'],
+  ['Jakyl Fang',     'ジャキルの牙'],
+  ['Umbura Fang',    'アンブラの牙'],
+  ['Crystalized Slime','結晶化スライム'],
+  ['Armor Scrap',    'アーマースクラップ'],
+  ['Tool Scrap',     'ツールスクラップ'],
+  ['Reforging Solvent','再鍛造溶剤'],
+  ['Item Storage',   'アイテムストレージ'],
+  ['Cargo Bin',      'カーゴビン'],
+  // 単語
+  ['Axe',            '斧'],
+  ['Pickaxe',        'つるはし'],
+  ['Saw',            'のこぎり'],
+  ['Knife',          'ナイフ'],
+  ['Machete',        'マチェット'],
+  ['Hoe',            '鍬'],
+  ['Hammer',         'ハンマー'],
+  ['Chisel',         'のみ'],
+  ['Rod',            '釣り竿'],
+  ['Quill',          'ペン'],
+  ['Scissors',       'はさみ'],
+  ['Shortsword',     'ショートソード'],
+  ['Claymore',       'クレイモア'],
+  ['Daggers',        'ダガー'],
+  ['Crossbow',       'クロスボウ'],
+  ['Bow',            '弓'],
+  ['Mace',           'メイス'],
+  ['Ingot',          'インゴット'],
+  ['Plank',          '板材'],
+  ['Rope',           'ロープ'],
+  ['Leather',        '革'],
+  ['Cloth',          '布'],
+  ['Tarp',           'シート'],
+  ['Nails',          '釘'],
+  ['Diamond',        'ダイヤモンド'],
+  ['Ruby',           'ルビー'],
+  ['Emerald',        'エメラルド'],
+  ['Sapphire',       'サファイア'],
+  ['Amulet',         'アミュレット'],
+  ['Ring',           'リング'],
+  ['Belt',           'ベルト'],
+  ['Scrap',          'スクラップ'],
+  ['Solvent',        '溶剤'],
+  ['Package',        'パッケージ'],
+];
+
+function autoTranslate(enName) {
+  if (!enName) return null;
+  let result = enName;
+  // スペースで分割して単語単位で変換
+  const words = result.split(' ');
+  const converted = [];
+  let i = 0;
+  while (i < words.length) {
+    let matched = false;
+    // 複数単語の語句を優先して試す（長い順）
+    for (const [en, ja] of AUTO_PARTS) {
+      const enWords = en.split(' ');
+      if (enWords.length > 1) {
+        const chunk = words.slice(i, i + enWords.length).join(' ');
+        if (chunk === en) {
+          converted.push(ja);
+          i += enWords.length;
+          matched = true;
+          break;
+        }
+      }
+    }
+    if (!matched) {
+      // 単語単体でマッチを試みる
+      let wordMatched = false;
+      for (const [en, ja] of AUTO_PARTS) {
+        if (en.split(' ').length === 1 && words[i] === en) {
+          converted.push(ja);
+          wordMatched = true;
+          break;
+        }
+      }
+      if (!wordMatched) converted.push(words[i]);
+      i++;
+    }
+  }
+  result = converted.join('');
+  // 複数スペースを整理
+  result = result.replace(/  +/g, ' ').trim();
+  // 元と変わらなければ翻訳できなかった
+  if (result === enName) return null;
+  return result;
 }
