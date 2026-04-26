@@ -2563,11 +2563,25 @@ function renderCraftTree(tree) {
 
 
 // 全素材をフラットに集計してコンパクト表示
+// prev系（前Tierアイテムのみ）は末端として扱う
+function isPrevOnlyRecipe(node) {
+  if (!node) return false;
+  const r = node.recipes[0];
+  if (!r || r.ingredients.length !== 1) return false;
+  // 素材が1個だけで、CRAFT_DBのprev系か確認
+  // → 素材のアイテムが同カテゴリ（同じ武器/ツール種）の場合は末端扱い
+  const child = r.ingredients[0];
+  if (!child) return false;
+  const parentBase = node.name.replace(/^(Aurumite|Celestium|Umbracite|Astralite|Rathium|Luminite|Elenvar|Emarium|Pyrelite|Ferralith)\s/, '');
+  const childBase = child.name.replace(/^(Aurumite|Celestium|Umbracite|Astralite|Rathium|Luminite|Elenvar|Emarium|Pyrelite|Ferralith)\s/, '');
+  return parentBase === childBase;
+}
+
 function collectLeafMaterials(node, map = {}) {
   if (!node) return map;
   const hasCraft = node.recipes.length > 0 && node.recipes[0].ingredients.length > 0;
-  if (!hasCraft) {
-    // 末端素材として集計
+  // レシピなし、またはprev系（前Tierアイテムのみ）は末端素材として集計
+  if (!hasCraft || isPrevOnlyRecipe(node)) {
     const key = node.itemId;
     if (!map[key]) {
       map[key] = { name: node.jaName || node.name, quantity: 0, lowestSell: node.lowestSell };
