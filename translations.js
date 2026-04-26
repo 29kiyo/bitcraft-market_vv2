@@ -1471,13 +1471,46 @@ const EN_EXACT = {
   "Comprehensive Stone Carvings": "包括的石刻み",
   "Novice Stone Carvings": "初心者石刻み",
   "Novice Stone Diagrams": "初心者石図",
-  "Novice Study Journal": "初心者学習帳",
+  "Novice Study Journal": "見習い学習帳",
   "Novice's Codex": "初心者手引書",
   "Proficient Codex": "熟練手引書",
   "Proficient Stone Carvings": "熟練石刻み",
   "Proficient Study Journal": "熟練学習帳",
-  "Comprehensive Study Journal":"総合学習帳帳",
-  "Advanced Study Journal":"高度な学習長",
+  "Comprehensive Study Journal":"総合学習帳",
+  "Advanced Study Journal":"高度な学習帳",
+  // Research系追加
+  "Masterwork Study Journal": "傑作学習帳",
+  "Expert Study Journal": "専門家学習帳",
+  "Skilled Cloth Research": "熟練布研究",
+  "Skilled Leather Research": "熟練革研究",
+  "Skilled Metal Research": "熟練金属研究",
+  "Skilled Stone Research": "熟練石材研究",
+  "Skilled Wood Research": "熟練木材研究",
+  "Skilled Outpost Research": "熟練前哨地研究",
+  "Skillful Cloth Research": "巧みな布研究",
+  "Skillful Leather Research": "巧みな革研究",
+  "Skillful Metal Research": "巧みな金属研究",
+  "Skillful Stone Research": "巧みな石材研究",
+  "Skillful Wood Research": "巧みな木材研究",
+  "Skillful Outpost Research": "巧みな前哨地研究",
+  "Specialized Cloth Research": "特化布研究",
+  "Specialized Leather Research": "特化革研究",
+  "Specialized Metal Research": "特化金属研究",
+  "Specialized Stone Research": "特化石材研究",
+  "Specialized Wood Research": "特化木材研究",
+  "Specialized Outpost Research": "特化前哨地研究",
+  "Comprehensive Cloth Research": "総合布研究",
+  "Comprehensive Leather Research": "総合革研究",
+  "Comprehensive Metal Research": "総合金属研究",
+  "Comprehensive Stone Research": "総合石材研究",
+  "Comprehensive Wood Research": "総合木材研究",
+  "Comprehensive Outpost Research": "総合前哨地研究",
+  "Masterwork Cloth Research": "傑作布研究",
+  "Masterwork Leather Research": "傑作革研究",
+  "Masterwork Metal Research": "傑作金属研究",
+  "Masterwork Stone Research": "傑作石材研究",
+  "Masterwork Wood Research": "傑作木材研究",
+  "Masterwork Outpost Research": "傑作前哨地研究",
   "Outdoor Logcraft Fence": "屋外ログクラフトフェンス",
   "Outdoor Logcraft Lamp Post": "屋外ログクラフト街灯",
   "Owl Egg": "フクロウ卵",
@@ -1580,120 +1613,137 @@ function getJaName(enName) {
   // 5. ベース名のみ
   if (EN_ITEM_BASE[enName]) return EN_ITEM_BASE[enName];
 
-  // 6. 法則ベース自動翻訳（上記で取れなかった場合のフォールバック）
+  // 6. 法則ベース自動翻訳
   return autoTranslate(enName);
 }
 
 // ============================================
-// 法則ベース自動翻訳
+// 法則ベース自動翻訳（未登録アイテムのフォールバック）
 // ============================================
 const AUTO_PARTS = [
-  // 長い語句を先に（部分一致の衝突防止のため降順）
+  // 複合語句（先に処理）
+  ["Beginner's",        '初心者の'],
+  ['Outpost Research',  '前哨地研究'],
+  ['Study Journal',     '学習帳'],
+  ['Cloth Research',    '布研究'],
+  ['Leather Research',  '革研究'],
+  ['Metal Research',    '金属研究'],
+  ['Stone Research',    '石材研究'],
+  ['Wood Research',     '木材研究'],
+  ['Plated Armor',      'プレートアーマー'],
+  ['Plated Belt',       'プレートベルト'],
+  ['Plated Boots',      'プレートブーツ'],
+  ['Plated Helm',       'プレートヘルム'],
+  ['Duelist Armor',     'デュエリストアーマー'],
+  ['Duelist Belt',      'デュエリストベルト'],
+  ['Duelist Boots',     'デュエリストブーツ'],
+  ['Duelist Helm',      'デュエリストヘルム'],
+  ['Leather Cap',       'レザーキャップ'],
+  ['Leather Shirt',     'レザーシャツ'],
+  ['Leather Leggings',  'レザーレギンス'],
+  ['Leather Belt',      'レザーベルト'],
+  ['Leather Boots',     'レザーブーツ'],
+  ['Leather Bracers',   'レザーブレーサー'],
+  ['Leather Legguards', 'レザーレッグガード'],
+  ['Leather Shoes',     'レザーシューズ'],
+  ['Woven Belt',        '織りベルト'],
+  ['Woven Cap',         '織りキャップ'],
+  ['Woven Shirt',       '織りシャツ'],
+  ['Woven Shorts',      '織りショーツ'],
+  ['Woven Shoes',       '織りシューズ'],
+  ['Woven Gloves',      '織りグローブ'],
+  ['Ore Chunk',         '鉱石塊'],
+  ['Spear & Shield',    '槍と盾'],
+  ['Gem Encrusted',     '宝石装飾'],
+  ['Hardened Shell',    '硬化した殻'],
+  ['Jakyl Fang',        'ジャキルの牙'],
+  ['Umbura Fang',       'アンブラの牙'],
+  ['Crystalized Slime', '結晶化スライム'],
+  ['Armor Scrap',       'アーマースクラップ'],
+  ['Tool Scrap',        'ツールスクラップ'],
+  ['Reforging Solvent', '再鍛造溶剤'],
+  ['Item Storage',      'アイテムストレージ'],
+  ['Cargo Bin',         'カーゴビン'],
   // 品質プレフィックス
-  ['Flawless',       '完璧な'],
-  ['Magnificent',    '壮大な'],
-  ['Pristine',       '純粋な'],
-  ['Exquisite',      '卓越した'],
-  ['Peerless',       '比類なき'],
-  ['Ornate',         '装飾的な'],
-  ['Sturdy',         '頑丈な'],
-  ['Simple',         'シンプルな'],
-  ['Rough',          '粗い'],
-  ['Fine',           '上質な'],
-  ['Infused',        '注入された'],
-  // 素材名（T7以上など未登録のもの）
-  ['Celestium',      'セレスティウム'],
-  ['Umbracite',      'アンブラサイト'],
-  ['Astralite',      'アストラライト'],
-  // 複合アイテム種別（単語より先に）
-  ['Plated Armor',   'プレートアーマー'],
-  ['Plated Belt',    'プレートベルト'],
-  ['Plated Boots',   'プレートブーツ'],
-  ['Plated Helm',    'プレートヘルム'],
-  ['Plated Gloves',  'プレートグローブ'],
-  ['Duelist Armor',  'デュエリストアーマー'],
-  ['Duelist Belt',   'デュエリストベルト'],
-  ['Duelist Boots',  'デュエリストブーツ'],
-  ['Duelist Helm',   'デュエリストヘルム'],
-  ['Leather Cap',    'レザーキャップ'],
-  ['Leather Shirt',  'レザーシャツ'],
-  ['Leather Leggings','レザーレギンス'],
-  ['Leather Belt',   'レザーベルト'],
-  ['Leather Boots',  'レザーブーツ'],
-  ['Leather Bracers','レザーブレーサー'],
-  ['Leather Legguards','レザーレッグガード'],
-  ['Leather Shoes',  'レザーシューズ'],
-  ['Woven Belt',     '織りベルト'],
-  ['Woven Cap',      '織りキャップ'],
-  ['Woven Shirt',    '織りシャツ'],
-  ['Woven Shorts',   '織りショーツ'],
-  ['Woven Shoes',    '織りシューズ'],
-  ['Woven Gloves',   '織りグローブ'],
-  ['Ore Chunk',      '鉱石塊'],
-  ['Spear & Shield', '槍と盾'],
-  ['Gem Encrusted',  '宝石装飾'],
-  ['Hardened Shell', '硬化した殻'],
-  ['Jakyl Fang',     'ジャキルの牙'],
-  ['Umbura Fang',    'アンブラの牙'],
-  ['Crystalized Slime','結晶化スライム'],
-  ['Armor Scrap',    'アーマースクラップ'],
-  ['Tool Scrap',     'ツールスクラップ'],
-  ['Reforging Solvent','再鍛造溶剤'],
-  ['Item Storage',   'アイテムストレージ'],
-  ['Cargo Bin',      'カーゴビン'],
-  // 単語
-  ['Axe',            '斧'],
-  ['Pickaxe',        'つるはし'],
-  ['Saw',            'のこぎり'],
-  ['Knife',          'ナイフ'],
-  ['Machete',        'マチェット'],
-  ['Hoe',            '鍬'],
-  ['Hammer',         'ハンマー'],
-  ['Chisel',         'のみ'],
-  ['Rod',            '釣り竿'],
-  ['Quill',          'ペン'],
-  ['Scissors',       'はさみ'],
-  ['Shortsword',     'ショートソード'],
-  ['Claymore',       'クレイモア'],
-  ['Daggers',        'ダガー'],
-  ['Crossbow',       'クロスボウ'],
-  ['Bow',            '弓'],
-  ['Mace',           'メイス'],
-  ['Ingot',          'インゴット'],
-  ['Plank',          '板材'],
-  ['Rope',           'ロープ'],
-  ['Leather',        '革'],
-  ['Cloth',          '布'],
-  ['Tarp',           'シート'],
-  ['Nails',          '釘'],
-  ['Diamond',        'ダイヤモンド'],
-  ['Ruby',           'ルビー'],
-  ['Emerald',        'エメラルド'],
-  ['Sapphire',       'サファイア'],
-  ['Amulet',         'アミュレット'],
-  ['Ring',           'リング'],
-  ['Belt',           'ベルト'],
-  ['Scrap',          'スクラップ'],
-  ['Solvent',        '溶剤'],
-  ['Package',        'パッケージ'],
+  ['Flawless',          '完璧な'],
+  ['Magnificent',       '壮大な'],
+  ['Pristine',          '純粋な'],
+  ['Exquisite',         '卓越した'],
+  ['Peerless',          '比類なき'],
+  ['Ornate',            '装飾的な'],
+  ['Masterwork',        '傑作の'],
+  ['Comprehensive',     '総合的な'],
+  ['Specialized',       '特化した'],
+  ['Skillful',          '巧みな'],
+  ['Skilled',           '熟練した'],
+  ['Advanced',          '高度な'],
+  ['Proficient',        '熟練の'],
+  ['Novice',            '見習いの'],
+  ['Sturdy',            '頑丈な'],
+  ['Simple',            'シンプルな'],
+  ['Rough',             '粗い'],
+  ['Fine',              '上質な'],
+  ['Infused',           '注入された'],
+  ['Essential',         '基本的な'],
+  // 素材名
+  ['Celestium',         'セレスチウム'],
+  ['Umbracite',         'アンブラサイト'],
+  ['Astralite',         'アストラライト'],
+  // アイテム種別
+  ['Axe',               '斧'],
+  ['Pickaxe',           'つるはし'],
+  ['Saw',               'のこぎり'],
+  ['Knife',             'ナイフ'],
+  ['Machete',           'マチェット'],
+  ['Hoe',               '鍬'],
+  ['Hammer',            'ハンマー'],
+  ['Chisel',            'のみ'],
+  ['Rod',               '釣り竿'],
+  ['Quill',             'ペン'],
+  ['Scissors',          'はさみ'],
+  ['Shortsword',        'ショートソード'],
+  ['Claymore',          'クレイモア'],
+  ['Daggers',           'ダガー'],
+  ['Crossbow',          'クロスボウ'],
+  ['Bow',               '弓'],
+  ['Mace',              'メイス'],
+  ['Ingot',             'インゴット'],
+  ['Plank',             '板材'],
+  ['Rope',              'ロープ'],
+  ['Leather',           '革'],
+  ['Cloth',             '布'],
+  ['Tarp',              'シート'],
+  ['Nails',             '釘'],
+  ['Diamond',           'ダイヤモンド'],
+  ['Ruby',              'ルビー'],
+  ['Emerald',           'エメラルド'],
+  ['Sapphire',          'サファイア'],
+  ['Amulet',            'アミュレット'],
+  ['Ring',              'リング'],
+  ['Belt',              'ベルト'],
+  ['Research',          '研究'],
+  ['Journal',           'ジャーナル'],
+  ['Scrap',             'スクラップ'],
+  ['Solvent',           '溶剤'],
+  ['Package',           'パッケージ'],
 ];
 
 function autoTranslate(enName) {
   if (!enName) return null;
   let result = enName;
-  // スペースで分割して単語単位で変換
+  // 単語単位で変換
   const words = result.split(' ');
-  const converted = [];
+  const out = [];
   let i = 0;
   while (i < words.length) {
     let matched = false;
-    // 複数単語の語句を優先して試す（長い順）
+    // 複数単語の語句を先に試す
     for (const [en, ja] of AUTO_PARTS) {
       const enWords = en.split(' ');
       if (enWords.length > 1) {
         const chunk = words.slice(i, i + enWords.length).join(' ');
         if (chunk === en) {
-          converted.push(ja);
+          out.push(ja);
           i += enWords.length;
           matched = true;
           break;
@@ -1701,23 +1751,18 @@ function autoTranslate(enName) {
       }
     }
     if (!matched) {
-      // 単語単体でマッチを試みる
       let wordMatched = false;
       for (const [en, ja] of AUTO_PARTS) {
         if (en.split(' ').length === 1 && words[i] === en) {
-          converted.push(ja);
+          out.push(ja);
           wordMatched = true;
           break;
         }
       }
-      if (!wordMatched) converted.push(words[i]);
+      if (!wordMatched) out.push(words[i]);
       i++;
     }
   }
-  result = converted.join('');
-  // 複数スペースを整理
-  result = result.replace(/  +/g, ' ').trim();
-  // 元と変わらなければ翻訳できなかった
-  if (result === enName) return null;
-  return result;
+  result = out.join('');
+  return result !== enName ? result : null;
 }
