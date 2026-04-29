@@ -2,7 +2,7 @@
 // BitCraft Market Search - script.js
 // ============================================
 
-const API_BASE = 'https://bitcraft-proxy.29kiyo.workers.dev/api';
+const API_BASE = 'https://bitcraft-marketvv2.29kiyo.workers.dev/api';
 const HEADERS = { 'x-app-identifier': 'bitcraft-market-search-github-pages' };
 
 // ============================================
