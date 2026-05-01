@@ -1779,7 +1779,7 @@ const AUTO_PARTS = [
   ["Fisher's","漁師の"],
   ["Stonesmith's","石工の"],
   ["Auric","金の"],
-  ["argent","銀の"],
+  ["Argent","銀の"],
 ];
 
 function autoTranslate(enName) {
