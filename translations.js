@@ -520,6 +520,7 @@ const ITEM_TRANSLATIONS = {
 "桃ジャム": "Peach Jam",
 "エモート":"EmoteDeed",
 "プレミアム":"Premium",
+"花びら":"Blossom",
 
   
 };
@@ -1288,6 +1289,7 @@ const EN_EXACT = {
   "Yagi": "ヤギ",
   "EmoteDeed":"エモート",
   "Premium":"プレミアム",
+  "Blossom":"花びら",
   "Argent Bowl": "銀のボウル",
   "Argent Mug": "銀のマグ",
   "Argent Pan": "銀のパン",
