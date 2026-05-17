@@ -380,6 +380,24 @@ function hideSuggestions() {
 // ============================================
 async function doSearch() {
   const q = searchInput.value.trim();
+  
+  // 特殊キーワード：全アイテム表示
+  if (q === 'ALL_ITEM') {
+    showLoading();
+    clearError();
+    try {
+      const allItems = await fetchAllMarketItems();
+      currentItems = allItems;
+      currentPage = 1;
+      renderSearchResults(currentItems, currentPage);
+    } catch(err) {
+      showError(`エラーが発生しました: ${err.message}`);
+    } finally {
+      hideLoading();
+    }
+    return;
+  }
+
   if (q !== window._lastSearchQuery) {
     ['tier', 'rarity', 'category'].forEach(type => {
       document.querySelectorAll(`#${type}Dropdown input[type=checkbox]`).forEach(cb => cb.checked = false);
