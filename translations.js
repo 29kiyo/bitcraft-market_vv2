@@ -1973,13 +1973,6 @@ const AUTO_PARTS = [
   ["Desert Terrorbird","デザート・テラバード"],  
   ["Tundra Ox","ツンドラオックス"],  
   ["Tamed Animal","テイムした動物"],
-  ["",""],
-  ["",""],
-  ["",""],
-  ["",""],
-  ["",""],
-  ["",""],
-  
   //衣類
   ["Clothing","衣類"],
   ["Survivalist's Down Feather Gloves","サバイバリストのダウンフェザー手袋"],
