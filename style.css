@@ -1096,7 +1096,7 @@ footer a:hover { color: var(--accent); }
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 4px;
   margin-top: 20px;
   padding: 16px;
 }
