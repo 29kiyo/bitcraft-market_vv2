@@ -1521,10 +1521,13 @@ for (const [en, ja] of Object.entries(ITEM_TRANSLATIONS)) {
 }
 
 // 日本語→英語への逆引きテーブル（translateQuery用）
+// ITEM_TRANSLATIONS + EN_QUALITY_PREFIX + EN_MATERIAL_PREFIX + EN_ITEM_BASE + EN_EXACT を統合
 const ITEM_TRANSLATIONS_JA_EN = {};
-for (const [en, ja] of Object.entries(ITEM_TRANSLATIONS)) {
-  if (ja && !ITEM_TRANSLATIONS_JA_EN[ja]) {
-    ITEM_TRANSLATIONS_JA_EN[ja] = en;
+for (const src of [ITEM_TRANSLATIONS, EN_QUALITY_PREFIX, EN_MATERIAL_PREFIX, EN_ITEM_BASE, EN_EXACT]) {
+  for (const [en, ja] of Object.entries(src)) {
+    if (ja && !ITEM_TRANSLATIONS_JA_EN[ja]) {
+      ITEM_TRANSLATIONS_JA_EN[ja] = en;
+    }
   }
 }
 
