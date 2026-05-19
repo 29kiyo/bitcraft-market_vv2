@@ -879,13 +879,15 @@ function toHiragana(str) {
 
 // 読み仮名マッチ用：ひらがな入力 → 漢字キーを検索してenを返す
 function searchByYomi(q) {
-  const qHira = toHiragana(q); // カタカナもひらがなに統一
+  const qHira = toHiragana(q);
   const matched = new Set();
   for (const [kanji, yomi] of Object.entries(ITEM_YOMI)) {
     if (yomi.includes(qHira) || qHira.includes(yomi)) {
-      // その漢字キーに対応する英語を探す（en→jp形式）
+      // 漢字キーが1文字の場合は完全一致のみ（部分一致による誤ヒット防止）
       for (const [en, ja] of Object.entries(ITEM_TRANSLATIONS)) {
-        if (ja.includes(kanji)) matched.add(en.toLowerCase());
+        if (kanji.length >= 2 ? ja.includes(kanji) : ja === kanji) {
+          matched.add(en.toLowerCase());
+        }
       }
     }
   }
