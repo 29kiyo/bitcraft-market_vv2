@@ -866,6 +866,114 @@ const ITEM_YOMI = {
   "魚油パック":            "さかなあぶらぱっく",
   "手袋":                  "手袋",
   "桃":                    "もも",
+  // ===== AUTO_PARTS 追加読み =====
+  "のこぎり":                    "のこぎり",
+  "のみ":                      "のみ",
+  "はさみ":                     "はさみ",
+  "アイテムストレージ":               "あいてむすとれーじ",
+  "アストラライト":                 "あすとららいと",
+  "アミュレット":                  "あみゅれっと",
+  "アンブラの牙":                  "あんぶらのきば",
+  "アンブラサイト":                 "あんぶらさいと",
+  "アーマースクラップ":               "あーまーすくらっぷ",
+  "インゴット":                   "いんごっと",
+  "カーゴビン":                   "かーごびん",
+  "サギ鳥の卵":                   "さぎとりのたまご",
+  "サギ鳥の罠":                   "さぎとりのわな",
+  "サギ鳥の羽毛":                  "さぎとりのうもう",
+  "サギ鳥の餌":                   "さぎとりのえさ",
+  "サバイバリストのダウンフェザー手袋":       "さばいばりすとのだうんふぇざーてぶくろ",
+  "シャツ":                     "しゃつ",
+  "シンプルな":                   "しんぷるな",
+  "シート":                     "しーと",
+  "ジャキルの牙":                  "じゃきるのきば",
+  "ジャーナル":                   "じゃーなる",
+  "スクラップ":                   "すくらっぷ",
+  "セレスチウム":                  "せれすちうむ",
+  "ダガー":                     "だがー",
+  "ツンドラオックス":                "つんどらおっくす",
+  "テイムされた動物":                "ていむされたどうぶつ",
+  "テイムした動物":                 "ていむしたどうぶつ",
+  "デザート・テラバード":              "でざーと・てらばーど",
+  "ハンターの":                   "はんたーの",
+  "パンツ":                     "ぱんつ",
+  "パーティーハット（ピンク）":           "ぱーてぃーはっと（ぴんく）",
+  "フォレスター":                  "ふぉれすたー",
+  "ブーツ":                     "ぶーつ",
+  "ベルト":                     "べると",
+  "ペン":                      "ぺん",
+  "マチェット":                   "まちぇっと",
+  "ラングラークリーンカットの":           "らんぐらーくりーんかっとの",
+  "ラングラースウィートハートの":          "らんぐらーすうぃーとはーとの",
+  "ラングラーダーリンの":              "らんぐらーだーりんの",
+  "リング":                     "りんぐ",
+  "レザーキャップ":                 "れざーきゃっぷ",
+  "レザーシャツ":                  "れざーしゃつ",
+  "レザーシューズ":                 "れざーしゅーず",
+  "レザーブレーサー":                "れざーぶれーさー",
+  "レザーブーツ":                  "れざーぶーつ",
+  "レザーベルト":                  "れざーべると",
+  "レザーレギンス":                 "れざーれぎんす",
+  "レザーレッグガード":               "れざーれっぐがーど",
+  "上質な":                     "じょうしつな",
+  "仕立て":                     "したて",
+  "仕立て屋の":                   "したてやの",
+  "傑作の":                     "けっさくの",
+  "初心者の":                    "しょしんしゃの",
+  "動物の残飯":                   "どうぶつのざんはん",
+  "動物用罠":                    "どうぶつようわな",
+  "基本的な":                    "きほんてきな",
+  "壮大な":                     "そうだいな",
+  "大工":                      "だいく",
+  "大工の":                     "だいくの",
+  "学者":                      "がくしゃ",
+  "学者の":                     "がくしゃの",
+  "完璧な":                     "かんぺきな",
+  "宝石装飾":                    "ほうせきそうしょく",
+  "家畜由来の素材":                 "かちくゆらいのそざい",
+  "専門家の":                    "せんもんかの",
+  "巧みな":                     "たくみな",
+  "帽子":                      "ぼうし",
+  "建設":                      "けんせつ",
+  "捕獲されたサギ鳥":                "ほかくされたさぎとり",
+  "採掘":                      "さいくつ",
+  "採掘師の":                    "さいくつしの",
+  "採集":                      "さいしゅう",
+  "採集者の":                    "さいしゅうしゃの",
+  "料理":                      "りょうり",
+  "木工":                      "もっこう",
+  "林業":                      "りんぎょう",
+  "溶剤":                      "ようざい",
+  "漁師の":                     "りょうしの",
+  "熟練した":                    "じゅくれんした",
+  "熟練の":                     "じゅくれんの",
+  "特化した":                    "とっかした",
+  "狩猟":                      "しゅりょう",
+  "獣":                       "けもの",
+  "皮革加工":                    "ひかくかこう",
+  "知識":                      "ちしき",
+  "石工":                      "いしく",
+  "石工の":                     "いしくの",
+  "純粋な":                     "じゅんすいな",
+  "結晶化スライム":                 "けっしょうかすらいむ",
+  "総合的な":                    "そうごうてきな",
+  "織りグローブ":                  "おりぐろーぶ",
+  "衣類":                      "いるい",
+  "裁縫":                      "さいほう",
+  "見習いの":                    "みならいの",
+  "農夫の":                     "のうふの",
+  "農業":                      "のうぎょう",
+  "金の":                      "きんの",
+  "釣り":                      "つり",
+  "釣り竿":                     "つりざお",
+  "銀の":                      "ぎんの",
+  "錬金術":                     "れんきんじゅつ",
+  "鍛冶":                      "かじ",
+  "鍛冶屋の":                    "かじやの",
+  "革職人の":                    "かわしょくにんの",
+  "飼育されているサギ鳥":              "しいくされているさぎとり",
+  "高度な":                     "こうどな",
+
   // ===== EN_ITEM_BASE / EN_EXACT 追加読み =====
   "Tier7動物":                 "Tier7どうぶつ",
   "Tier8動物":                 "Tier8どうぶつ",
@@ -1520,41 +1628,7 @@ for (const [en, ja] of Object.entries(ITEM_TRANSLATIONS)) {
   }
 }
 
-// 日本語→英語への逆引きテーブル（translateQuery用）
-// ITEM_TRANSLATIONS + EN_QUALITY_PREFIX + EN_MATERIAL_PREFIX + EN_ITEM_BASE + EN_EXACT を統合
-const ITEM_TRANSLATIONS_JA_EN = {};
-for (const src of [ITEM_TRANSLATIONS, EN_QUALITY_PREFIX, EN_MATERIAL_PREFIX, EN_ITEM_BASE, EN_EXACT]) {
-  for (const [en, ja] of Object.entries(src)) {
-    if (ja && !ITEM_TRANSLATIONS_JA_EN[ja]) {
-      ITEM_TRANSLATIONS_JA_EN[ja] = en;
-    }
-  }
-}
 
-function translateQuery(query) {
-  const q = query.trim();
-  if (!q) return q;
-
-  // 日本語が含まれているか判定
-  const hasJapanese = /[\u3040-\u30ff\u4e00-\u9faf]/.test(q);
-  if (!hasJapanese) return q; // 英語ならそのまま
-
-  // 完全一致（JP→EN）
-  if (ITEM_TRANSLATIONS_JA_EN[q]) return ITEM_TRANSLATIONS_JA_EN[q];
-
-  // 部分一致（長いキーを優先）
-  const sorted = Object.entries(ITEM_TRANSLATIONS_JA_EN).sort((a, b) => b[0].length - a[0].length);
-  for (const [ja, en] of sorted) {
-    if (q.includes(ja)) return en;
-  }
-
-  // 逆方向：入力がキーに含まれる場合（「パイ」→「ピュレライト」など）
-  for (const [ja, en] of sorted) {
-    if (ja.includes(q)) return en;
-  }
-
-  return q;
-}
 
 // ===== 英語→日本語 組み合わせ変換テーブル =====
 
@@ -2404,45 +2478,6 @@ const EN_EXACT = {
   "Potted Birch Sapling":"鉢植えのブナの苗木",
 };
 
-function getJaName(enName) {
-  if (!enName) return null;
-
-  // 1. 既存テーブル完全一致（手動修正を優先）
-  if (ITEM_TRANSLATIONS_EN_JA[enName]) return ITEM_TRANSLATIONS_EN_JA[enName];
-
-  // 2. 素材プレフィックス＋ベース名
-  for (const [enMat, jaMat] of Object.entries(EN_MATERIAL_PREFIX)) {
-    if (enName.startsWith(enMat + " ")) {
-      const base = enName.slice(enMat.length + 1);
-      if (EN_ITEM_BASE[base]) return jaMat + EN_ITEM_BASE[base];
-    }
-  }
-
-  // 3. 品質プレフィックス＋ベース名（カテゴリ別訳）
-  for (const [enQ, byCategory] of Object.entries(EN_QUALITY_BY_CATEGORY)) {
-    if (enName.startsWith(enQ + " ")) {
-      const base = enName.slice(enQ.length + 1);
-      if (!EN_ITEM_BASE[base]) continue;
-      const cat = EN_FOOD_BASES.has(base) ? "food"
-                : EN_EQUIPMENT_BASES.has(base) ? "equipment"
-                : "material";
-      return byCategory[cat] + EN_ITEM_BASE[base];
-    }
-  }
-
-  // 4. 完全一致テーブル
-  if (EN_EXACT[enName]) return EN_EXACT[enName];
-
-  // 5. ベース名のみ
-  if (EN_ITEM_BASE[enName]) return EN_ITEM_BASE[enName];
-
-  // 6. 法則ベース自動翻訳
-  return autoTranslate(enName);
-}
-
-// ============================================
-// 法則ベース自動翻訳（未登録アイテムのフォールバック）
-// ============================================
 const AUTO_PARTS = [
   // 複合語句（先に処理）
   ["Beginner's",        '初心者の'],
@@ -2620,6 +2655,89 @@ const AUTO_PARTS = [
   ["Gloves","手袋"],
   ["Boots","ブーツ"],
 ];
+
+// 日本語→英語への逆引きテーブル（translateQuery用）
+// ITEM_TRANSLATIONS + EN_QUALITY_PREFIX + EN_MATERIAL_PREFIX + EN_ITEM_BASE + EN_EXACT を統合
+const ITEM_TRANSLATIONS_JA_EN = {}
+function translateQuery(query) {
+  const q = query.trim();
+  if (!q) return q;
+
+  // 日本語が含まれているか判定
+  const hasJapanese = /[\u3040-\u30ff\u4e00-\u9faf]/.test(q);
+  if (!hasJapanese) return q; // 英語ならそのまま
+
+  // 完全一致（JP→EN）
+  if (ITEM_TRANSLATIONS_JA_EN[q]) return ITEM_TRANSLATIONS_JA_EN[q];
+
+  // 部分一致（長いキーを優先）
+  const sorted = Object.entries(ITEM_TRANSLATIONS_JA_EN).sort((a, b) => b[0].length - a[0].length);
+  for (const [ja, en] of sorted) {
+    if (q.includes(ja)) return en;
+  }
+
+  // 逆方向：入力がキーに含まれる場合（「パイ」→「ピュレライト」など）
+  for (const [ja, en] of sorted) {
+    if (ja.includes(q)) return en;
+  }
+
+  return q;
+};
+for (const src of [ITEM_TRANSLATIONS, EN_QUALITY_PREFIX, EN_MATERIAL_PREFIX, EN_ITEM_BASE, EN_EXACT]) {
+  for (const [en, ja] of Object.entries(src)) {
+    if (ja && !ITEM_TRANSLATIONS_JA_EN[ja]) {
+      ITEM_TRANSLATIONS_JA_EN[ja] = en;
+    }
+  }
+}
+// AUTO_PARTS（配列形式）も取り込む
+for (const [en, ja] of AUTO_PARTS) {
+  if (ja && !ITEM_TRANSLATIONS_JA_EN[ja]) {
+    ITEM_TRANSLATIONS_JA_EN[ja] = en;
+  }
+}
+
+
+
+function getJaName(enName) {
+  if (!enName) return null;
+
+  // 1. 既存テーブル完全一致（手動修正を優先）
+  if (ITEM_TRANSLATIONS_EN_JA[enName]) return ITEM_TRANSLATIONS_EN_JA[enName];
+
+  // 2. 素材プレフィックス＋ベース名
+  for (const [enMat, jaMat] of Object.entries(EN_MATERIAL_PREFIX)) {
+    if (enName.startsWith(enMat + " ")) {
+      const base = enName.slice(enMat.length + 1);
+      if (EN_ITEM_BASE[base]) return jaMat + EN_ITEM_BASE[base];
+    }
+  }
+
+  // 3. 品質プレフィックス＋ベース名（カテゴリ別訳）
+  for (const [enQ, byCategory] of Object.entries(EN_QUALITY_BY_CATEGORY)) {
+    if (enName.startsWith(enQ + " ")) {
+      const base = enName.slice(enQ.length + 1);
+      if (!EN_ITEM_BASE[base]) continue;
+      const cat = EN_FOOD_BASES.has(base) ? "food"
+                : EN_EQUIPMENT_BASES.has(base) ? "equipment"
+                : "material";
+      return byCategory[cat] + EN_ITEM_BASE[base];
+    }
+  }
+
+  // 4. 完全一致テーブル
+  if (EN_EXACT[enName]) return EN_EXACT[enName];
+
+  // 5. ベース名のみ
+  if (EN_ITEM_BASE[enName]) return EN_ITEM_BASE[enName];
+
+  // 6. 法則ベース自動翻訳
+  return autoTranslate(enName);
+}
+
+// ============================================
+// 法則ベース自動翻訳（未登録アイテムのフォールバック）
+// ============================================
 
 function autoTranslate(enName) {
   if (!enName) return null;
