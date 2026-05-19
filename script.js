@@ -312,7 +312,14 @@ function filterByJapanese(items, q) {
     // getJaNameで変換した日本語名と照合
     const ja = getJaName(item.name);
     if (ja) {
-      if (ja.includes(q) || toHiragana(ja).includes(qH)) return true;
+      // 漢字・カタカナ直接マッチ
+      if (ja.includes(q)) return true;
+      // カタカナ→ひらがな変換してマッチ
+      if (toHiragana(ja).includes(qH)) return true;
+      // ITEM_YOMIを使った読みマッチ
+      for (const [kanji, yomi] of Object.entries(ITEM_YOMI)) {
+        if (ja.includes(kanji) && (yomi.includes(qH) || qH.includes(yomi))) return true;
+      }
     }
 
     return false;
