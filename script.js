@@ -269,10 +269,11 @@ function getMatchedEnglishNames(q) {
   // 1. 読み仮名検索
   searchByYomi(q).forEach(en => matchedEn.add(en));
 
-  // 2. ITEM_TRANSLATIONS（EN→JP）部分一致：JP値で検索してENキーを返す
-  const sorted = Object.entries(ITEM_TRANSLATIONS).sort((a, b) => b[0].length - a[0].length);
+  // 2. ITEM_TRANSLATIONS（英語→日本語）から逆引きで部分一致
+  const sorted = Object.entries(ITEM_TRANSLATIONS).sort((a, b) => b[1].length - a[1].length);
   for (const [en, ja] of sorted) {
-    if (ja && (ja.includes(q) || toHiragana(ja).includes(qH))) {
+    if (ja.includes(q) ||
+      toHiragana(ja).includes(qH)) {
       matchedEn.add(en.toLowerCase());
     }
   }
