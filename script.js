@@ -300,12 +300,21 @@ function getMatchedEnglishNames(q) {
 
 function filterByJapanese(items, q) {
   const matchedEn = getMatchedEnglishNames(q);
-  if (matchedEn.size === 0) return [];
+  const qH = toHiragana(q);
+
   return items.filter(item => {
+    // 既存の英語キーワードマッチ
     const name = item.name.toLowerCase();
     for (const en of matchedEn) {
       if (name.includes(en)) return true;
     }
+
+    // getJaNameで変換した日本語名と照合
+    const ja = getJaName(item.name);
+    if (ja) {
+      if (ja.includes(q) || toHiragana(ja).includes(qH)) return true;
+    }
+
     return false;
   });
 }
