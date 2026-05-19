@@ -2789,37 +2789,6 @@ function translateQuery(query) {
   return q;
 }
 
-  const hasJapanese = /[぀-ヿ一-龯]/.test(q);
-  if (!hasJapanese) return q;
-
-  // 全ソースからJP→EN逆引きテーブルを構築
-  const jaToEn = {};
-  for (const src of [ITEM_TRANSLATIONS, EN_ITEM_BASE, EN_EXACT, EN_QUALITY_PREFIX, EN_MATERIAL_PREFIX]) {
-    for (const [en, ja] of Object.entries(src)) {
-      if (ja && !jaToEn[ja]) jaToEn[ja] = en;
-    }
-  }
-  for (const [en, ja] of AUTO_PARTS) {
-    if (ja && !jaToEn[ja]) jaToEn[ja] = en;
-  }
-
-  // 完全一致
-  if (jaToEn[q]) return jaToEn[q];
-
-  // 部分一致（長いキーを優先）
-  const sorted = Object.entries(jaToEn).sort((a, b) => b[0].length - a[0].length);
-  for (const [ja, en] of sorted) {
-    if (q.includes(ja)) return en;
-  }
-
-  // 逆方向：入力がキーに含まれる場合
-  for (const [ja, en] of sorted) {
-    if (ja.includes(q)) return en;
-  }
-
-  return q;
-};
-
 
 
 function getJaName(enName) {
