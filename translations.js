@@ -1714,7 +1714,9 @@ function searchByYomi(q) {
         if (ja && ja.includes(kanji)) matched.add(en.toLowerCase());
       }
       // EN_系・AUTO_PARTSも対象
-      for (const src of [EN_ITEM_const ITEM_TRANSLATIONS_EN_JA = { ...ITEM_TRANSLATIONS };e());
+      for (const src of [EN_ITEM_BASE, EN_EXACT, EN_QUALITY_PREFIX, EN_MATERIAL_PREFIX]) {
+        for (const [en, ja] of Object.entries(src)) {
+          if (ja && ja.includes(kanji)) matched.add(en.toLowerCase());
         }
       }
       for (const [en, ja] of AUTO_PARTS) {
@@ -1726,13 +1728,8 @@ function searchByYomi(q) {
   return matched;
 }
 
-// 英語→日本語（ITEM_TRANSLATIONSはEN→JPになったので直接利用）
-const ITEM_TRANSLATIONS_EN_JA = {};
-for (const [en, ja] of Object.entries(ITEM_TRANSLATIONS)) {
-  if (!ITEM_TRANSLATIONS_EN_JA[en]) {
-    ITEM_TRANSLATIONS_EN_JA[en] = ja;
-  }
-}
+// 英語→日本語（getJaName用）
+const ITEM_TRANSLATIONS_EN_JA = { ...ITEM_TRANSLATIONS };
 
 
 
