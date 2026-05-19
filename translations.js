@@ -800,6 +800,9 @@ const ITEM_YOMI = {
   "フェラリス釘": "ふぇらりすくぎ",
   "パイライト鉱石": "ぱいらいとこうせき",
   "パイライト精鉱": "ぱいらいとせいこう",
+  "パイライト":              "ぱいらいと",
+  "パイライトインゴット":       "ぱいらいといんごっと",
+  "溶融パイライト":           "ようゆうぱいらいと",
   "ルミナイト鉱石": "るみないとこうせき",
   "エレンヴァール鉱石": "えれんう゛ぁーるこうせき",
   "エマリウム鉱石": "えまりうむこうせき",
@@ -1594,6 +1597,101 @@ const ITEM_YOMI = {
   "高度な前哨基地研究":               "こうどなぜんしょうきちけんきゅう",
   "高度な学習帳":                  "こうどながくしゅうちょう",
   "魚とバルブ":                   "さかなとばるぶ",
+  // ===== ITEM_TRANSLATIONS カタカナ追加読み =====
+  "きのこ":                     "きのこ",
+  "アウルマイト":                  "あうるまいと",
+  "アウルマイトインゴット":             "あうるまいといんごっと",
+  "アクセサリー":                  "あくせさりー",
+  "アズールスフィラ":                "あずーるすふぃら",
+  "アズールセントロ":                "あずーるせんとろ",
+  "アズールミニ":                  "あずーるみに",
+  "ウィスプウィーブ":                "うぃすぷうぃーぶ",
+  "ウゴ":                      "うご",
+  "ウゴ":                      "うご",
+  "エナジー":                    "えなじー",
+  "エマリウム":                   "えまりうむ",
+  "エマリウムインゴット":              "えまりうむいんごっと",
+  "エリクサー":                   "えりくさー",
+  "エルダースクロファ":               "えるだーすくろふぁ",
+  "エレンヴァール":                 "えれんゔぁーる",
+  "エレンヴァールインゴット":            "えれんゔぁーるいんごっと",
+  "オーク":                     "おーく",
+  "オートマタハート":                "おーとまたはーと",
+  "オートマタハート":                "おーとまたはーと",
+  "クエストアイテム":                "くえすとあいてむ",
+  "クロアクリン":                  "くろあくりん",
+  "クロス":                     "くろす",
+  "グリーンホーンゴルブ":              "ぐりーんほーんごるぶ",
+  "グリーンホーンドロ":               "ぐりーんほーんどろ",
+  "コイン":                     "こいん",
+  "コーデックス":                  "こーでっくす",
+  "シンプル":                    "しんぷる",
+  "シンプルなレザーバッグ":             "しんぷるなれざーばっぐ",
+  "シーティング":                  "しーてぃんぐ",
+  "シーティング":                  "しーてぃんぐ",
+  "ジプサイト":                   "じぷさいと",
+  "ジャム":                     "じゃむ",
+  "ジュエリー":                   "じゅえりー",
+  "ジュエリー":                   "じゅえりー",
+  "スクロファ":                   "すくろふぁ",
+  "スティック":                   "すてぃっく",
+  "スティック":                   "すてぃっく",
+  "スティック":                   "すてぃっく",
+  "スプルース":                   "すぷるーす",
+  "スプール":                    "すぷーる",
+  "セル":                      "せる",
+  "セルバス":                    "せるばす",
+  "セレスチウムインゴット":             "せれすちうむいんごっと",
+  "センチネルのクレイモア":             "せんちねるのくれいもあ",
+  "タープ":                     "たーぷ",
+  "タープ":                     "たーぷ",
+  "タープ":                     "たーぷ",
+  "ダイヤ":                     "だいや",
+  "ダンジョンアップグレード":            "だんじょんあっぷぐれーど",
+  "ツールバンドル":                 "つーるばんどる",
+  "テイムアイテム":                 "ていむあいてむ",
+  "テレポート":                   "てれぽーと",
+  "ドロマイ":                    "どろまい",
+  "ヌビヤギ":                    "ぬびやぎ",
+  "ネックレス":                   "ねっくれす",
+  "ハートコンポーネント":              "はーとこんぽーねんと",
+  "バウチャー":                   "ばうちゃー",
+  "バーチ":                     "ばーち",
+  "ピッケル":                    "ぴっける",
+  "ピッチ":                     "ぴっち",
+  "ピッチ":                     "ぴっち",
+  "フェラリス":                   "ふぇらりす",
+  "フェラリスインゴット":              "ふぇらりすいんごっと",
+  "フリント":                    "ふりんと",
+  "フリントツール":                 "ふりんとつーる",
+  "ブライニーアルガス":               "ぶらいにーあるがす",
+  "ブライニーグッピー":               "ぶらいにーぐっぴー",
+  "ブライニーリナス":                "ぶらいにーりなす",
+  "ブレーサー":                   "ぶれーさー",
+  "プレミアムアイテム":               "ぷれみあむあいてむ",
+  "プレミアムコスメ":                "ぷれみあむこすめ",
+  "プレーンズオックス":               "ぷれーんずおっくす",
+  "ヘキサイトカプセル":               "へきさいとかぷせる",
+  "ヘキサイトカプセル":               "へきさいとかぷせる",
+  "ヘックスコイン":                 "へっくすこいん",
+  "ヘルム":                     "へるむ",
+  "ベイトフィッシュ":                "べいとふぃっしゅ",
+  "ムッディアウラトゥス":              "むっでぃあうらとぅす",
+  "ムッディオンコル":                "むっでぃおんこる",
+  "メスセルバス":                  "めすせるばす",
+  "ラシウム":                    "らしうむ",
+  "ラシウムインゴット":               "らしうむいんごっと",
+  "ラフエメラルド":                 "らふえめらるど",
+  "ラフサファイア":                 "らふさふぁいあ",
+  "ラフダイヤモンド":                "らふだいやもんど",
+  "ラフルビー":                   "らふるびー",
+  "ルミナイト":                   "るみないと",
+  "ルミナイトインゴット":              "るみないといんごっと",
+  "レアキノコ":                   "れあきのこ",
+  "レッグガード":                  "れっぐがーど",
+  "ロストシップメント":               "ろすとしっぷめんと",
+  "ワゴンクエスト":                 "わごんくえすと",
+
 };
 
 // ひらがな→カタカナ変換
@@ -1607,15 +1705,23 @@ function toHiragana(str) {
 
 // 読み仮名マッチ用：ひらがな入力 → 漢字キーを検索してenを返す
 function searchByYomi(q) {
-  const qHira = toHiragana(q); // カタカナもひらがなに統一
+  const qHira = toHiragana(q);
   const matched = new Set();
   for (const [kanji, yomi] of Object.entries(ITEM_YOMI)) {
     if (yomi.includes(qHira) || qHira.includes(yomi)) {
-      // その漢字キーに対応する英語を探す
+      // ITEM_TRANSLATIONSはEN→JPなのでJP値でkanjiを検索してENキーを返す
       for (const [en, ja] of Object.entries(ITEM_TRANSLATIONS)) {
         if (ja && ja.includes(kanji)) matched.add(en.toLowerCase());
       }
+      // EN_系・AUTO_PARTSも対象
+      for (const src of [EN_ITEM_const ITEM_TRANSLATIONS_EN_JA = { ...ITEM_TRANSLATIONS };e());
+        }
+      }
+      for (const [en, ja] of AUTO_PARTS) {
+        if (ja && ja.includes(kanji)) matched.add(en.toLowerCase());
+      }
     }
+
   }
   return matched;
 }
@@ -2656,46 +2762,66 @@ const AUTO_PARTS = [
   ["Boots","ブーツ"],
 ];
 
-// 日本語→英語への逆引きテーブル（translateQuery用）
-// ITEM_TRANSLATIONS + EN_QUALITY_PREFIX + EN_MATERIAL_PREFIX + EN_ITEM_BASE + EN_EXACT を統合
-const ITEM_TRANSLATIONS_JA_EN = {}
 function translateQuery(query) {
   const q = query.trim();
   if (!q) return q;
 
-  // 日本語が含まれているか判定
-  const hasJapanese = /[\u3040-\u30ff\u4e00-\u9faf]/.test(q);
-  if (!hasJapanese) return q; // 英語ならそのまま
+  const hasJapanese = /[぀-ヿ一-龯]/.test(q);
+  if (!hasJapanese) return q;
 
-  // 完全一致（JP→EN）
-  if (ITEM_TRANSLATIONS_JA_EN[q]) return ITEM_TRANSLATIONS_JA_EN[q];
+  const jaToEn = {};
+  for (const src of [ITEM_TRANSLATIONS, EN_ITEM_BASE, EN_EXACT, EN_QUALITY_PREFIX, EN_MATERIAL_PREFIX]) {
+    for (const [en, ja] of Object.entries(src)) {
+      if (ja && !jaToEn[ja]) jaToEn[ja] = en;
+    }
+  }
+  for (const [en, ja] of AUTO_PARTS) {
+    if (ja && !jaToEn[ja]) jaToEn[ja] = en;
+  }
+
+  if (jaToEn[q]) return jaToEn[q];
+
+  const sorted = Object.entries(jaToEn).sort((a, b) => b[0].length - a[0].length);
+  for (const [ja, en] of sorted) {
+    if (q.includes(ja)) return en;
+  }
+  for (const [ja, en] of sorted) {
+    if (ja.includes(q)) return en;
+  }
+
+  return q;
+}
+
+  const hasJapanese = /[぀-ヿ一-龯]/.test(q);
+  if (!hasJapanese) return q;
+
+  // 全ソースからJP→EN逆引きテーブルを構築
+  const jaToEn = {};
+  for (const src of [ITEM_TRANSLATIONS, EN_ITEM_BASE, EN_EXACT, EN_QUALITY_PREFIX, EN_MATERIAL_PREFIX]) {
+    for (const [en, ja] of Object.entries(src)) {
+      if (ja && !jaToEn[ja]) jaToEn[ja] = en;
+    }
+  }
+  for (const [en, ja] of AUTO_PARTS) {
+    if (ja && !jaToEn[ja]) jaToEn[ja] = en;
+  }
+
+  // 完全一致
+  if (jaToEn[q]) return jaToEn[q];
 
   // 部分一致（長いキーを優先）
-  const sorted = Object.entries(ITEM_TRANSLATIONS_JA_EN).sort((a, b) => b[0].length - a[0].length);
+  const sorted = Object.entries(jaToEn).sort((a, b) => b[0].length - a[0].length);
   for (const [ja, en] of sorted) {
     if (q.includes(ja)) return en;
   }
 
-  // 逆方向：入力がキーに含まれる場合（「パイ」→「ピュレライト」など）
+  // 逆方向：入力がキーに含まれる場合
   for (const [ja, en] of sorted) {
     if (ja.includes(q)) return en;
   }
 
   return q;
 };
-for (const src of [ITEM_TRANSLATIONS, EN_QUALITY_PREFIX, EN_MATERIAL_PREFIX, EN_ITEM_BASE, EN_EXACT]) {
-  for (const [en, ja] of Object.entries(src)) {
-    if (ja && !ITEM_TRANSLATIONS_JA_EN[ja]) {
-      ITEM_TRANSLATIONS_JA_EN[ja] = en;
-    }
-  }
-}
-// AUTO_PARTS（配列形式）も取り込む
-for (const [en, ja] of AUTO_PARTS) {
-  if (ja && !ITEM_TRANSLATIONS_JA_EN[ja]) {
-    ITEM_TRANSLATIONS_JA_EN[ja] = en;
-  }
-}
 
 
 
