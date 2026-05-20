@@ -2258,9 +2258,8 @@ function lsSet(key, value) {
 
 
 // ============================================
-// ナビゲーション & 各種履歴・お気に入り機能（完全版）
+// ナビゲーション & 各種画面切り替え（完全修正版）
 // ============================================
-const PAGES = ['home', 'bookmarks', 'recent', 'history'];
 
 // 左側のメニューを開閉する機能
 window.toggleNav = function() {
@@ -2276,105 +2275,62 @@ window.toggleNav = function() {
   }
 };
 
-// ページを切り替える機能（検索、お気に入り、履歴の画面切り替え）
+// 画面を切り替える機能（検索、お気に入り、履歴の画面切り替え）
 window.navGo = function(page) {
-  // 1. まず全部のページを非表示にする
-  PAGES.forEach(p => {
-    const el = document.getElementById(p + 'Page');
-    if (el) el.classList.add('hidden');
-  });
-  
-  // 検索結果の画面も一旦隠す
-  const searchResults = document.getElementById('searchResults');
-  if (searchResults) searchResults.classList.add('hidden');
+  // 元々定義されている PAGES = ['home', 'bookmarks', 'recent', 'history'] を使用
+  if (typeof PAGES !== 'undefined') {
+    PAGES.forEach(p => {
+      const el = document.getElementById(p + 'Page');
+      if (el) el.classList.add('hidden');
+    });
+  }
 
-  // 2. 選択されたページを表示する
-  // 「home」が選ばれたときは、メインの検索画面（craftContainer等）を表示状態にする
+  // メインの検索・クラフト画面の表示切り替え
+  const craftContainer = document.querySelector('.craft-container') || document.getElementById('craftContainer');
+  const searchResults = document.getElementById('searchResults');
+
   if (page === 'home') {
-    const mainCraft = document.querySelector('.craft-container') || document.getElementById('craftContainer');
-    if (mainCraft) mainCraft.classList.remove('hidden');
-    
-    // もしすでに検索文字列が入っていれば、検索結果画面も出す
+    // ホーム画面（検索）を表示
+    if (craftContainer) craftContainer.classList.remove('hidden');
+    // すでに検索結果があれば表示する
     const input = document.getElementById('searchInput');
     if (input && input.value.trim() !== '' && searchResults) {
       searchResults.classList.remove('hidden');
     }
   } else {
-    // ホーム以外（お気に入りや履歴）を開くときは、メインの検索画面を隠す
-    const mainCraft = document.querySelector('.craft-container') || document.getElementById('craftContainer');
-    if (mainCraft) mainCraft.classList.add('hidden');
+    // それ以外の画面のときは、検索トップを隠して該当のページを表示
+    if (craftContainer) craftContainer.classList.add('hidden');
+    if (searchResults) searchResults.classList.add('hidden');
     
     const target = document.getElementById(page + 'Page');
     if (target) target.classList.remove('hidden');
   }
 
-  // 3. 各ページを開いた瞬間にデータを最新にする
+  // 各ページを開いた瞬間にデータを最新にして描画する
   if (page === 'bookmarks') {
     renderBookmarksPage();
   } else if (page === 'recent') {
-    if (typeof renderRecentPage === 'function') renderRecentPage();
+    renderRecentPage();
   } else if (page === 'history') {
-    if (typeof renderHistoryPage === 'function') renderHistoryPage();
+    renderHistoryPage();
   }
 
-  // 4. 開いていた横のメニューを閉じる
+  // 開いていたサイドメニューを閉じる
   const nav = document.getElementById('sideNav');
   const overlay = document.getElementById('navOverlay');
   if (nav) nav.classList.add('hidden');
   if (overlay) overlay.classList.add('hidden');
 };
 
-// --- ブックマークのデータ処理コア機能 ---
-
-// 保存されたブックマークを取得
-function getBookmarks() {
-  try {
-    const json = localStorage.getItem('bitcraft_bookmarks');
-    return json ? JSON.parse(json) : [];
-  } catch(e) {
-    return [];
-  }
-}
-
-// 登録されているかチェック
-function isBookmarked(name) {
-  return getBookmarks().includes(name);
-}
-
-// 🔖ボタンが押されたときに保存・削除を切り替える（グローバルに公開）
-window.toggleBookmark = function(name, btnElement) {
-  let bookmarks = getBookmarks();
-  
-  if (bookmarks.includes(name)) {
-    bookmarks = bookmarks.filter(b => b !== name);
-    if (btnElement) btnElement.classList.remove('active');
-    btnElement.title = 'ブックマーク';
-  } else {
-    bookmarks.push(name);
-    if (btnElement) btnElement.classList.add('active');
-    btnElement.title = 'ブックマーク解除';
-  }
-  
-  localStorage.setItem('bitcraft_bookmarks', JSON.stringify(bookmarks));
-  
-  // 画面上の他のブックマークボタンの見た目も同期する
-  document.querySelectorAll('.bookmark-btn').forEach(b => {
-    if (b.dataset.name === name) {
-      if (bookmarks.includes(name)) b.classList.add('active');
-      else b.classList.remove('active');
-    }
-  });
-
-  // ブックマーク一覧ページをリアルタイム更新
-  renderBookmarksPage();
-};
-
-// ブックマーク一覧ページにカードを描画する機能
+// --- ブックマーク表示機能 ---
 function renderBookmarksPage() {
   const el = document.getElementById('bookmarkPageList'); 
   if (!el) return;
   
+  // 元々定義されている getBookmarks() を呼び出す
+  if (typeof getBookmarks !== 'function') return;
   const bm = getBookmarks();
+  
   if (bm.length === 0) {
     el.innerHTML = '<p style="color:var(--text3); text-align:center; padding:40px 0; width:100%;">ブックマークされたアイテムはありません。</p>';
     return;
@@ -2383,67 +2339,118 @@ function renderBookmarksPage() {
   el.innerHTML = bm.map(name => {
     const ja = typeof getJaName === 'function' ? getJaName(name) : null;
     const displayName = (ja && ja !== name) ? ja : name;
-    
     return `
-      <div class="market-card" onclick="openFromSubPage('${name.replace(/'/g, "\\'")}')" style="background:var(--bg2); padding:15px; border:1px solid var(--border); border-radius:8px; cursor:pointer; display:flex; flex-direction:column; gap:8px;">
+      <div class="market-card" onclick="openFromSubPage('${name.replace(/'/g, "\\'")}')" style="background:var(--bg2); padding:15px; border:1px solid var(--border); border-radius:8px; cursor:pointer; margin-bottom:10px;">
         <div style="font-weight:bold; color:var(--text); font-size:1.1rem;">${displayName}</div>
         ${ja && ja !== name ? `<div style="font-size:0.8rem; color:var(--text2);">${name}</div>` : ''}
-        <div style="font-size:0.75rem; color:var(--accent); text-align:right; margin-top:auto;">詳細を見る →</div>
+        <div style="font-size:0.75rem; color:var(--accent); text-align:right; margin-top:8px;">詳細を見る →</div>
       </div>
     `;
   }).join('');
 }
 
-// リスト内のアイテムをクリックした時に詳細を検索して開く機能
+// --- 閲覧履歴表示機能 ---
+function renderRecentPage() {
+  const el = document.getElementById('recentPageList');
+  if (!el) return;
+  
+  // 元々定義されている getRecentHistory() を呼び出す
+  if (typeof getRecentHistory !== 'function') return;
+  const rh = getRecentHistory();
+  
+  if (!rh || rh.length === 0) {
+    el.innerHTML = '<p style="color:var(--text3); text-align:center; padding:40px 0; width:100%;">最近見たアイテムはありません。</p>';
+    return;
+  }
+  
+  el.innerHTML = rh.map(name => {
+    const ja = typeof getJaName === 'function' ? getJaName(name) : null;
+    const displayName = (ja && ja !== name) ? ja : name;
+    return `
+      <div class="market-card" onclick="openFromSubPage('${name.replace(/'/g, "\\'")}')" style="background:var(--bg2); padding:15px; border:1px solid var(--border); border-radius:8px; cursor:pointer; margin-bottom:10px;">
+        <div style="font-weight:bold; color:var(--text); font-size:1.1rem;">${displayName}</div>
+        ${ja && ja !== name ? `<div style="font-size:0.8rem; color:var(--text2);">${name}</div>` : ''}
+        <div style="font-size:0.75rem; color:var(--accent); text-align:right; margin-top:8px;">詳細を見る →</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// --- 検索履歴表示機能 ---
+function renderHistoryPage() {
+  const el = document.getElementById('historyList');
+  if (!el) return;
+  
+  // 元々定義されている getSearchHistory() を呼び出す
+  if (typeof getSearchHistory !== 'function') return;
+  const sh = getSearchHistory();
+  
+  if (!sh || sh.length === 0) {
+    el.innerHTML = '<p style="color:var(--text3); text-align:center; padding:40px 0; width:100%;">検索履歴はありません。</p>';
+    return;
+  }
+  
+  el.innerHTML = '<ul style="list-style:none; padding:0; margin:0;">' + sh.map(query => {
+    return `
+      <li onclick="openFromSubPage('${query.replace(/'/g, "\\'")}')" style="background:var(--bg2); padding:12px 15px; border:1px solid var(--border); border-radius:6px; cursor:pointer; margin-bottom:8px; color:var(--text); display:flex; justify-content:space-between;">
+        <span>🔍 ${query}</span>
+        <span style="color:var(--text3); font-size:0.8rem;">再検索 →</span>
+      </li>
+    `;
+  }).join('') + '</ul>';
+}
+
+// お気に入りや履歴からアイテムが選ばれたときに、元々の検索を実行する機能
 window.openFromSubPage = function(name) {
   window.navGo('home');
   
   const searchInput = document.getElementById('searchInput');
   if (searchInput) {
     searchInput.value = name;
-    // doSearch または triggerSearch を実行
+    
+    // 元々動いていた検索処理（doSearch）を安全に実行する
     if (typeof doSearch === 'function') {
       doSearch();
     } else if (typeof window.doSearch === 'function') {
       window.doSearch();
     } else if (typeof triggerSearch === 'function') {
       triggerSearch();
+    } else {
+      // 検索ボタンを自動で強制クリックする（一番確実な方法）
+      const searchBtn = document.querySelector('.search-box button') || document.querySelector('button[onclick*="doSearch"]');
+      if (searchBtn) searchBtn.click();
     }
   }
 };
 
-// --- 起動時の仕掛け（詳細画面が開いたらボタンを自動設置） ---
-// 詳細画面が表示されるたびに、お気に入りボタン「🔖」を自動で埋め込みます
-const observer = new MutationObserver(() => {
-  const header = document.getElementById('itemHeader');
-  if (header && !header.querySelector('.bookmark-btn')) {
-    // 現在表示されているアイテム名を取得
-    const titleEl = header.querySelector('.item-title');
-    if (titleEl) {
-      // ボタンからテキストだけを抽出（すでにボタンがある場合は除く）
-      const itemName = titleEl.childNodes[0].textContent.trim();
-      
-      const bmk = isBookmarked(itemName);
-      const btn = document.createElement('button');
-      btn.className = 'bookmark-btn' + (bmk ? ' active' : '');
-      btn.dataset.name = itemName;
-      btn.title = bmk ? 'ブックマーク解除' : 'ブックマーク';
-      btn.textContent = '🔖';
-      btn.style.cssText = 'font-size:1.4rem; margin-left:8px; background:none; border:none; cursor:pointer; vertical-align:middle;';
-      
-      btn.onclick = (e) => {
-        e.stopPropagation();
-        window.toggleBookmark(itemName, btn);
-      };
-      titleEl.appendChild(btn);
+// 検索入力欄にフォーカスした際、自動でドロップダウンが出る元々の仕組みをセット
+const searchInputEl = document.getElementById('searchInput');
+if (searchInputEl) {
+  searchInputEl.addEventListener('focus', () => {
+    if (searchInputEl.value === '' && typeof showSearchHistoryDrop === 'function') showSearchHistoryDrop();
+  });
+  searchInputEl.addEventListener('input', () => {
+    if (searchInputEl.value === '') {
+      if (typeof showSearchHistoryDrop === 'function') showSearchHistoryDrop();
+    } else {
+      if (typeof hideSearchHistoryDrop === 'function') hideSearchHistoryDrop();
     }
+  });
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-box') && !e.target.closest('.search-history-drop')) {
+    if (typeof hideSearchHistoryDrop === 'function') hideSearchHistoryDrop();
   }
 });
 
-// 画面の書き換えを監視開始
-document.addEventListener('DOMContentLoaded', () => {
-  const targetNode = document.body;
-  if (targetNode) {
-    observer.observe(targetNode, { childList: true, subtree: true });
-  }
-});
+// 自動的に詳細画面にブックマークボタンを仕込む元の仕掛けを呼び出し
+const targetBody = document.body;
+if (targetBody) {
+  const observer = new MutationObserver(() => {
+    if (typeof currentItem !== 'undefined' && currentItem && typeof injectBookmarkBtn === 'function') {
+      injectBookmarkBtn(currentItem);
+    }
+  });
+  observer.observe(targetBody, { childList: true, subtree: true });
+}
