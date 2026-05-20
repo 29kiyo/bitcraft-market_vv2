@@ -6,6 +6,419 @@ const API_BASE = 'https://bitcraft-proxy.29kiyo.workers.dev/api';
 const HEADERS = { 'x-app-identifier': 'bitcraft-market-search-github-pages' };
 
 // ============================================
+// localStorage ユーティリティ
+// ============================================
+const LS = {
+  get(key, fallback = []) {
+    try {
+      const v = localStorage.getItem(key);
+      return v ? JSON.parse(v) : fallback;
+    } catch { return fallback; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+  }
+};
+
+// ============================================
+// ブックマーク機能
+// ============================================
+const BOOKMARKS_KEY = 'bookmarks';
+
+function getBookmarks() { return LS.get(BOOKMARKS_KEY, []); }
+function saveBookmarks(list) { LS.set(BOOKMARKS_KEY, list); updateNavBadges(); }
+
+function isBookmarked(itemName) {
+  return getBookmarks().includes(itemName);
+}
+
+function toggleBookmark(itemName) {
+  let list = getBookmarks();
+  if (list.includes(itemName)) {
+    list = list.filter(n => n !== itemName);
+  } else {
+    list.unshift(itemName);
+  }
+  saveBookmarks(list);
+  refreshBookmarkButtons(itemName);
+}
+
+function refreshBookmarkButtons(itemName) {
+  const bm = isBookmarked(itemName);
+  document.querySelectorAll(`.result-card-bookmark[data-name="${CSS.escape(itemName)}"]`).forEach(btn => {
+    btn.textContent = bm ? '★' : '☆';
+    btn.classList.toggle('bookmarked', bm);
+    btn.title = bm ? 'ブックマーク解除' : 'ブックマーク追加';
+  });
+  const headerBm = document.getElementById('headerBookmarkBtn');
+  if (headerBm && headerBm.dataset.name === itemName) {
+    headerBm.textContent = bm ? '★ ブックマーク済み' : '☆ ブックマーク';
+    headerBm.classList.toggle('bookmarked', bm);
+  }
+}
+
+window.exportBookmarks = function() {
+  const list = getBookmarks();
+  const data = { version: 1, bookmarks: list };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'bitcraft-bookmarks.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+window.importBookmarks = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data || !Array.isArray(data.bookmarks)) throw new Error('invalid');
+      const current = getBookmarks();
+      const merged = [...new Set([...current, ...data.bookmarks])];
+      saveBookmarks(merged);
+      renderBookmarksPanel();
+      showToast(`✅ ${data.bookmarks.length}件インポートしました`);
+    } catch {
+      showToast('❌ JSONファイルが正しくありません', true);
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+};
+
+async function renderBookmarksPanel() {
+  const list = getBookmarks();
+  const container = document.getElementById('bookmarksList');
+  if (!container) return;
+
+  if (list.length === 0) {
+    container.innerHTML = `<div class="panel-empty"><div class="panel-empty-icon">🔖</div><p>ブックマークはありません</p><p style="font-size:0.82rem;margin-top:6px;color:var(--text3)">アイテム詳細の ☆ ボタンで追加できます</p></div>`;
+    updateNavBadges();
+    return;
+  }
+
+  let allItems = [];
+  try { allItems = await fetchAllMarketItems(); } catch {}
+
+  container.innerHTML = '';
+  list.forEach(name => {
+    const item = allItems.find(i => i.name === name);
+    const jaName = item ? getJaName(item.name) : '';
+    const useJa = jaName && jaName.length > 2;
+    const iconUrl = item ? getCachedIcon(item.iconAssetName) : '';
+
+    const div = document.createElement('div');
+    div.className = 'panel-item';
+    div.innerHTML = `
+      ${iconUrl ? `<img class="panel-item-icon" src="${iconUrl}" alt="${name}" onerror="this.style.display='none'">` : '<div class="panel-item-icon"></div>'}
+      <div class="panel-item-text">
+        <div class="panel-item-ja">${useJa ? jaName : name}</div>
+        ${useJa ? `<div class="panel-item-en">${name}</div>` : ''}
+      </div>
+      <button class="panel-item-remove" title="ブックマーク解除" onclick="event.stopPropagation(); removeBookmark('${name.replace(/'/g, "\\'")}')">✕</button>
+    `;
+    div.addEventListener('click', () => {
+      if (item) {
+        closeNav();
+        hidePanels();
+        currentItems = [item];
+        selectItemFromPanel(item);
+      }
+    });
+    container.appendChild(div);
+  });
+  updateNavBadges();
+}
+
+window.removeBookmark = function(itemName) {
+  let list = getBookmarks().filter(n => n !== itemName);
+  saveBookmarks(list);
+  renderBookmarksPanel();
+  refreshBookmarkButtons(itemName);
+};
+
+// ============================================
+// 閲覧履歴機能
+// ============================================
+const RECENTLY_VIEWED_KEY = 'recentlyViewed';
+const MAX_RECENTLY_VIEWED = 50;
+
+function getRecentlyViewed() { return LS.get(RECENTLY_VIEWED_KEY, []); }
+
+function addRecentlyViewed(itemName) {
+  let list = getRecentlyViewed().filter(n => n !== itemName);
+  list.unshift(itemName);
+  if (list.length > MAX_RECENTLY_VIEWED) list = list.slice(0, MAX_RECENTLY_VIEWED);
+  LS.set(RECENTLY_VIEWED_KEY, list);
+  updateNavBadges();
+}
+
+async function renderRecentlyViewedPanel() {
+  const list = getRecentlyViewed();
+  const container = document.getElementById('recentlyViewedList');
+  if (!container) return;
+
+  if (list.length === 0) {
+    container.innerHTML = `<div class="panel-empty"><div class="panel-empty-icon">🕒</div><p>閲覧履歴はありません</p></div>`;
+    updateNavBadges();
+    return;
+  }
+
+  let allItems = [];
+  try { allItems = await fetchAllMarketItems(); } catch {}
+
+  container.innerHTML = '';
+  list.forEach(name => {
+    const item = allItems.find(i => i.name === name);
+    const jaName = item ? getJaName(item.name) : '';
+    const useJa = jaName && jaName.length > 2;
+    const iconUrl = item ? getCachedIcon(item.iconAssetName) : '';
+
+    const div = document.createElement('div');
+    div.className = 'panel-item';
+    div.innerHTML = `
+      ${iconUrl ? `<img class="panel-item-icon" src="${iconUrl}" alt="${name}" onerror="this.style.display='none'">` : '<div class="panel-item-icon"></div>'}
+      <div class="panel-item-text">
+        <div class="panel-item-ja">${useJa ? jaName : name}</div>
+        ${useJa ? `<div class="panel-item-en">${name}</div>` : ''}
+      </div>
+      <button class="panel-item-remove" title="削除" onclick="event.stopPropagation(); removeRecentlyViewed('${name.replace(/'/g, "\\'")}')">✕</button>
+    `;
+    div.addEventListener('click', () => {
+      if (item) {
+        closeNav();
+        hidePanels();
+        currentItems = [item];
+        selectItemFromPanel(item);
+      }
+    });
+    container.appendChild(div);
+  });
+  updateNavBadges();
+}
+
+window.removeRecentlyViewed = function(itemName) {
+  let list = getRecentlyViewed().filter(n => n !== itemName);
+  LS.set(RECENTLY_VIEWED_KEY, list);
+  renderRecentlyViewedPanel();
+  updateNavBadges();
+};
+
+window.clearAllRecentlyViewed = function() {
+  LS.set(RECENTLY_VIEWED_KEY, []);
+  renderRecentlyViewedPanel();
+  updateNavBadges();
+};
+
+// ============================================
+// 検索履歴機能
+// ============================================
+const SEARCH_HISTORY_KEY = 'searchHistory';
+const MAX_SEARCH_HISTORY = 20;
+
+function getSearchHistory() { return LS.get(SEARCH_HISTORY_KEY, []); }
+
+function addSearchHistory(q) {
+  if (!q || !q.trim()) return;
+  const term = q.trim();
+  let list = getSearchHistory().filter(n => n !== term);
+  list.unshift(term);
+  if (list.length > MAX_SEARCH_HISTORY) list = list.slice(0, MAX_SEARCH_HISTORY);
+  LS.set(SEARCH_HISTORY_KEY, list);
+  updateNavBadges();
+}
+
+function showSearchHistoryDropdown() {
+  const list = getSearchHistory();
+  const dropdown = document.getElementById('searchHistoryDropdown');
+  if (!dropdown || list.length === 0) return;
+
+  dropdown.innerHTML = `
+    <div class="sh-header">
+      <span class="sh-header-label">🕒 検索履歴</span>
+      <button class="sh-clear-all" onclick="clearAllSearchHistoryDropdown()">全削除</button>
+    </div>
+    ${list.map(term => `
+      <div class="sh-item" onclick="applySearchHistory('${term.replace(/'/g, "\\'")}')">
+        <span class="sh-item-icon">🔍</span>
+        <span class="sh-item-text">${escapeHtml(term)}</span>
+        <button class="sh-item-delete" onclick="event.stopPropagation(); deleteSearchHistoryItem('${term.replace(/'/g, "\\'")}')">✕</button>
+      </div>
+    `).join('')}
+  `;
+  dropdown.classList.remove('hidden');
+}
+
+function hideSearchHistoryDropdown() {
+  const dropdown = document.getElementById('searchHistoryDropdown');
+  if (dropdown) dropdown.classList.add('hidden');
+}
+
+window.applySearchHistory = function(term) {
+  searchInput.value = term;
+  hideSearchHistoryDropdown();
+  doSearch();
+};
+
+window.deleteSearchHistoryItem = function(term) {
+  let list = getSearchHistory().filter(n => n !== term);
+  LS.set(SEARCH_HISTORY_KEY, list);
+  const dropdown = document.getElementById('searchHistoryDropdown');
+  if (dropdown && !dropdown.classList.contains('hidden')) showSearchHistoryDropdown();
+  updateNavBadges();
+};
+
+window.clearAllSearchHistoryDropdown = function() {
+  LS.set(SEARCH_HISTORY_KEY, []);
+  hideSearchHistoryDropdown();
+  updateNavBadges();
+};
+
+window.clearAllSearchHistory = function() {
+  LS.set(SEARCH_HISTORY_KEY, []);
+  renderSearchHistoryPanel();
+  updateNavBadges();
+};
+
+function renderSearchHistoryPanel() {
+  const list = getSearchHistory();
+  const container = document.getElementById('searchHistoryList');
+  if (!container) return;
+
+  if (list.length === 0) {
+    container.innerHTML = `<div class="panel-empty"><div class="panel-empty-icon">🔍</div><p>検索履歴はありません</p></div>`;
+    updateNavBadges();
+    return;
+  }
+
+  container.innerHTML = list.map(term => `
+    <div class="sh-panel-item" onclick="applySearchHistoryFromPanel('${term.replace(/'/g, "\\'")}')">
+      <span class="sh-item-icon">🔍</span>
+      <span class="sh-panel-item-text">${escapeHtml(term)}</span>
+      <button class="sh-panel-item-delete" onclick="event.stopPropagation(); deleteSearchHistoryItem('${term.replace(/'/g, "\\'")}'); renderSearchHistoryPanel();" title="削除">✕</button>
+    </div>
+  `).join('');
+  updateNavBadges();
+}
+
+window.applySearchHistoryFromPanel = function(term) {
+  closeNav();
+  hidePanels();
+  document.getElementById('emptyState').classList.add('hidden');
+  searchInput.value = term;
+  doSearch();
+};
+
+// ============================================
+// ナビゲーション制御
+// ============================================
+let _currentSection = 'home';
+
+function toggleNav() {
+  const nav = document.getElementById('sideNav');
+  const overlay = document.getElementById('navOverlay');
+  const isOpen = nav.classList.contains('open');
+  if (isOpen) {
+    closeNav();
+  } else {
+    nav.classList.add('open');
+    overlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeNav() {
+  document.getElementById('sideNav').classList.remove('open');
+  document.getElementById('navOverlay').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+function hidePanels() {
+  ['bookmarksPanel', 'recentlyViewedPanel', 'searchHistoryPanel'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+  });
+  document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+}
+
+window.navGoHome = function() {
+  closeNav();
+  hidePanels();
+  _currentSection = 'home';
+  // 検索画面・詳細・emptyStateを元の状態に戻す
+  const isEmpty = !searchResults.classList.contains('hidden') || !resultSection.classList.contains('hidden');
+  if (!isEmpty) {
+    emptyState.classList.remove('hidden');
+  }
+  document.getElementById('navHome').classList.add('active');
+};
+
+window.navGoSection = function(section) {
+  closeNav();
+  hidePanels();
+  _currentSection = section;
+
+  // メインコンテンツを隠す
+  resultSection.classList.add('hidden');
+  searchResults.classList.add('hidden');
+  emptyState.classList.add('hidden');
+
+  const panelMap = {
+    bookmarks: 'bookmarksPanel',
+    recentlyViewed: 'recentlyViewedPanel',
+    searchHistory: 'searchHistoryPanel',
+  };
+  const navMap = {
+    bookmarks: 'navBookmarks',
+    recentlyViewed: 'navRecent',
+    searchHistory: 'navHistory',
+  };
+
+  const panel = document.getElementById(panelMap[section]);
+  if (panel) panel.classList.remove('hidden');
+  const navBtn = document.getElementById(navMap[section]);
+  if (navBtn) navBtn.classList.add('active');
+
+  if (section === 'bookmarks') renderBookmarksPanel();
+  if (section === 'recentlyViewed') renderRecentlyViewedPanel();
+  if (section === 'searchHistory') renderSearchHistoryPanel();
+
+  window.scrollTo(0, 0);
+};
+
+function updateNavBadges() {
+  const bm = getBookmarks().length;
+  const rv = getRecentlyViewed().length;
+  const sh = getSearchHistory().length;
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val > 0 ? val : ''; };
+  set('navBookmarkCount', bm);
+  set('navRecentCount', rv);
+  set('navHistoryCount', sh);
+}
+
+// ============================================
+// パネルからアイテム詳細を開く
+// ============================================
+async function selectItemFromPanel(item) {
+  savedScrollPosition = 0;
+  searchResults.classList.add('hidden');
+  await loadItemDetail(item);
+  history.pushState({ page: 'detail', itemId: item.id }, '');
+  window.scrollTo(0, 0);
+}
+
+// ============================================
+// HTML エスケープ
+// ============================================
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+
+// ============================================
 // アイコンキャッシュ
 // ============================================
 const iconCache = new Map();
@@ -64,6 +477,7 @@ window.addEventListener('pagehide', clearCaches);
 
 // アプリ起動時にバックグラウンドでマーケットデータを取得
 window.addEventListener('load', () => {
+  updateNavBadges();
   // 少し遅延させて、ページの表示を優先
   setTimeout(() => {
     fetchAllMarketItems().catch(() => {});
@@ -146,11 +560,22 @@ document.getElementById('refreshBtn').addEventListener('click', async () => {
 searchBtn.addEventListener('click', doSearch);
 searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
 searchInput.addEventListener('input', onSearchInput);
-searchInput.addEventListener('blur', () => setTimeout(hideSuggestions, 200));
+searchInput.addEventListener('focus', () => {
+  if (!searchInput.value.trim()) showSearchHistoryDropdown();
+});
+searchInput.addEventListener('blur', () => {
+  setTimeout(() => {
+    hideSuggestions();
+    hideSearchHistoryDropdown();
+  }, 200);
+});
 
 // クリックイベント（統合）
 document.addEventListener('click', e => {
-  if (!e.target.closest('.search-box')) hideSuggestions();
+  if (!e.target.closest('.search-box')) {
+    hideSuggestions();
+    hideSearchHistoryDropdown();
+  }
   if (!e.target.closest('.multi-select-wrap')) {
     document.querySelectorAll('.multi-select-dropdown').forEach(d => d.classList.add('hidden'));
   }
@@ -263,34 +688,50 @@ window.changeOrderRegion = function(region) {
 // 日本語検索ユーティリティ（共通化）
 // ============================================
 function getMatchedEnglishNames(q) {
+
   const matchedEn = new Set();
-  const qH = toHiragana(q);
 
-  // 1. 読み仮名検索
-  searchByYomi(q).forEach(en => matchedEn.add(en));
+  const qNorm = toHiragana((q || "").toLowerCase());
 
-  // 2. ITEM_TRANSLATIONS（英語→日本語）から逆引きで部分一致
-  const sorted = Object.entries(ITEM_TRANSLATIONS).sort((a, b) => b[1].length - a[1].length);
+  // 読み検索
+  searchByYomi(q).forEach(en => {
+    matchedEn.add(en);
+  });
+
+  // ITEM_TRANSLATIONS
+  const sorted = Object.entries(ITEM_TRANSLATIONS)
+    .sort((a, b) => b[1].length - a[1].length);
+
   for (const [en, ja] of sorted) {
-    if (ja.includes(q) ||
-      toHiragana(ja).includes(qH)) {
+
+    const jaNorm = toHiragana((ja || "").toLowerCase());
+
+    let score = 0;
+
+    // 完全一致
+    if (jaNorm === qNorm) {
+      score += 1000;
+    }
+
+    // 前方一致
+    else if (jaNorm.startsWith(qNorm)) {
+      score += 500;
+    }
+
+    // 部分一致
+    else if (
+      qNorm.length >= 3 &&
+      jaNorm.includes(qNorm)
+    ) {
+      score += 100;
+    }
+
+    if (score > 0) {
       matchedEn.add(en.toLowerCase());
     }
   }
 
-  // 3. AUTO_PARTSの逆引き（日本語訳→英語キーワード）
-  // 例: "指輪"→"Ring", "リング"→"Ring"
-  if (typeof AUTO_PARTS !== 'undefined') {
-    for (const [en, ja] of AUTO_PARTS) {
-      if (ja.includes(q) || q.includes(ja) ||
-        toHiragana(ja).includes(qH) || qH.includes(toHiragana(ja))) {
-        // このenキーワードを含む英語名を全てマッチ対象に
-        matchedEn.add(en.toLowerCase());
-      }
-    }
-  }
-
-  // 4. 英語での直接部分一致（例: "ring", "argent"）
+  // 英語検索
   if (/^[a-zA-Z\s'&]+$/.test(q) && q.length >= 2) {
     matchedEn.add(q.toLowerCase());
   }
@@ -300,12 +741,38 @@ function getMatchedEnglishNames(q) {
 
 function filterByJapanese(items, q) {
   const matchedEn = getMatchedEnglishNames(q);
-  if (matchedEn.size === 0) return [];
+  const qH = toHiragana(q);
+
   return items.filter(item => {
+    // 既存の英語キーワードマッチ
     const name = item.name.toLowerCase();
     for (const en of matchedEn) {
       if (name.includes(en)) return true;
     }
+
+    // getJaNameで変換した日本語名と照合
+    const ja = getJaName(item.name);
+    if (ja) {
+      // 漢字・カタカナ直接マッチ
+      if (ja.includes(q)) return true;
+      // カタカナ→ひらがな変換してマッチ
+      if (toHiragana(ja).includes(qH)) return true;
+      // ITEM_YOMIを使った読みマッチ
+      for (const [kanji, yomi] of Object.entries(ITEM_YOMI)) {
+        if (
+  ja.includes(kanji) &&
+  (
+    yomi === qH ||
+    yomi.startsWith(qH) ||
+    (
+      qH.length >= 3 &&
+      yomi.includes(qH)
+    )
+  )
+) return true;
+      }
+    }
+
     return false;
   });
 }
@@ -315,7 +782,12 @@ function filterByJapanese(items, q) {
 // ============================================
 async function onSearchInput() {
   const q = searchInput.value.trim();
-  if (q.length < 2) { hideSuggestions(); return; }
+  if (q.length < 2) {
+    hideSuggestions();
+    if (!q) showSearchHistoryDropdown();
+    return;
+  }
+  hideSearchHistoryDropdown();
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => fetchSuggestions(searchInput.value.trim()), 500);
 }
@@ -412,6 +884,8 @@ async function doSearch() {
   if (!q && tiers.length === 0 && rarities.length === 0 && categories.length === 0) return;
 
   hideSuggestions();
+  hideSearchHistoryDropdown();
+  if (q) addSearchHistory(q);
   showLoading();
   clearError();
 
@@ -499,8 +973,14 @@ function renderSearchResults(items, page = 1) {
       ${pageItems.map(item => {
         const jaName = getJaName(item.name);
         const useJaName = jaName && jaName.length > 2;
+        const bm = isBookmarked(item.name);
         return `
           <div class="result-card" onclick="selectItem('${item.id}')">
+            <button class="result-card-bookmark ${bm ? 'bookmarked' : ''}" data-name="${item.name.replace(/"/g,'&quot;')}"
+              title="${bm ? 'ブックマーク解除' : 'ブックマーク追加'}"
+              onclick="event.stopPropagation(); toggleBookmark('${item.name.replace(/'/g,"\\'")}')">
+              ${bm ? '★' : '☆'}
+            </button>
             <div class="s-top">
               <img class="s-icon" src="${getCachedIcon(item.iconAssetName)}" alt="${item.name}" onerror="this.style.display='none'">
               <div class="s-text">
@@ -547,6 +1027,7 @@ window.changePage = function(page) {
 // アイテム詳細取得
 // ============================================
 async function loadItemDetail(item) {
+  addRecentlyViewed(item.name);
   showLoading();
   try {
     const itemOrCargo = item.itemType === 1 ? 'cargo' : 'item';
@@ -623,23 +1104,32 @@ function renderResult(item, priceData, orders, orderType) {
 function renderItemHeader(item) {
   const jaName = getJaName(item.name);
   const useJaName = jaName && jaName.length > 2;
+  const bm = isBookmarked(item.name);
   document.getElementById('itemHeader').innerHTML = `
-    <div class="item-title">
-      <img class="item-icon" src="${getCachedIcon(item.iconAssetName)}" alt="${item.name}" onerror="this.style.display='none'">
-      <div class="item-title-text">
-        <div class="item-name-row">
-          <h2 class="item-ja-name">${useJaName ? jaName : item.name}</h2>
-          ${useJaName ? `<span class="item-en-name">/ ${item.name}</span>` : ''}
-        </div>
-        <div class="item-badges">
-          ${item.tier && item.tier > 0 ? `<span class="badge tier">Tier ${item.tier}</span>` : ''}
-          <span class="s-rarity rarity-${item.rarityStr?.toLowerCase()}">${item.rarityStr || ''}</span>
-          ${item.tag ? `
-            ${parentCategoryMap[item.tag] ? `<span class="s-parent-category">${getJaName(parentCategoryMap[item.tag]) || parentCategoryMap[item.tag]}</span>` : ''}
-            <span class="s-tag">${getJaName(item.tag) || item.tag}</span>
-          ` : ''}
+    <div class="item-title" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+      <div style="display:flex;align-items:center;gap:14px;flex:1;min-width:0;">
+        <img class="item-icon" src="${getCachedIcon(item.iconAssetName)}" alt="${item.name}" onerror="this.style.display='none'">
+        <div class="item-title-text" style="min-width:0;">
+          <div class="item-name-row">
+            <h2 class="item-ja-name">${useJaName ? jaName : item.name}</h2>
+            ${useJaName ? `<span class="item-en-name">/ ${item.name}</span>` : ''}
+          </div>
+          <div class="item-badges">
+            ${item.tier && item.tier > 0 ? `<span class="badge tier">Tier ${item.tier}</span>` : ''}
+            <span class="s-rarity rarity-${item.rarityStr?.toLowerCase()}">${item.rarityStr || ''}</span>
+            ${item.tag ? `
+              ${parentCategoryMap[item.tag] ? `<span class="s-parent-category">${getJaName(parentCategoryMap[item.tag]) || parentCategoryMap[item.tag]}</span>` : ''}
+              <span class="s-tag">${getJaName(item.tag) || item.tag}</span>
+            ` : ''}
+          </div>
         </div>
       </div>
+      <button id="headerBookmarkBtn" data-name="${item.name}"
+        class="item-header-bookmark ${bm ? 'bookmarked' : ''}"
+        title="${bm ? 'ブックマーク解除' : 'ブックマーク追加'}"
+        onclick="toggleBookmark('${item.name.replace(/'/g,"\\'")}')">
+        ${bm ? '★ ブックマーク済み' : '☆ ブックマーク'}
+      </button>
     </div>
   `;
 }
@@ -2138,319 +2628,4 @@ function renderCraftTree(tree) {
         <div class="craft-quantity-selector" style="display:flex;align-items:center;gap:3px;flex-wrap:nowrap;">
           <button onclick="updateCraftQuantity(-10)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#aaa;width:32px;height:24px;border-radius:4px;cursor:pointer;font-size:10px;">-10</button>
           <button onclick="updateCraftQuantity(-1)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:14px;">－</button>
-          <input type="number" id="craftQuantity" min="1" max="999" value="${craftCurrentQuantity}"
-            style="width:50px;background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;border-radius:4px;padding:2px 4px;font-size:12px;text-align:center;"
-            onchange="updateCraftQuantity(0)">
-          <button onclick="updateCraftQuantity(1)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#e0e0e0;width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:14px;">＋</button>
-          <button onclick="updateCraftQuantity(10)" style="background:#1a2535;border:1px solid rgba(255,255,255,0.15);color:#aaa;width:32px;height:24px;border-radius:4px;cursor:pointer;font-size:10px;">+10</button>
-          <span style="font-size:10px;color:#666;">個</span>
-        </div>
-        <button onclick="pinCraftItem('${tree.itemId}','${tree.name.replace(/'/g,"\\'")}')" title="ピン留め" style="
-          background: ${craftSelectedItems.some(i => i.id === tree.itemId) ? 'var(--accent)' : '#1a2535'};
-          border: 1px solid ${craftSelectedItems.some(i => i.id === tree.itemId) ? 'var(--accent)' : 'rgba(255,255,255,0.15)'};
-          color: ${craftSelectedItems.some(i => i.id === tree.itemId) ? '#000' : '#aaa'};
-          width:32px;height:32px;border-radius:4px;cursor:pointer;font-size:16px;
-        ">📌</button>
-      </div>
-    </div>
-    ${tree.allRecipes && tree.allRecipes.length > 1 ? `
-      <div class="craft-recipe-selector" style="margin: 12px 0; display: flex; gap: 8px; align-items: center;">
-        <span style="font-size:12px;color:#888;">レシピ:</span>
-        <select onchange="switchCraftRecipe('${tree.itemId}', this.value)" style="
-          background:#1a2535;
-          color:#e0e0e0;
-          border:1px solid rgba(255,255,255,0.15);
-          padding:4px 8px;
-          border-radius:4px;
-          font-size:12px;
-          max-width:200px;
-        ">
-          ${tree.allRecipes.map((r, idx) => `
-            <option value="${idx}" ${idx === (craftRecipeIndex[tree.itemId] || 0) ? 'selected' : ''}>
-              ${r.name || 'レシピ ' + (idx + 1)} ${r.recipeType === 'crafting' || r.recipeType === 'manual' ? '(新規クラフト)' : '(再利用・改造)'}
-            </option>
-          `).join('')}
-        </select>
-      </div>
-    ` : ''}
-    ${tree.recipes.length === 0
-      ? '<div class="craft-no-recipe">このアイテムのクラフトレシピはありません</div>'
-      : renderIngredients(tree.recipes[0].ingredients)
-    }
-    ${tree.recipes.length > 0 ? `
-    <div class="craft-total">
-      <span class="craft-total-label">素材合計コスト（推定）</span>
-      <span class="craft-total-value">${totalCost.toLocaleString('ja-JP')} 🪙</span>
-    </div>` : ''}
-  `;
-  craftResultEl.innerHTML = html;
-}
-
-function renderIngredients(ingredients, depth = 0) {
-  return `
-    <div class="craft-recipe${depth > 0 ? ' craft-sub-recipe' : ''}">
-      ${depth === 0 ? '<div class="craft-recipe-title">必要素材</div>' : ''}
-      ${ingredients.map(ing => {
-        const hasCraft = ing.recipes.length > 0 && ing.recipes[0].ingredients.length > 0;
-        const craftCost = calcTotalCost(ing);
-        
-        // リージョン別に最安値を取得
-        let lowestSell = null;
-        let regionLabel = '';
-        if (selectedRegion && ing.sellOrders && ing.sellOrders.length > 0) {
-          const regionOrders = ing.sellOrders.filter(order => order.regionName === selectedRegion);
-          if (regionOrders.length > 0) {
-            lowestSell = {
-              price: Math.floor(Number(regionOrders[0].priceThreshold)),
-              claimName: regionOrders[0].claimName || '—',
-              regionName: regionOrders[0].regionName || '—',
-              regionId: regionOrders[0].regionId || '',
-            };
-            regionLabel = `(${selectedRegion})`;
-          }
-        } else if (ing.lowestSell) {
-          lowestSell = ing.lowestSell;
-        }
-        
-        const buyCost = lowestSell ? lowestSell.price * ing.quantity : null;
-        const cheaper = hasCraft && buyCost !== null
-          ? (craftCost < buyCost ? 'craft' : 'buy') : null;
-        return `
-          <div class="craft-ingredient" onclick="viewIngredientDetail('${ing.itemId}','${ing.name.replace(/'/g,"\\'")}')">
-            <img src="https://bitjita.com/${ing.icon}.webp" class="craft-ingredient-icon"
-              onerror="this.style.display='none'">
-            <div class="craft-ingredient-info">
-              <div class="craft-ingredient-name">${ing.jaName || ing.name}</div>
-              ${ing.jaName ? `<div style="font-size:11px;color:var(--text)">${ing.name}</div>` : ''}
-              <div class="craft-ingredient-qty">× ${ing.quantity}</div>
-              ${cheaper === 'craft' ? `<span style="font-size:11px;color:#f0a500">⚒ クラフトの方が安い (${craftCost.toLocaleString('ja-JP')} 🪙)</span>` : ''}
-              ${cheaper === 'buy' ? `<span style="font-size:11px;color:var(--accent)">🛒 購入の方が安い</span>` : ''}
-            </div>
-            <div class="craft-ingredient-price">
-              ${lowestSell
-                ? `<div class="craft-ingredient-sell">${(lowestSell.price * ing.quantity).toLocaleString('ja-JP')} 🪙</div>
-                   <div class="craft-ingredient-claim">${lowestSell.claimName} / ${lowestSell.regionName}${lowestSell.regionId ? ` (R~${lowestSell.regionId})` : ''} ${regionLabel}</div>
-                   <div class="craft-ingredient-claim">${lowestSell.price.toLocaleString('ja-JP')} 🪙 × ${ing.quantity}</div>`
-                : '<div style="font-size:12px;color:var(--text3)">売り注文なし</div>'
-              }
-            </div>
-          </div>
-          ${hasCraft ? renderIngredients(ing.recipes[0].ingredients, depth + 1) : ''}
-        `;
-      }).join('')}
-    </div>
-  `;
-}
-
-
-// ============================================
-// localStorage ユーティリティ
-// ============================================
-function lsGet(key, fallback = []) {
-  try {
-    const v = localStorage.getItem(key);
-    return v ? JSON.parse(v) : fallback;
-  } catch { return fallback; }
-}
-function lsSet(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
-}
-
-
-// ============================================
-// ナビゲーション & 各種画面切り替え（完全修正版）
-// ============================================
-
-// 左側のメニューを開閉する機能
-window.toggleNav = function() {
-  const nav = document.getElementById('sideNav');
-  const overlay = document.getElementById('navOverlay');
-  if (!nav) return;
-  if (nav.classList.contains('hidden')) {
-    nav.classList.remove('hidden');
-    if (overlay) overlay.classList.remove('hidden');
-  } else {
-    nav.classList.add('hidden');
-    if (overlay) overlay.classList.add('hidden');
-  }
-};
-
-// 画面を切り替える機能（検索、お気に入り、履歴の画面切り替え）
-window.navGo = function(page) {
-  // 元々定義されている PAGES = ['home', 'bookmarks', 'recent', 'history'] を使用
-  if (typeof PAGES !== 'undefined') {
-    PAGES.forEach(p => {
-      const el = document.getElementById(p + 'Page');
-      if (el) el.classList.add('hidden');
-    });
-  }
-
-  // メインの検索・クラフト画面の表示切り替え
-  const craftContainer = document.querySelector('.craft-container') || document.getElementById('craftContainer');
-  const searchResults = document.getElementById('searchResults');
-
-  if (page === 'home') {
-    // ホーム画面（検索）を表示
-    if (craftContainer) craftContainer.classList.remove('hidden');
-    // すでに検索結果があれば表示する
-    const input = document.getElementById('searchInput');
-    if (input && input.value.trim() !== '' && searchResults) {
-      searchResults.classList.remove('hidden');
-    }
-  } else {
-    // それ以外の画面のときは、検索トップを隠して該当のページを表示
-    if (craftContainer) craftContainer.classList.add('hidden');
-    if (searchResults) searchResults.classList.add('hidden');
-    
-    const target = document.getElementById(page + 'Page');
-    if (target) target.classList.remove('hidden');
-  }
-
-  // 各ページを開いた瞬間にデータを最新にして描画する
-  if (page === 'bookmarks') {
-    renderBookmarksPage();
-  } else if (page === 'recent') {
-    renderRecentPage();
-  } else if (page === 'history') {
-    renderHistoryPage();
-  }
-
-  // 開いていたサイドメニューを閉じる
-  const nav = document.getElementById('sideNav');
-  const overlay = document.getElementById('navOverlay');
-  if (nav) nav.classList.add('hidden');
-  if (overlay) overlay.classList.add('hidden');
-};
-
-// --- ブックマーク表示機能 ---
-function renderBookmarksPage() {
-  const el = document.getElementById('bookmarkPageList'); 
-  if (!el) return;
-  
-  // 元々定義されている getBookmarks() を呼び出す
-  if (typeof getBookmarks !== 'function') return;
-  const bm = getBookmarks();
-  
-  if (bm.length === 0) {
-    el.innerHTML = '<p style="color:var(--text3); text-align:center; padding:40px 0; width:100%;">ブックマークされたアイテムはありません。</p>';
-    return;
-  }
-  
-  el.innerHTML = bm.map(name => {
-    const ja = typeof getJaName === 'function' ? getJaName(name) : null;
-    const displayName = (ja && ja !== name) ? ja : name;
-    return `
-      <div class="market-card" onclick="openFromSubPage('${name.replace(/'/g, "\\'")}')" style="background:var(--bg2); padding:15px; border:1px solid var(--border); border-radius:8px; cursor:pointer; margin-bottom:10px;">
-        <div style="font-weight:bold; color:var(--text); font-size:1.1rem;">${displayName}</div>
-        ${ja && ja !== name ? `<div style="font-size:0.8rem; color:var(--text2);">${name}</div>` : ''}
-        <div style="font-size:0.75rem; color:var(--accent); text-align:right; margin-top:8px;">詳細を見る →</div>
-      </div>
-    `;
-  }).join('');
-}
-
-// --- 閲覧履歴表示機能 ---
-function renderRecentPage() {
-  const el = document.getElementById('recentPageList');
-  if (!el) return;
-  
-  // 元々定義されている getRecentHistory() を呼び出す
-  if (typeof getRecentHistory !== 'function') return;
-  const rh = getRecentHistory();
-  
-  if (!rh || rh.length === 0) {
-    el.innerHTML = '<p style="color:var(--text3); text-align:center; padding:40px 0; width:100%;">最近見たアイテムはありません。</p>';
-    return;
-  }
-  
-  el.innerHTML = rh.map(name => {
-    const ja = typeof getJaName === 'function' ? getJaName(name) : null;
-    const displayName = (ja && ja !== name) ? ja : name;
-    return `
-      <div class="market-card" onclick="openFromSubPage('${name.replace(/'/g, "\\'")}')" style="background:var(--bg2); padding:15px; border:1px solid var(--border); border-radius:8px; cursor:pointer; margin-bottom:10px;">
-        <div style="font-weight:bold; color:var(--text); font-size:1.1rem;">${displayName}</div>
-        ${ja && ja !== name ? `<div style="font-size:0.8rem; color:var(--text2);">${name}</div>` : ''}
-        <div style="font-size:0.75rem; color:var(--accent); text-align:right; margin-top:8px;">詳細を見る →</div>
-      </div>
-    `;
-  }).join('');
-}
-
-// --- 検索履歴表示機能 ---
-function renderHistoryPage() {
-  const el = document.getElementById('historyList');
-  if (!el) return;
-  
-  // 元々定義されている getSearchHistory() を呼び出す
-  if (typeof getSearchHistory !== 'function') return;
-  const sh = getSearchHistory();
-  
-  if (!sh || sh.length === 0) {
-    el.innerHTML = '<p style="color:var(--text3); text-align:center; padding:40px 0; width:100%;">検索履歴はありません。</p>';
-    return;
-  }
-  
-  el.innerHTML = '<ul style="list-style:none; padding:0; margin:0;">' + sh.map(query => {
-    return `
-      <li onclick="openFromSubPage('${query.replace(/'/g, "\\'")}')" style="background:var(--bg2); padding:12px 15px; border:1px solid var(--border); border-radius:6px; cursor:pointer; margin-bottom:8px; color:var(--text); display:flex; justify-content:space-between;">
-        <span>🔍 ${query}</span>
-        <span style="color:var(--text3); font-size:0.8rem;">再検索 →</span>
-      </li>
-    `;
-  }).join('') + '</ul>';
-}
-
-// お気に入りや履歴からアイテムが選ばれたときに、元々の検索を実行する機能
-window.openFromSubPage = function(name) {
-  window.navGo('home');
-  
-  const searchInput = document.getElementById('searchInput');
-  if (searchInput) {
-    searchInput.value = name;
-    
-    // 元々動いていた検索処理（doSearch）を安全に実行する
-    if (typeof doSearch === 'function') {
-      doSearch();
-    } else if (typeof window.doSearch === 'function') {
-      window.doSearch();
-    } else if (typeof triggerSearch === 'function') {
-      triggerSearch();
-    } else {
-      // 検索ボタンを自動で強制クリックする（一番確実な方法）
-      const searchBtn = document.querySelector('.search-box button') || document.querySelector('button[onclick*="doSearch"]');
-      if (searchBtn) searchBtn.click();
-    }
-  }
-};
-
-// 検索入力欄にフォーカスした際、自動でドロップダウンが出る元々の仕組みをセット
-const searchInputEl = document.getElementById('searchInput');
-if (searchInputEl) {
-  searchInputEl.addEventListener('focus', () => {
-    if (searchInputEl.value === '' && typeof showSearchHistoryDrop === 'function') showSearchHistoryDrop();
-  });
-  searchInputEl.addEventListener('input', () => {
-    if (searchInputEl.value === '') {
-      if (typeof showSearchHistoryDrop === 'function') showSearchHistoryDrop();
-    } else {
-      if (typeof hideSearchHistoryDrop === 'function') hideSearchHistoryDrop();
-    }
-  });
-}
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('.search-box') && !e.target.closest('.search-history-drop')) {
-    if (typeof hideSearchHistoryDrop === 'function') hideSearchHistoryDrop();
-  }
-});
-
-// 自動的に詳細画面にブックマークボタンを仕込む元の仕掛けを呼び出し
-const targetBody = document.body;
-if (targetBody) {
-  const observer = new MutationObserver(() => {
-    if (typeof currentItem !== 'undefined' && currentItem && typeof injectBookmarkBtn === 'function') {
-      injectBookmarkBtn(currentItem);
-    }
-  });
-  observer.observe(targetBody, { childList: true, subtree: true });
-}
+          <input type="number" id="craftQuantity"
