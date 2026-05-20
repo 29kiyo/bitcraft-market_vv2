@@ -880,7 +880,7 @@ function toHiragana(str) {
 
 // 読み仮名マッチ用：ひらがな入力 → 漢字キーを検索してenを返す
 function searchByYomi(q) {
-  const qHira = toHiragana(q);
+  const qHira = normalizeText(q);
   const matched = new Set();
   for (const [kanji, yomi] of Object.entries(ITEM_YOMI)) {
     if (
