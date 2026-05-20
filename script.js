@@ -2256,10 +2256,6 @@ function lsSet(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
 }
 
-// ============================================
-// ナビゲーション
-// ============================================
-const PAGES = ['home', 'bookmarks', 'recent', 'history'];
 
 // ============================================
 // ナビゲーション & 各種履歴・お気に入り機能（完全版）
