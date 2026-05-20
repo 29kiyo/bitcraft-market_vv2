@@ -879,21 +879,50 @@ function toHiragana(str) {
 
 // 読み仮名マッチ用：ひらがな入力 → 漢字キーを検索してenを返す
 function searchByYomi(q) {
-  const qHira = toHiragana(q);
+
+  const qHira = toHiragana((q || "").toLowerCase());
   const matched = new Set();
+
   for (const [kanji, yomi] of Object.entries(ITEM_YOMI)) {
-    if (yomi.includes(qHira) || qHira.includes(yomi)) {
-      // 漢字キーが1文字の場合は完全一致のみ（部分一致による誤ヒット防止）
+
+    const yomiHira = toHiragana((yomi || "").toLowerCase());
+
+    let hit = false;
+
+    // 完全一致
+    if (yomiHira === qHira) {
+      hit = true;
+    }
+
+    // 前方一致
+    else if (yomiHira.startsWith(qHira)) {
+      hit = true;
+    }
+
+    // 部分一致（3文字以上のみ）
+    else if (
+      qHira.length >= 3 &&
+      yomiHira.includes(qHira)
+    ) {
+      hit = true;
+    }
+
+    if (hit) {
       for (const [en, ja] of Object.entries(ITEM_TRANSLATIONS)) {
-        if (kanji.length >= 2 ? ja.includes(kanji) : ja === kanji) {
+
+        if (
+          kanji.length >= 2
+            ? ja.includes(kanji)
+            : ja === kanji
+        ) {
           matched.add(en.toLowerCase());
         }
       }
     }
   }
+
   return matched;
 }
-
 // 英語→日本語（逆引き用）
 const ITEM_TRANSLATIONS_EN_JA = {};
 for (const [en, ja] of Object.entries(ITEM_TRANSLATIONS)) {
