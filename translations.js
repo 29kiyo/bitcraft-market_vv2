@@ -917,48 +917,10 @@ function translateQuery(query) {
   }
 
   // 部分一致（長いキーを優先）
-  const results = [];
-
-const sorted = Object.entries(ITEM_TRANSLATIONS)
-  .sort((a, b) => b[1].length - a[1].length);
-
-for (const [en, ja] of sorted) {
-
-  const qNorm = normalizeText(q);
-  const jaNorm = normalizeText(ja);
-
-  let score = 0;
-
-  // 完全一致
-  if (jaNorm === qNorm) {
-    score += 1000;
+  const sorted = Object.entries(ITEM_TRANSLATIONS).sort((a, b) => b[1].length - a[1].length);
+  for (const [en, ja] of sorted) {
+    if (q.includes(ja)) return en;
   }
-
-  // 前方一致
-  else if (jaNorm.startsWith(qNorm)) {
-    score += 500;
-  }
-
-  // 部分一致
-  else if (
-    qNorm.length >= 3 &&
-    jaNorm.includes(qNorm)
-  ) {
-    score += 100;
-  }
-
-  if (score > 0) {
-    results.push({
-      en,
-      ja,
-      score
-    });
-  }
-}
-
-results.sort((a, b) => b.score - a.score);
-
-return results.length ? results[0].en : null;
 
   // 逆方向
   for (const [en, ja] of sorted) {
