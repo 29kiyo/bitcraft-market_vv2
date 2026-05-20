@@ -866,7 +866,6 @@ const ITEM_YOMI = {
   "魚油パック":            "さかなあぶらぱっく",
   "手袋":                  "手袋",
   "桃":                    "もも",
-  "冷却":                  "れいきゃく",
 };
 
 // ひらがな→カタカナ変換
@@ -880,14 +879,10 @@ function toHiragana(str) {
 
 // 読み仮名マッチ用：ひらがな入力 → 漢字キーを検索してenを返す
 function searchByYomi(q) {
-  const qHira = normalizeText(q);
+  const qHira = toHiragana(q);
   const matched = new Set();
   for (const [kanji, yomi] of Object.entries(ITEM_YOMI)) {
-    if (
-  yomi === qHira ||
-  yomi.startsWith(qHira) ||
-  (qHira.length >= 3 && yomi.includes(qHira))
-) {
+    if (yomi.includes(qHira) || qHira.includes(yomi)) {
       // 漢字キーが1文字の場合は完全一致のみ（部分一致による誤ヒット防止）
       for (const [en, ja] of Object.entries(ITEM_TRANSLATIONS)) {
         if (kanji.length >= 2 ? ja.includes(kanji) : ja === kanji) {
@@ -921,45 +916,18 @@ function translateQuery(query) {
     if (ja === q) return en;
   }
 
-const results = [];
-
-const sorted = Object.entries(ITEM_TRANSLATIONS)
-  .sort((a, b) => b[1].length - a[1].length);
-
-for (const [en, ja] of sorted) {
-
-  let score = 0;
-
-  // 完全一致
-  if (ja === q) {
-    score += 1000;
+  // 部分一致（長いキーを優先）
+  const sorted = Object.entries(ITEM_TRANSLATIONS).sort((a, b) => b[1].length - a[1].length);
+  for (const [en, ja] of sorted) {
+    if (q.includes(ja)) return en;
   }
 
-  // 前方一致
-  else if (ja.startsWith(q)) {
-    score += 500;
+  // 逆方向
+  for (const [en, ja] of sorted) {
+    if (ja.includes(q)) return en;
   }
 
-  // 部分一致（3文字以上のみ）
-  else if (
-    q.length >= 3 &&
-    ja.includes(q)
-  ) {
-    score += 100;
-  }
-
-  if (score > 0) {
-    results.push({
-      en,
-      score
-    });
-  }
-}
-
-results.sort((a, b) => b.score - a.score);
-
-if (results.length) {
-  return results[0].en;
+  return q;
 }
 
 // ===== 英語→日本語 組み合わせ変換テーブル =====
