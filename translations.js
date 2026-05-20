@@ -1863,7 +1863,7 @@ const AUTO_PARTS = [
   ['Tool Scrap',        'ツールスクラップ'],
   ['Reforging Solvent', '再鍛造溶剤'],
   ['Item Storage',      'アイテムストレージ'],
-  ['Cargo Bin',         'カーゴビン'],
+  ['Cargo Bin',         '荷物箱'],
   // 品質プレフィックス
   ['Flawless',          '完璧な'],
   ['Magnificent',       '壮大な'],
