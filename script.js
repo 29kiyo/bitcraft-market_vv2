@@ -2277,6 +2277,33 @@ window.toggleNav = function() {
   }
 };
 
+window.navGo = function(page) {
+  // 1. すべてのページを一回全部非表示（隠す）にする
+  PAGES.forEach(p => {
+    const el = document.getElementById(p + 'Page');
+    if (el) el.classList.add('hidden');
+  });
+
+  // 2. クリックされたページだけを表示する
+  const target = document.getElementById(page + 'Page');
+  if (target) target.classList.remove('hidden');
+
+  // 3. ページごとの特別な準備（履歴やブックマークの最新化）
+  if (page === 'bookmarks') {
+    if (typeof renderBookmarksPage === 'function') renderBookmarksPage();
+  } else if (page === 'recent') {
+    if (typeof renderRecentPage === 'function') renderRecentPage();
+  } else if (page === 'history') {
+    if (typeof renderHistoryPage === 'function') renderHistoryPage();
+  }
+
+  // 4. 開いていた横のメニュー（サイドナビ）を閉じる
+  const sideNav = document.getElementById('sideNav');
+  const overlay = document.getElementById('navOverlay');
+  if (sideNav) sideNav.classList.add('hidden');
+  if (overlay) overlay.classList.add('hidden');
+};
+
 window.closeNav = function() {
   document.getElementById('sideNav').classList.add('hidden');
   document.getElementById('navOverlay').classList.add('hidden');
