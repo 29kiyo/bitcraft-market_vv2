@@ -24,9 +24,29 @@
     <p class="tagline">Powered by Bitjita API</p>
   </div>
 </div>
-      <button class="craft-btn" onclick="event.stopPropagation(); openCraftModal()">⚒ クラフト計算</button>
+      <div class="header-right">
+        <button class="craft-btn" onclick="event.stopPropagation(); openCraftModal()">⚒ クラフト計算</button>
+        <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleNav()" aria-label="メニュー">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
     </div>
   </header>
+
+  <!-- ナビゲーションオーバーレイ -->
+  <div class="nav-overlay hidden" id="navOverlay" onclick="closeNav()"></div>
+  <nav class="side-nav hidden" id="sideNav">
+    <div class="nav-header">
+      <span class="nav-title">メニュー</span>
+      <button class="nav-close" onclick="closeNav()">✕</button>
+    </div>
+    <ul class="nav-list">
+      <li><a href="#" class="nav-item active" id="navHome" onclick="navGo('home')">🏠 Home</a></li>
+      <li><a href="#" class="nav-item" id="navBookmarks" onclick="navGo('bookmarks')">🔖 Bookmarks <span class="nav-badge" id="navBookmarkCount"></span></a></li>
+      <li><a href="#" class="nav-item" id="navRecent" onclick="navGo('recent')">🕐 Recently Viewed</a></li>
+      <li><a href="#" class="nav-item" id="navHistory" onclick="navGo('history')">🔍 Search History</a></li>
+    </ul>
+  </nav>
 
   <main>
     <!-- 検索セクション -->

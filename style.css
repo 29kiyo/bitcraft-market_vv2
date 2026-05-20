@@ -2240,3 +2240,278 @@ text-overflow: ellipsis;
   min-width: 100px;
   text-align: right;
 }
+
+/* ============================================
+   ハンバーガーメニュー / ナビゲーション
+   ============================================ */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.hamburger-btn {
+  background: none;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  justify-content: center;
+  align-items: center;
+  transition: border-color 0.2s;
+}
+.hamburger-btn:hover { border-color: var(--accent); }
+.hamburger-btn span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+.hamburger-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger-btn.open span:nth-child(2) { opacity: 0; }
+.hamburger-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+.nav-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 200;
+  backdrop-filter: blur(2px);
+}
+
+.side-nav {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 280px;
+  height: 100vh;
+  background: var(--bg2);
+  border-left: 1px solid var(--border2);
+  z-index: 201;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(0);
+  transition: transform 0.25s ease;
+  overflow-y: auto;
+}
+.side-nav.hidden {
+  display: flex !important;
+  transform: translateX(100%);
+  pointer-events: none;
+}
+.nav-overlay.hidden { display: none !important; }
+
+.nav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.nav-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.nav-close {
+  background: none;
+  border: none;
+  color: var(--text3);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.nav-close:hover { color: var(--text); }
+
+.nav-list {
+  list-style: none;
+  padding: 12px 0;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  color: var(--text2);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: all 0.15s;
+  border-left: 3px solid transparent;
+}
+.nav-item:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
+}
+.nav-item.active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  background: rgba(0,200,150,0.08);
+}
+.nav-badge {
+  margin-left: auto;
+  background: var(--accent);
+  color: #000;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 20px;
+  font-family: 'Rajdhani', sans-serif;
+}
+
+/* ============================================
+   サブページ共通
+   ============================================ */
+.sub-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+.sub-page-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.sub-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+.sub-page-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sub-page-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sub-page-item:hover {
+  background: rgba(0,200,150,0.08);
+  border-color: rgba(0,200,150,0.3);
+}
+.sub-page-item-info { flex: 1; min-width: 0; }
+.sub-page-item-name {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text);
+}
+.sub-page-item-sub {
+  font-size: 0.78rem;
+  color: var(--text3);
+  margin-top: 2px;
+}
+.sub-page-del {
+  background: none;
+  border: none;
+  color: var(--text3);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.sub-page-del:hover { color: var(--danger); }
+
+/* ブックマークボタン */
+.bookmark-btn {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  transition: transform 0.15s;
+  flex-shrink: 0;
+  opacity: 0.4;
+}
+.bookmark-btn:hover { transform: scale(1.2); opacity: 1; }
+.bookmark-btn.active { opacity: 1; }
+
+/* 検索履歴ドロップダウン */
+.search-history-drop {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  z-index: 99;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  overflow: hidden;
+}
+.sh-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.sh-label {
+  font-size: 0.75rem;
+  color: var(--text3);
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.sh-clear {
+  background: none;
+  border: none;
+  color: var(--text3);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.sh-clear:hover { color: var(--danger); }
+.sh-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+  gap: 8px;
+}
+.sh-item:last-child { border-bottom: none; }
+.sh-item:hover { background: rgba(255,255,255,0.05); }
+.sh-item-text {
+  flex: 1;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+.sh-item-del {
+  background: none;
+  border: none;
+  color: var(--text3);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.sh-item-del:hover { color: var(--danger); }
+
+@media (max-width: 768px) {
+  .side-nav { width: 85vw; }
+  .sub-page-header { flex-direction: column; align-items: flex-start; }
+  .sub-page-actions { margin-left: 0; }
+}

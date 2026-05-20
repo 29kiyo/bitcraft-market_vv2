@@ -263,50 +263,34 @@ window.changeOrderRegion = function(region) {
 // 日本語検索ユーティリティ（共通化）
 // ============================================
 function getMatchedEnglishNames(q) {
-
   const matchedEn = new Set();
+  const qH = toHiragana(q);
 
-  const qNorm = toHiragana((q || "").toLowerCase());
+  // 1. 読み仮名検索
+  searchByYomi(q).forEach(en => matchedEn.add(en));
 
-  // 読み検索
-  searchByYomi(q).forEach(en => {
-    matchedEn.add(en);
-  });
-
-  // ITEM_TRANSLATIONS
-  const sorted = Object.entries(ITEM_TRANSLATIONS)
-    .sort((a, b) => b[1].length - a[1].length);
-
+  // 2. ITEM_TRANSLATIONS（英語→日本語）から逆引きで部分一致
+  const sorted = Object.entries(ITEM_TRANSLATIONS).sort((a, b) => b[1].length - a[1].length);
   for (const [en, ja] of sorted) {
-
-    const jaNorm = toHiragana((ja || "").toLowerCase());
-
-    let score = 0;
-
-    // 完全一致
-    if (jaNorm === qNorm) {
-      score += 1000;
-    }
-
-    // 前方一致
-    else if (jaNorm.startsWith(qNorm)) {
-      score += 500;
-    }
-
-    // 部分一致
-    else if (
-      qNorm.length >= 3 &&
-      jaNorm.includes(qNorm)
-    ) {
-      score += 100;
-    }
-
-    if (score > 0) {
+    if (ja.includes(q) ||
+      toHiragana(ja).includes(qH)) {
       matchedEn.add(en.toLowerCase());
     }
   }
 
-  // 英語検索
+  // 3. AUTO_PARTSの逆引き（日本語訳→英語キーワード）
+  // 例: "指輪"→"Ring", "リング"→"Ring"
+  if (typeof AUTO_PARTS !== 'undefined') {
+    for (const [en, ja] of AUTO_PARTS) {
+      if (ja.includes(q) || q.includes(ja) ||
+        toHiragana(ja).includes(qH) || qH.includes(toHiragana(ja))) {
+        // このenキーワードを含む英語名を全てマッチ対象に
+        matchedEn.add(en.toLowerCase());
+      }
+    }
+  }
+
+  // 4. 英語での直接部分一致（例: "ring", "argent"）
   if (/^[a-zA-Z\s'&]+$/.test(q) && q.length >= 2) {
     matchedEn.add(q.toLowerCase());
   }
@@ -316,38 +300,12 @@ function getMatchedEnglishNames(q) {
 
 function filterByJapanese(items, q) {
   const matchedEn = getMatchedEnglishNames(q);
-  const qH = toHiragana(q);
-
+  if (matchedEn.size === 0) return [];
   return items.filter(item => {
-    // 既存の英語キーワードマッチ
     const name = item.name.toLowerCase();
     for (const en of matchedEn) {
       if (name.includes(en)) return true;
     }
-
-    // getJaNameで変換した日本語名と照合
-    const ja = getJaName(item.name);
-    if (ja) {
-      // 漢字・カタカナ直接マッチ
-      if (ja.includes(q)) return true;
-      // カタカナ→ひらがな変換してマッチ
-      if (toHiragana(ja).includes(qH)) return true;
-      // ITEM_YOMIを使った読みマッチ
-      for (const [kanji, yomi] of Object.entries(ITEM_YOMI)) {
-        if (
-  ja.includes(kanji) &&
-  (
-    yomi === qH ||
-    yomi.startsWith(qH) ||
-    (
-      qH.length >= 3 &&
-      yomi.includes(qH)
-    )
-  )
-) return true;
-      }
-    }
-
     return false;
   });
 }
@@ -2283,3 +2241,388 @@ function renderIngredients(ingredients, depth = 0) {
     </div>
   `;
 }
+
+
+// ============================================
+// localStorage ユーティリティ
+// ============================================
+function lsGet(key, fallback = []) {
+  try {
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : fallback;
+  } catch { return fallback; }
+}
+function lsSet(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+}
+
+// ============================================
+// ナビゲーション
+// ============================================
+const PAGES = ['home', 'bookmarks', 'recent', 'history'];
+
+window.toggleNav = function() {
+  const nav = document.getElementById('sideNav');
+  const overlay = document.getElementById('navOverlay');
+  const btn = document.getElementById('hamburgerBtn');
+  const isOpen = !nav.classList.contains('hidden');
+  if (isOpen) {
+    nav.classList.add('hidden');
+    overlay.classList.add('hidden');
+    btn.classList.remove('open');
+  } else {
+    nav.classList.remove('hidden');
+    overlay.classList.remove('hidden');
+    btn.classList.add('open');
+  }
+};
+
+window.closeNav = function() {
+  document.getElementById('sideNav').classList.add('hidden');
+  document.getElementById('navOverlay').classList.add('hidden');
+  document.getElementById('hamburgerBtn').classList.remove('open');
+};
+
+window.navGo = function(page) {
+  closeNav();
+  // 全ページ非表示
+  document.getElementById('searchResults').classList.add('hidden');
+  document.getElementById('resultSection').classList.add('hidden');
+  document.getElementById('emptyState').classList.add('hidden');
+  document.getElementById('bookmarksPage').classList.add('hidden');
+  document.getElementById('recentPage').classList.add('hidden');
+  document.getElementById('historyPage').classList.add('hidden');
+
+  // アクティブ更新
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const navMap = { home: 'navHome', bookmarks: 'navBookmarks', recent: 'navRecent', history: 'navHistory' };
+  document.getElementById(navMap[page])?.classList.add('active');
+
+  if (page === 'home') {
+    document.getElementById('emptyState').classList.remove('hidden');
+  } else if (page === 'bookmarks') {
+    document.getElementById('bookmarksPage').classList.remove('hidden');
+    renderBookmarksPage();
+  } else if (page === 'recent') {
+    document.getElementById('recentPage').classList.remove('hidden');
+    renderRecentPage();
+  } else if (page === 'history') {
+    document.getElementById('historyPage').classList.remove('hidden');
+    renderHistoryPage();
+  }
+};
+
+// ============================================
+// ブックマーク
+// ============================================
+function getBookmarks() { return lsGet('bookmarks', []); }
+function setBookmarks(arr) { lsSet('bookmarks', arr); updateBookmarkBadge(); }
+
+function isBookmarked(name) { return getBookmarks().includes(name); }
+
+window.toggleBookmark = function(name, btnEl) {
+  let bm = getBookmarks();
+  if (bm.includes(name)) {
+    bm = bm.filter(n => n !== name);
+    if (btnEl) { btnEl.textContent = '🔖'; btnEl.classList.remove('active'); btnEl.title = 'ブックマーク'; }
+  } else {
+    bm.unshift(name);
+    if (btnEl) { btnEl.textContent = '🔖'; btnEl.classList.add('active'); btnEl.title = 'ブックマーク解除'; }
+  }
+  setBookmarks(bm);
+};
+
+function updateBookmarkBadge() {
+  const bm = getBookmarks();
+  const badge = document.getElementById('navBookmarkCount');
+  if (badge) badge.textContent = bm.length > 0 ? bm.length : '';
+  const countEl = document.getElementById('bookmarkCount');
+  if (countEl) countEl.textContent = `${bm.length}件`;
+}
+
+function renderBookmarksPage() {
+  const bm = getBookmarks();
+  updateBookmarkBadge();
+  const el = document.getElementById('bookmarksList');
+  if (!el) return;
+  if (bm.length === 0) {
+    el.innerHTML = '<p style="color:var(--text3);text-align:center;padding:40px 0;">ブックマークがありません</p>';
+    return;
+  }
+  el.innerHTML = bm.map(name => {
+    const ja = typeof getJaName === 'function' ? getJaName(name) : null;
+    const useJa = ja && ja !== name;
+    return `<div class="sub-page-item" onclick="openFromSubPage('${name.replace(/'/g,"\'")}')">
+      <div class="sub-page-item-info">
+        <div class="sub-page-item-name">${useJa ? ja : name}</div>
+        ${useJa ? `<div class="sub-page-item-sub">${name}</div>` : ''}
+      </div>
+      <button class="sub-page-del" onclick="event.stopPropagation();removeBookmark('${name.replace(/'/g,"\'")}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+window.removeBookmark = function(name) {
+  setBookmarks(getBookmarks().filter(n => n !== name));
+  renderBookmarksPage();
+  // 詳細表示中のブックマークボタンも更新
+  updateBookmarkBtnInDetail(name);
+};
+
+window.clearBookmarks = function() {
+  if (!confirm('ブックマークを全て削除しますか？')) return;
+  setBookmarks([]);
+  renderBookmarksPage();
+};
+
+window.exportBookmarks = function() {
+  const data = JSON.stringify({ version: 1, bookmarks: getBookmarks() }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'bitcraft-bookmarks.json';
+  a.click();
+};
+
+window.importBookmarks = function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.bookmarks || !Array.isArray(data.bookmarks)) throw new Error('不正なフォーマット');
+      const current = getBookmarks();
+      const merged = [...new Set([...current, ...data.bookmarks.filter(n => typeof n === 'string')])];
+      if (!confirm(`${data.bookmarks.length}件をインポートします（現在${current.length}件）。続けますか？`)) return;
+      setBookmarks(merged);
+      renderBookmarksPage();
+      alert(`${data.bookmarks.length}件をインポートしました`);
+    } catch(err) {
+      alert('インポート失敗: ' + err.message);
+    }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+};
+
+function updateBookmarkBtnInDetail(name) {
+  document.querySelectorAll('.bookmark-btn').forEach(btn => {
+    if (btn.dataset.name === name) {
+      const bmk = isBookmarked(name);
+      btn.classList.toggle('active', bmk);
+      btn.title = bmk ? 'ブックマーク解除' : 'ブックマーク';
+    }
+  });
+}
+
+// ============================================
+// 閲覧履歴
+// ============================================
+const MAX_RECENTLY_VIEWED = 50;
+function getRecentlyViewed() { return lsGet('recentlyViewed', []); }
+function addRecentlyViewed(name) {
+  let rv = getRecentlyViewed().filter(n => n !== name);
+  rv.unshift(name);
+  lsSet('recentlyViewed', rv.slice(0, MAX_RECENTLY_VIEWED));
+}
+
+function renderRecentPage() {
+  const rv = getRecentlyViewed();
+  const el = document.getElementById('recentList');
+  if (!el) return;
+  if (rv.length === 0) {
+    el.innerHTML = '<p style="color:var(--text3);text-align:center;padding:40px 0;">閲覧履歴がありません</p>';
+    return;
+  }
+  el.innerHTML = rv.map(name => {
+    const ja = typeof getJaName === 'function' ? getJaName(name) : null;
+    const useJa = ja && ja !== name;
+    return `<div class="sub-page-item" onclick="openFromSubPage('${name.replace(/'/g,"\'")}')">
+      <div class="sub-page-item-info">
+        <div class="sub-page-item-name">${useJa ? ja : name}</div>
+        ${useJa ? `<div class="sub-page-item-sub">${name}</div>` : ''}
+      </div>
+      <button class="sub-page-del" onclick="event.stopPropagation();removeRecentlyViewed('${name.replace(/'/g,"\'")}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+window.removeRecentlyViewed = function(name) {
+  lsSet('recentlyViewed', getRecentlyViewed().filter(n => n !== name));
+  renderRecentPage();
+};
+
+window.clearRecentlyViewed = function() {
+  if (!confirm('閲覧履歴を全て削除しますか？')) return;
+  lsSet('recentlyViewed', []);
+  renderRecentPage();
+};
+
+// ============================================
+// 検索履歴
+// ============================================
+const MAX_SEARCH_HISTORY = 20;
+function getSearchHistory() { return lsGet('searchHistory', []); }
+function addSearchHistory(q) {
+  if (!q || q === 'ALL_ITEM') return;
+  let sh = getSearchHistory().filter(n => n !== q);
+  sh.unshift(q);
+  lsSet('searchHistory', sh.slice(0, MAX_SEARCH_HISTORY));
+}
+
+function renderHistoryPage() {
+  const sh = getSearchHistory();
+  const el = document.getElementById('historyList');
+  if (!el) return;
+  if (sh.length === 0) {
+    el.innerHTML = '<p style="color:var(--text3);text-align:center;padding:40px 0;">検索履歴がありません</p>';
+    return;
+  }
+  el.innerHTML = sh.map(q => `
+    <div class="sub-page-item" onclick="rerunSearch('${q.replace(/'/g,"\'")}')">
+      <div class="sub-page-item-info">
+        <div class="sub-page-item-name">🔍 ${q}</div>
+      </div>
+      <button class="sub-page-del" onclick="event.stopPropagation();removeSearchHistory('${q.replace(/'/g,"\'")}')">✕</button>
+    </div>`).join('');
+}
+
+window.removeSearchHistory = function(q) {
+  lsSet('searchHistory', getSearchHistory().filter(n => n !== q));
+  renderHistoryPage();
+};
+
+window.clearSearchHistory = function() {
+  if (!confirm('検索履歴を全て削除しますか？')) return;
+  lsSet('searchHistory', []);
+  renderHistoryPage();
+  hideSearchHistoryDrop();
+};
+
+window.rerunSearch = function(q) {
+  navGo('home');
+  setTimeout(() => {
+    document.getElementById('searchInput').value = q;
+    doSearch();
+  }, 50);
+};
+
+// 検索履歴ドロップダウン
+function showSearchHistoryDrop() {
+  const sh = getSearchHistory();
+  const drop = document.getElementById('searchHistoryDrop');
+  if (!drop || sh.length === 0) return;
+  drop.innerHTML = `
+    <div class="sh-header">
+      <span class="sh-label">検索履歴</span>
+      <button class="sh-clear" onclick="clearSearchHistory()">全削除</button>
+    </div>
+    ${sh.map(q => `
+      <div class="sh-item" onclick="rerunSearch('${q.replace(/'/g,"\'")}')">
+        <span class="sh-item-text">🔍 ${q}</span>
+        <button class="sh-item-del" onclick="event.stopPropagation();removeSHItem('${q.replace(/'/g,"\'")}')">✕</button>
+      </div>`).join('')}
+  `;
+  drop.classList.remove('hidden');
+  // 検索ボックスの下に配置
+  const box = document.querySelector('.search-box');
+  if (box) box.appendChild(drop);
+}
+
+function hideSearchHistoryDrop() {
+  document.getElementById('searchHistoryDrop')?.classList.add('hidden');
+}
+
+window.removeSHItem = function(q) {
+  lsSet('searchHistory', getSearchHistory().filter(n => n !== q));
+  showSearchHistoryDrop();
+};
+
+// ============================================
+// サブページからアイテム詳細を開く
+// ============================================
+window.openFromSubPage = async function(name) {
+  try {
+    const allItems = await fetchAllMarketItems();
+    const item = allItems.find(i => i.name === name);
+    if (!item) { alert(`「${name}」は現在マーケットにありません`); return; }
+    // ページをhomeに戻してから詳細表示
+    document.getElementById('bookmarksPage').classList.add('hidden');
+    document.getElementById('recentPage').classList.add('hidden');
+    document.getElementById('historyPage').classList.add('hidden');
+    savedScrollPosition = 0;
+    currentItems = [item];
+    await loadItemDetail(item);
+    history.pushState({ page: 'detail', itemId: item.id }, '');
+    window.scrollTo(0, 0);
+  } catch(err) {
+    alert('取得エラー: ' + err.message);
+  }
+};
+
+// ============================================
+// 既存関数へのフック
+// ============================================
+// selectItem をラップして閲覧履歴を記録
+const _origSelectItem = window.selectItem;
+window.selectItem = async function(itemId) {
+  const item = currentItems.find(i => i.id === itemId);
+  if (item) addRecentlyViewed(item.name);
+  await _origSelectItem(itemId);
+  // 詳細表示後にブックマークボタンを注入
+  setTimeout(() => injectBookmarkBtn(item), 100);
+};
+
+// doSearch をラップして検索履歴を記録
+const _origDoSearch = doSearch;
+doSearch = async function() {
+  const q = document.getElementById('searchInput').value.trim();
+  if (q) addSearchHistory(q);
+  hideSearchHistoryDrop();
+  await _origDoSearch();
+};
+
+// searchInput のフォーカスで履歴表示
+document.getElementById('searchInput').addEventListener('focus', () => {
+  if (document.getElementById('searchInput').value === '') showSearchHistoryDrop();
+});
+document.getElementById('searchInput').addEventListener('input', () => {
+  if (document.getElementById('searchInput').value === '') showSearchHistoryDrop();
+  else hideSearchHistoryDrop();
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-box') && !e.target.closest('.search-history-drop')) {
+    hideSearchHistoryDrop();
+  }
+});
+
+// ブックマークボタンをアイテム詳細ヘッダーに注入
+function injectBookmarkBtn(item) {
+  if (!item) return;
+  const header = document.getElementById('itemHeader');
+  if (!header || header.querySelector('.bookmark-btn')) return;
+  const bmk = isBookmarked(item.name);
+  const btn = document.createElement('button');
+  btn.className = 'bookmark-btn' + (bmk ? ' active' : '');
+  btn.dataset.name = item.name;
+  btn.title = bmk ? 'ブックマーク解除' : 'ブックマーク';
+  btn.textContent = '🔖';
+  btn.style.cssText = 'font-size:1.4rem;margin-left:8px;';
+  btn.onclick = () => {
+    toggleBookmark(item.name, btn);
+  };
+  const titleEl = header.querySelector('.item-title');
+  if (titleEl) titleEl.appendChild(btn);
+}
+
+// openFromSubPageでの閲覧履歴追加
+const _origLoadItemDetail = loadItemDetail;
+loadItemDetail = async function(item) {
+  await _origLoadItemDetail(item);
+  addRecentlyViewed(item.name);
+  setTimeout(() => injectBookmarkBtn(item), 100);
+};
+
+// 初期化
+updateBookmarkBadge();
