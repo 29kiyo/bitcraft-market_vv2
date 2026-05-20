@@ -924,20 +924,26 @@ const sorted = Object.entries(ITEM_TRANSLATIONS)
 
 for (const [en, ja] of sorted) {
 
+  const qNorm = normalizeText(q);
+  const jaNorm = normalizeText(ja);
+
   let score = 0;
 
   // 完全一致
-  if (q === ja) {
+  if (jaNorm === qNorm) {
     score += 1000;
   }
 
   // 前方一致
-  else if (ja.startsWith(q)) {
+  else if (jaNorm.startsWith(qNorm)) {
     score += 500;
   }
 
-  // 部分一致（3文字以上だけ）
-  else if (q.length >= 3 && ja.includes(q)) {
+  // 部分一致
+  else if (
+    qNorm.length >= 3 &&
+    jaNorm.includes(qNorm)
+  ) {
     score += 100;
   }
 
@@ -950,10 +956,8 @@ for (const [en, ja] of sorted) {
   }
 }
 
-// スコア順
 results.sort((a, b) => b.score - a.score);
 
-// 一番良い候補
 return results.length ? results[0].en : null;
 
   // 逆方向
