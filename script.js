@@ -263,34 +263,50 @@ window.changeOrderRegion = function(region) {
 // 日本語検索ユーティリティ（共通化）
 // ============================================
 function getMatchedEnglishNames(q) {
+
   const matchedEn = new Set();
-  const qH = toHiragana(q);
 
-  // 1. 読み仮名検索
-  searchByYomi(q).forEach(en => matchedEn.add(en));
+  const qNorm = toHiragana((q || "").toLowerCase());
 
-  // 2. ITEM_TRANSLATIONS（英語→日本語）から逆引きで部分一致
-  const sorted = Object.entries(ITEM_TRANSLATIONS).sort((a, b) => b[1].length - a[1].length);
+  // 読み検索
+  searchByYomi(q).forEach(en => {
+    matchedEn.add(en);
+  });
+
+  // ITEM_TRANSLATIONS
+  const sorted = Object.entries(ITEM_TRANSLATIONS)
+    .sort((a, b) => b[1].length - a[1].length);
+
   for (const [en, ja] of sorted) {
-    if (ja.includes(q) ||
-      toHiragana(ja).includes(qH)) {
+
+    const jaNorm = toHiragana((ja || "").toLowerCase());
+
+    let score = 0;
+
+    // 完全一致
+    if (jaNorm === qNorm) {
+      score += 1000;
+    }
+
+    // 前方一致
+    else if (jaNorm.startsWith(qNorm)) {
+      score += 500;
+    }
+
+    // 部分一致
+    else if (
+      qNorm.length >= 3 &&
+      jaNorm.includes(qNorm)
+    ) {
+      score += 100;
+    }
+
+    if (score > 0) {
       matchedEn.add(en.toLowerCase());
     }
   }
 
-  // 3. AUTO_PARTSの逆引き（日本語訳→英語キーワード）
-  // 例: "指輪"→"Ring", "リング"→"Ring"
-  if (typeof AUTO_PARTS !== 'undefined') {
-    for (const [en, ja] of AUTO_PARTS) {
-      if (ja.includes(q) || q.includes(ja) ||
-        toHiragana(ja).includes(qH) || qH.includes(toHiragana(ja))) {
-        // このenキーワードを含む英語名を全てマッチ対象に
-        matchedEn.add(en.toLowerCase());
-      }
-    }
-  }
-
-  // 4. 英語での直接部分一致（例: "ring", "argent"）
+  // 英語検索
   if (/^[a-zA-Z\s'&]+$/.test(q) && q.length >= 2) {
     matchedEn.add(q.toLowerCase());
   }
@@ -318,7 +334,17 @@ function filterByJapanese(items, q) {
       if (toHiragana(ja).includes(qH)) return true;
       // ITEM_YOMIを使った読みマッチ
       for (const [kanji, yomi] of Object.entries(ITEM_YOMI)) {
-        if (ja.includes(kanji) && (yomi.includes(qH) || qH.includes(yomi))) return true;
+        if (
+  ja.includes(kanji) &&
+  (
+    yomi === qH ||
+    yomi.startsWith(qH) ||
+    (
+      qH.length >= 3 &&
+      yomi.includes(qH)
+    )
+  )
+) return true;
       }
     }
 
