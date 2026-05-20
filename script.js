@@ -2653,3 +2653,94 @@ loadItemDetail = async function(item) {
 
 // 初期化
 updateBookmarkBadge();
+
+// ============================================
+// ブックマーク機能の修正（上書き）
+// ============================================
+
+// 1. 保存されているブックマークのリストを取得する機能
+function getBookmarks() {
+  try {
+    const json = localStorage.getItem('bitcraft_bookmarks');
+    return json ? JSON.parse(json) : [];
+  } catch(e) {
+    return [];
+  }
+}
+
+// 2. ブックマークがすでに登録されているかチェックする機能
+function isBookmarked(name) {
+  return getBookmarks().includes(name);
+}
+
+// 3. ブックマークボタンが押されたときの処理
+function toggleBookmark(name, btnElement) {
+  let bookmarks = getBookmarks();
+  
+  if (bookmarks.includes(name)) {
+    // すでに登録されていれば削除する
+    bookmarks = bookmarks.filter(b => b !== name);
+    if (btnElement) btnElement.classList.remove('active');
+  } else {
+    // 登録されていなければ追加する
+    bookmarks.push(name);
+    if (btnElement) btnElement.classList.add('active');
+  }
+  
+  // ブラウザのメモリ（localStorage）に保存
+  localStorage.setItem('bitcraft_bookmarks', JSON.stringify(bookmarks));
+  
+  // 今ブックマークページを開いているなら、表示をすぐに最新にする
+  if (typeof renderBookmarksPage === 'function') {
+    renderBookmarksPage();
+  }
+}
+
+// 4. 【重要】ブックマーク画面（一覧）に中身を描き出す機能
+function renderBookmarksPage() {
+  // 前回作った「bookmarkPageList」という箱を探す
+  const el = document.getElementById('bookmarkPageList'); 
+  if (!el) return;
+  
+  const bm = getBookmarks();
+  
+  // ブックマークが1つもない場合
+  if (bm.length === 0) {
+    el.innerHTML = '<p style="color:var(--text3); text-align:center; padding:40px 0; width:100%; grid-column: 1/-1;">ブックマークされたアイテムはありません。</p>';
+    return;
+  }
+  
+  // ブックマークがある場合、登録されたアイテムのカードを画面に作る
+  el.innerHTML = bm.map(name => {
+    // 日本語名があれば取得（なければ英語名のまま）
+    const ja = typeof getJaName === 'function' ? getJaName(name) : null;
+    const displayName = (ja && ja !== name) ? ja : name;
+    
+    return `
+      <div class="market-card" onclick="openFromSubPage('${name.replace(/'/g, "\\'")}')" style="background:var(--bg2); padding:15px; border:1px solid var(--border); border-radius:8px; cursor:pointer; display:flex; flex-direction:column; gap:8px;">
+        <div style="font-weight:bold; color:var(--text); font-size:1.1rem;">${displayName}</div>
+        ${ja && ja !== name ? `<div style="font-size:0.8rem; color:var(--text2);">${name}</div>` : ''}
+        <div style="font-size:0.75rem; color:var(--accent); text-align:right; margin-top:auto;">詳細を見る →</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// 5. リストからアイテムをクリックしたときに詳細画面を開く機能
+function openFromSubPage(name) {
+  // ホーム（検索画面）に戻す
+  if (typeof window.navGo === 'function') {
+    window.navGo('home');
+  }
+  
+  // 検索窓にアイテム名を入れて検索を実行する
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    searchInput.value = name;
+    if (typeof doSearch === 'function') {
+      doSearch();
+    } else if (typeof triggerSearch === 'function') {
+      triggerSearch();
+    }
+  }
+}
