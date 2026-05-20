@@ -990,10 +990,36 @@
   </div>
 </div>
 
-    <div id="homePage" class="hidden"></div>
-<div id="bookmarksPage" class="hidden"></div>
-<div id="recentPage" class="hidden"></div>
-<div id="historyPage" class="hidden"></div>
+<div id="homePage" class="page-section">
+  </div>
+
+<div id="bookmarksPage" class="page-section hidden">
+  <div class="section-header">
+    <h2>🔖 ブックマーク一覧</h2>
+  </div>
+  <div id="bookmarkList" class="market-grid">
+    <p class="empty-message">ブックマークされたアイテムはまだありません。</p>
+  </div>
+</div>
+
+<div id="recentPage" class="page-section hidden">
+  <div class="section-header">
+    <h2>🕒 最近見たアイテム</h2>
+    <button class="sh-clear" onclick="clearRecentHistory()">すべて削除</button>
+  </div>
+  <div id="recentList" class="market-grid">
+    <p class="empty-message">最近閲覧したアイテムはありません。</p>
+  </div>
+</div>
+
+<div id="historyPage" class="page-section hidden">
+  <div class="section-header">
+    <h2>🔍 検索履歴</h2>
+    <button class="sh-clear" onclick="clearSearchHistory()">すべて削除</button>
+  </div>
+  <ul id="historyList" class="history-page-list">
+    </ul>
+</div>
     
   </main>
 
