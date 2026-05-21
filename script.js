@@ -236,7 +236,7 @@ function renderSearchHistoryPanel() {
       document.getElementById('searchInput').value = t;
       doSearch();
     });
-    row.addEventListener('click', () => {
+   row.addEventListener('click', () => {
 
   navGoHome();
 
