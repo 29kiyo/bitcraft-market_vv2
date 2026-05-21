@@ -130,6 +130,7 @@ window.removeRecentlyViewed = function(name) {
 };
 
 window.clearAllRecentlyViewed = function() {
+  if (!confirm('閲覧履歴を全削除しますか？')) return;
   LS.set(RV_KEY, []);
   renderRecentlyViewedPanel();
   _updateNavBadges();
@@ -194,6 +195,7 @@ window.deleteSearchHistoryItem = function(term) {
 };
 
 window.clearAllSearchHistory = function() {
+  if (!confirm('検索履歴を全削除しますか？')) return;
   LS.set(SH_KEY, []);
   const dd = document.getElementById('searchHistoryDropdown');
   if (dd) dd.classList.add('hidden');
