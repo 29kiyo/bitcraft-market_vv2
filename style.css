@@ -2660,6 +2660,12 @@ text-overflow: ellipsis;
     justify-content: flex-end;
   }
 
+   .item-header {
+      flex-wrap: wrap;
+    gap: 6px;
+   }
+      
+
   .header-bookmark-btn  {
      justify-content: flex-end;
   }
