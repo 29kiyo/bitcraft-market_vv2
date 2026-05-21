@@ -167,20 +167,23 @@ function shAdd(q) {
 }
 
 window.deleteSearchHistoryItem = function(term) {
-  LS.set(
-    SH_KEY,
-    LS.get(SH_KEY, []).filter(n => n !== term)
-  );
-  _shRefreshDropdown();
-  setTimeout(() => {
-    const input =
-      document.getElementById('searchInput');
-    if (input) {
-      input.focus();
-    }
-    _shShowDropdown();
-  }, 0);
+
+  const next =
+    LS.get(SH_KEY, []).filter(n => n !== term);
+
+  LS.set(SH_KEY, next);
+
   _updateNavBadges();
+
+  if (next.length) {
+
+    _shShowDropdown();
+
+  } else {
+
+    _shHideDropdown();
+
+  }
 };
 
 window.clearAllSearchHistory = function() {
