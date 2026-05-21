@@ -237,10 +237,18 @@ function renderSearchHistoryPanel() {
       doSearch();
     });
     row.addEventListener('click', () => {
-      navGoHome();
-      document.getElementById('searchInput').value = t;
-      doSearch();
-    });
+
+  navGoHome();
+
+  setTimeout(() => {
+
+    document.getElementById('searchInput').value = t;
+
+    doSearch();
+
+  }, 50);
+
+});
     row.querySelector('.sh-panel-item-del').addEventListener('click', e => {
       e.stopPropagation();
       LS.set(SH_KEY, LS.get(SH_KEY, []).filter(n => n !== t));
