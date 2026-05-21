@@ -781,7 +781,7 @@ footer a:hover { color: var(--accent); }
   flex-direction: row;
   align-items: center;
   gap: 10px;
-  padding-right: 42px;
+  padding-right: 48px;
   padding: 8px 12px;
   background: rgba(255,255,255,0.03);
   border: 1px solid rgba(255,255,255,0.08);
@@ -2489,7 +2489,7 @@ text-overflow: ellipsis;
 .result-card { position: relative; }
 .card-bookmark-btn {
   position: absolute;
-  top: 10px; right: 10px;
+  top: 2px; right: 2px;
   background: none;
   border: none;
   font-size: 1rem;
@@ -2519,6 +2519,8 @@ text-overflow: ellipsis;
 }
 .header-bookmark-btn:hover          { color: var(--accent-gold); border-color: rgba(240,165,0,0.5); background: rgba(240,165,0,0.08); }
 .header-bookmark-btn.is-bookmarked  { color: var(--accent-gold); border-color: rgba(240,165,0,0.5); background: rgba(240,165,0,0.08); }
+
+
 
 /* ---- 検索履歴ドロップダウン ---- */
 .search-history-dropdown {
