@@ -2660,4 +2660,28 @@ text-overflow: ellipsis;
     justify-content: flex-end;
   }
 
+  /* 1. 全体を包む要素の横並びを「アイコン」と「テキスト全体」の2列だけにする */
+  .craft-ingredient {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%; /* 親要素いっぱいに広げる */
+  }
+
+  /* 2. テキスト全体を包むコンテナを縦並び(column)にする */
+  .craft-ingredient-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column; /* 中身をすべて上から下に並べる */
+    gap: 4px;
+  }
+
+  /* 3. 右側に固定されていた要素の「右寄せ」を解除し、左揃えにする */
+  .craft-ingredient-price,
+  .craft-ingredient-sell {
+    text-align: left; /* 右固定を解除 */
+    width: 100%;
+  }
+
 }
