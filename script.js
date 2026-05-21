@@ -199,7 +199,8 @@ function _shShowDropdown() {
       <div class="sh-item" onclick='_applyHistory(${JSON.stringify(t)})'>
         <span class="sh-item-icon">🔍</span>
         <span class="sh-item-text">${_esc(t)}</span>
-        <button class="sh-item-del" onclick="event.stopPropagation();deleteSearchHistoryItem(${JSON.stringify(t)})">✕</button>
+        <button class="sh-item-del"
+onclick='event.stopPropagation();deleteSearchHistoryItem(${JSON.stringify(t)})'>✕</button>
       </div>`).join('')}`;
   dd.classList.remove('hidden');
 }
