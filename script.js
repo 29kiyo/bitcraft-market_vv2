@@ -196,7 +196,7 @@ function _shShowDropdown() {
       <button class="sh-clear-btn" onclick="clearAllSearchHistory()">全削除</button>
     </div>
     ${list.map(t => `
-      <div class="sh-item" onclick="_applyHistory(${JSON.stringify(t)})">
+      <div class="sh-item" onclick='_applyHistory(${JSON.stringify(t)})'>
         <span class="sh-item-icon">🔍</span>
         <span class="sh-item-text">${_esc(t)}</span>
         <button class="sh-item-del" onclick="event.stopPropagation();deleteSearchHistoryItem(${JSON.stringify(t)})">✕</button>
