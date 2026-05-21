@@ -835,6 +835,11 @@ function hideSuggestions() {
 // メイン検索
 // ============================================
 async function doSearch() {
+  
+  document.getElementById('bookmarksPanel')?.classList.add('hidden');
+document.getElementById('searchHistoryPanel')?.classList.add('hidden');
+document.getElementById('recentlyViewedPanel')?.classList.add('hidden');
+  
   const q = searchInput.value.trim();
   
   // 特殊キーワード：全アイテム表示
