@@ -2661,13 +2661,21 @@ text-overflow: ellipsis;
   }
 
    .item-header {
-      flex-wrap: wrap;
-    gap: 6px;
-   }
+    display: flex;
+    flex-direction: column;
+    /* 必要に応じて、中身の要素間の隙間を調整してください */
+    gap: 16px; 
+  }
       
 
-  .header-bookmark-btn  {
-     justify-content: flex-end;
+  .header-bookmark-btn {
+    /* orderの初期値は0なので、1以上にすると一番下に落ちます */
+    order: 99; 
+    
+    /* スマホでボタンを横幅いっぱいに広げたい場合は以下を追加 */
+    width: 100%;
+    text-align: center;
+    box-sizing: border-box;
   }
 
  /* 1. 一番外側の枠：中身を完全に「縦並び」の1列にする */
