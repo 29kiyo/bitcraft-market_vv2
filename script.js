@@ -79,6 +79,13 @@ window.importBookmarks = function(e) {
   reader.readAsText(file);
 };
 
+window.clearAllBookmarks = function() {
+  if (!confirm('ブックマークを全削除しますか？')) return;
+  LS.set(BOOKMARK_KEY, []);
+  renderBookmarksPanel();
+  _updateNavBadges();
+};
+
 async function renderBookmarksPanel() {
   const list = bmGet();
   const el = document.getElementById('bookmarksList');
