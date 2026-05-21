@@ -2665,7 +2665,7 @@ text-overflow: ellipsis;
     flex-direction: column;
     /* 必要に応じて、中身の要素間の隙間を調整してください */
     gap: 16px; 
-  }
+   }
       
 
   .header-bookmark-btn {
