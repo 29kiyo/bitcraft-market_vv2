@@ -211,6 +211,7 @@ function _shShowDropdown() {
         <span class="sh-item-icon">🔍</span>
         <span class="sh-item-text">${_esc(t)}</span>
         <button class="sh-item-del"
+onmousedown="event.preventDefault()"
 onclick='event.stopPropagation();deleteSearchHistoryItem(${JSON.stringify(t)})'>✕</button>
       </div>`).join('')}`;
   dd.classList.remove('hidden');
