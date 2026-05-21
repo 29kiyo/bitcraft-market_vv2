@@ -2623,3 +2623,17 @@ text-overflow: ellipsis;
   .side-nav { width: 80vw; }
   .panel-header { gap: 8px; }
 }
+
+@media (max-width: 768px) {
+
+  .craft-item-header {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .craft-quantity-selector {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+}
