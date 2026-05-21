@@ -2679,3 +2679,4 @@ function renderIngredients(ingredients, depth = 0) {
     </div>
   `;
 }
+console.log("script end");
