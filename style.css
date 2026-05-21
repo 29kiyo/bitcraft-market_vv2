@@ -51,12 +51,15 @@ body {
 
 /* ---- ヘッダー ---- */
 header {
-  position: relative; z-index: 10;
+  position: relative;
+  z-index: 10;
   border-bottom: 1px solid var(--border);
   background: rgba(7,13,23,0.95);
   backdrop-filter: blur(12px);
 }
 .header-inner {
+  position: relative;
+  z-index: 10;
   max-width: 1200px;
   margin: 0 auto;
   padding: 16px 24px;
@@ -1876,7 +1879,7 @@ text-overflow: ellipsis;
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.7);
-  z-index: 1000;
+  z-index: 99999;
   display: flex;
   align-items: center;
   justify-content: center;
