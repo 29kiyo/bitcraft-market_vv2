@@ -532,7 +532,17 @@ searchInput.addEventListener('input', onSearchInput);
 searchInput.addEventListener('focus', () => {
   if (!searchInput.value.trim()) _shShowDropdown();
 });
-searchInput.addEventListener('blur', () => setTimeout(() => { hideSuggestions(); _shHideDropdown(); }, 200));
+searchInput.addEventListener('blur', () =>
+  setTimeout(() => {
+    hideSuggestions();
+    const active =
+      document.activeElement;
+    if (active && active.closest('#searchHistoryDropdown')) {
+      return;
+    }
+    _shHideDropdown();
+  }, 200)
+);
 
 // クリックイベント（統合）
 document.addEventListener('click', e => {
