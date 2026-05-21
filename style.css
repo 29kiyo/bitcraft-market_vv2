@@ -2660,80 +2660,56 @@ text-overflow: ellipsis;
     justify-content: flex-end;
   }
 
-  /* --- ベースの構造（PC・スマホ共通の土台） --- */
-.craft-ingredient {
-  display: flex;
-  align-items: flex-start; /* 上揃え */
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
-  width: 100%;             /* 横幅いっぱいに広げる */
-  box-sizing: border-box;
+  .header-bookmark-btn  {
+     justify-content: flex-end;
+  }
+
+ /* 1. 一番外側の枠：中身を完全に「縦並び」の1列にする */
+  .craft-ingredient {
+    display: flex !important;
+    flex-direction: column !important; /* 横並びをやめて上から下へ */
+    align-items: flex-start !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 2. アイコン：単体で左上にちょこんと置く */
+  .craft-ingredient-icon {
+    display: block !important;
+    width: 32px !important;
+    height: 32px !important;
+    margin-bottom: 4px !important;
+  }
+
+  /* 3. 中にあるすべての「部屋（divなど）」の横幅制限を完全に破壊する */
+  .craft-ingredient-info,
+  .craft-ingredient-price,
+  .craft-ingredient-wrap,
+  .craft-ingredient > div {
+    display: block !important;
+    width: 100% !important;        /* 横幅を100%にして文字が広がるスペースを作る */
+    max-width: 100% !important;
+    min-width: 0 !important;
+    float: none !important;        /* 横並びの要因を排除 */
+    position: static !important;   /* 右上に固定されるのを解除 */
+    text-align: left !important;   /* すべて左揃えに */
+    box-sizing: border-box !important;
+  }
+
+  /* 4. 文字要素単体もすべて横幅いっぱいに広げる */
+  .craft-ingredient-name,
+  .craft-ingredient-qty,
+  .craft-ingredient-claim,
+  .craft-ingredient-sell {
+    display: block !important;
+    width: 100% !important;
+    text-align: left !important;
+    white-space: normal !important;  /* 改行を許可 */
+    word-break: break-word !important; /* 英語の突っ張りを解消 */
+  }
+
 }
-
-.craft-ingredient:last-child { 
-  border-bottom: none; 
-}
-
-.craft-ingredient-icon {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-  flex-shrink: 0;          /* アイコンが絶対に潰れないように固定 */
-  background: var(--bg2);
-  border-radius: 4px;
-}
-
-/* 右側のテキストエリアをすべて包むコンテナ */
-.craft-ingredient-info {
-  flex: 1;                 /* 残りの横幅をすべて使う */
-  min-width: 0;            /* 文字の自動折り返しバグを防ぐ */
-  display: flex;
-  flex-direction: column;  /* ★中身を上から下に順番に並べる */
-  gap: 4px;                /* 行同士の隙間 */
-}
-
-/* 各テキスト要素が横に広がれるようにリセット */
-.craft-ingredient-name,
-.craft-ingredient-qty,
-.craft-ingredient-claim,
-.craft-ingredient-sell,
-.craft-ingredient-price {
-  display: block !important;
-  width: 100% !important;
-  text-align: left !important; /* ★右固定を完全に解除して左揃えに */
-  position: static !important; /* 絶対配置のバグを防ぐ */
-  float: none !important;
-  box-sizing: border-box;
-}
-
-.craft-ingredient-name {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text);
-
-  /* 👇 この2行を絶対に追加してください */
-  white-space: normal !important;  /* 枠内での自動改行を許可 */
-  word-break: break-word !important; /* 長い英単語でも枠の端で折る */
-}
-
-.craft-ingredient-qty {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 0.85rem;
-  color: var(--text);
-}
-
-.craft-ingredient-claim {
-  font-size: 0.75rem;
-  color: var(--text-muted, #888); /* 少し薄めの色にすると見やすくなります */
-}
-
-.craft-ingredient-sell {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
 
 /* --- スマホ特有の「親要素の潰れ」を直すための調整 --- */
 @media (max-width: 480px) {
@@ -2750,6 +2726,4 @@ text-overflow: ellipsis;
   .craft-modal-content {
     width: 100% !important;
   }
-}
-
 }
