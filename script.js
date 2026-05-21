@@ -81,7 +81,7 @@ window.importBookmarks = function(e) {
 
 window.clearAllBookmarks = function() {
   if (!confirm('ブックマークを全削除しますか？')) return;
-  LS.set(BOOKMARK_KEY, []);
+  LS.set(BM_KEY, []);
   renderBookmarksPanel();
   _updateNavBadges();
 };
